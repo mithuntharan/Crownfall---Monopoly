@@ -75,8 +75,8 @@ A modern, high-performance web adaptation of the classic Indian business board g
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/<your-username>/monopoly.git
-cd monopoly
+git clone https://github.com/mithuntharan/Crownfall---Monopoly.git
+cd Crownfall---Monopoly
 npm install
 ```
 
