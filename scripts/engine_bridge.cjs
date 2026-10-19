@@ -111,16 +111,26 @@ class CppEngineProcess {
   }
 }
 
-const engineProcess = new CppEngineProcess();
+let engineProcess = null;
+let timeoutTimer = null;
 
-// Periodic authoritative timeout check for turn timer
-setInterval(async () => {
-  if (engineProcess.process && !engineProcess.process.killed && engineProcess.queue.length === 0) {
-    try {
-      await engineProcess.sendCommand({ action: 'timeout' });
-    } catch (_) {}
+function getEngineProcess() {
+  if (!engineProcess) {
+    engineProcess = new CppEngineProcess();
+    // Periodic authoritative timeout check for turn timer (unref'd so it never hangs builds)
+    timeoutTimer = setInterval(async () => {
+      if (engineProcess && engineProcess.process && !engineProcess.process.killed && engineProcess.queue.length === 0) {
+        try {
+          await engineProcess.sendCommand({ action: 'timeout' });
+        } catch (_) {}
+      }
+    }, 1000);
+    if (timeoutTimer && typeof timeoutTimer.unref === 'function') {
+      timeoutTimer.unref();
+    }
   }
-}, 1000);
+  return engineProcess;
+}
 
 function handleEngineRequest(req, res) {
   const url = new URL(req.url, 'http://localhost');
@@ -134,9 +144,10 @@ function handleEngineRequest(req, res) {
       try { payload = JSON.parse(body); } catch (e) {}
     }
 
+    const proc = getEngineProcess();
     if (action === 'status' || action === '') {
       try {
-        const result = await engineProcess.sendCommand({ action: 'status' });
+        const result = await proc.sendCommand({ action: 'status' });
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(result));
       } catch (err) {
@@ -149,7 +160,7 @@ function handleEngineRequest(req, res) {
     // Pass action to C++ engine
     try {
       const cmd = { action, ...payload };
-      const result = await engineProcess.sendCommand(cmd);
+      const result = await proc.sendCommand(cmd);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(result));
     } catch (err) {
@@ -161,39 +172,43 @@ function handleEngineRequest(req, res) {
 }
 
 let multiplayerServer = null;
-try {
-  multiplayerServer = require('./multiplayer_server.cjs');
-} catch (_) {}
 
-// Dedicated port listener on 8444 as dual-endpoint fallback for LAN clients
-try {
-  if (multiplayerServer && multiplayerServer.server && !multiplayerServer.server.listening) {
-    multiplayerServer.server.listen(8444, '0.0.0.0', () => {
-      console.log('[ENGINE BRIDGE] Dedicated multiplayer listener active on 0.0.0.0:8444');
-    }).on('error', () => {
-      // Non-fatal if 8444 is already bound or restricted
-    });
+function ensureMultiplayerServer() {
+  if (!multiplayerServer) {
+    try {
+      multiplayerServer = require('./multiplayer_server.cjs');
+      if (multiplayerServer && multiplayerServer.server && !multiplayerServer.server.listening) {
+        multiplayerServer.server.listen(8444, '0.0.0.0', () => {
+          console.log('[ENGINE BRIDGE] Dedicated multiplayer listener active on 0.0.0.0:8444');
+        }).on('error', () => {
+          // Non-fatal if 8444 is already bound or restricted
+        });
+      }
+    } catch (_) {}
   }
-} catch (_) {}
+  return multiplayerServer;
+}
 
 function attachWebSocket(httpServer) {
-  if (!httpServer || !multiplayerServer) return;
+  const mpServer = ensureMultiplayerServer();
+  if (!httpServer || !mpServer) return;
   httpServer.on('upgrade', (req, socket, head) => {
     // Pass Vite HMR upgrades through to Vite
     const protocol = req.headers['sec-websocket-protocol'];
     if (protocol === 'vite-hmr') return;
-    multiplayerServer.server.emit('upgrade', req, socket, head);
+    mpServer.server.emit('upgrade', req, socket, head);
   });
 }
 
 function createViteMiddleware() {
+  const mpServer = ensureMultiplayerServer();
   return (req, res, next) => {
     if (req.url && req.url.startsWith('/api/engine')) {
       handleEngineRequest(req, res);
       return;
     }
-    if (req.url && (req.url.startsWith('/api/multiplayer') || req.url.startsWith('/api/admin') || req.url.startsWith('/api/health') || req.url === '/health') && multiplayerServer) {
-      multiplayerServer.server.emit('request', req, res);
+    if (req.url && (req.url.startsWith('/api/multiplayer') || req.url.startsWith('/api/admin') || req.url.startsWith('/api/health') || req.url === '/health') && mpServer) {
+      mpServer.server.emit('request', req, res);
       return;
     }
     next();
@@ -202,7 +217,7 @@ function createViteMiddleware() {
 
 module.exports = {
   CppEngineProcess,
-  engineProcess,
+  getEngineProcess,
   createViteMiddleware,
   handleEngineRequest,
   attachWebSocket,
