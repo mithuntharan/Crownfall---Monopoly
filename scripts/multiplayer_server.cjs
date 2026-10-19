@@ -1998,7 +1998,52 @@ async function handleClientMessage(msg, socket, bindContext) {
   }
 }
 
-// ─── HTTP REST API HANDLER (DUAL TRANSPORT) ───────────────────────────────────
+// ─── HTTP REST API HANDLER (DUAL TRANSPORT & STATIC WEB SERVING) ────────────────
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+};
+
+function serveStaticFile(res, filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'text/plain');
+      res.end('Server Error loading asset');
+      return;
+    }
+    const headers = {
+      'Content-Type': contentType,
+      'Access-Control-Allow-Origin': '*',
+    };
+    if (filePath.includes(path.sep + 'assets' + path.sep) || filePath.includes('/assets/')) {
+      headers['Cache-Control'] = 'public, max-age=31536000, immutable';
+    } else {
+      headers['Cache-Control'] = 'public, max-age=300';
+    }
+    res.writeHead(200, headers);
+    res.end(content);
+  });
+}
 
 function sendJson(res, statusCode, data) {
   res.statusCode = statusCode;
@@ -2041,7 +2086,24 @@ const server = http.createServer((req, res) => {
       try { payload = JSON.parse(body); } catch (_) {}
     }
 
-    // Health check (probed by Render or frontend health check)
+    // Static asset & SPA fallback serving in production (serves dist/)
+    if (req.method === 'GET' && !pathname.startsWith('/api/') && pathname !== '/health') {
+      const distDir = path.resolve(__dirname, '../dist');
+      if (fs.existsSync(distDir)) {
+        const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+        const targetPath = safePath === '/' ? path.join(distDir, 'index.html') : path.join(distDir, safePath);
+        if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+          return serveStaticFile(res, targetPath);
+        }
+        // SPA Fallback: serve dist/index.html for client routes (e.g. /?room=CRN-1234)
+        const indexPath = path.join(distDir, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          return serveStaticFile(res, indexPath);
+        }
+      }
+    }
+
+    // Health check (probed by Render, Railway, Fly.io, or frontend health check)
     if (pathname === '/api/health' || pathname === '/health') {
       let connectedPlayers = 0;
       for (const room of rooms.values()) {
