@@ -1,0 +1,10 @@
+{
+  "description": "Experience a premium digital board game that blends nostalgia with modern design, allowing players to strategize and compete in Crownfall.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,675 @@
+{
+  "README": [
+    {
+      "A1": "BUSINESS \u2014 Master Datasheet",
+      "B1": null
+    },
+    {
+      "A2": "Purpose",
+      "B2": "Current source-of-truth dataset for the Android reproduction of the old Speed Age India BUSINESS 36-space edition."
+    },
+    {
+      "A3": "Status",
+      "B3": "Working dataset. User-supplied values are locked unless later replaced by clearer historical card evidence."
+    },
+    {
+      "A4": "Money convention",
+      "B4": "All monetary values are rounded UP to the next \u20b9100 multiple."
+    },
+    {
+      "A5": "City data source status",
+      "B5": "Sourced / estimated status is retained in City Properties."
+    },
+    {
+      "A6": "Historical spelling",
+      "B6": "Preserve: Bombay, Madras, Bangalore, Kolkatta, Margoa, Ootacamund, Chandigadh."
+    },
+    {
+      "A7": "Board order",
+      "B7": "Exact 36-space board order/indices are intentionally not included yet; use the physical board as the authoritative source."
+    },
+    {
+      "A8": "Special property count",
+      "B8": "6: Railway, Roadways, Electrical Company, Air India, Water Works, Motor Boat."
+    },
+    {
+      "A9": "Chance / Chest mechanic",
+      "B9": "Dice SUM selects the declaration; no physical cards are used."
+    },
+    {
+      "A10": "Important",
+      "B10": "Do not silently replace estimated city rent/building values with values from newer Business editions."
+    }
+  ],
+  "City Properties": [
+    {
+      "A1": "Color",
+      "B1": "City",
+      "C1": "Price",
+      "D1": "Base Rent",
+      "E1": "1 House",
+      "F1": "2 Houses",
+      "G1": "3 Houses",
+      "H1": "Hotel",
+      "I1": "Build Cost",
+      "J1": "Mortgage",
+      "K1": "Source Status"
+    },
+    {
+      "A2": "Green",
+      "B2": "Margoa",
+      "C2": "4000",
+      "D2": "400",
+      "E2": "2000",
+      "F2": "3400",
+      "G2": "4800",
+      "H2": "6400",
+      "I2": "5000",
+      "J2": "2000",
+      "K2": "E"
+    },
+    {
+      "A3": "Green",
+      "B3": "Cochin",
+      "C3": "3000",
+      "D3": "300",
+      "E3": "1500",
+      "F3": "2600",
+      "G3": "3600",
+      "H3": "4800",
+      "I3": "3500",
+      "J3": "1500",
+      "K3": "E"
+    },
+    {
+      "A4": "Green",
+      "B4": "Ootacamund",
+      "C4": "2500",
+      "D4": "300",
+      "E4": "1200",
+      "F4": "2100",
+      "G4": "3000",
+      "H4": "4000",
+      "I4": "3000",
+      "J4": "1300",
+      "K4": "E"
+    },
+    {
+      "A5": "Green",
+      "B5": "Chandigadh",
+      "C5": "2500",
+      "D5": "200",
+      "E5": "900",
+      "F5": "1600",
+      "G5": "2500",
+      "H5": "3500",
+      "I5": "3000",
+      "J5": "1300",
+      "K5": "Sourced"
+    },
+    {
+      "A6": "Green",
+      "B6": "Delhi",
+      "C6": "6000",
+      "D6": "800",
+      "E6": "3000",
+      "F6": "4300",
+      "G6": "5500",
+      "H6": "7500",
+      "I6": "5000",
+      "J6": "3000",
+      "K6": "Sourced"
+    },
+    {
+      "A7": "Yellow",
+      "B7": "Simla",
+      "C7": "2200",
+      "D7": "200",
+      "E7": "1100",
+      "F7": "1900",
+      "G7": "2600",
+      "H7": "3500",
+      "I7": "2500",
+      "J7": "1100",
+      "K7": "E"
+    },
+    {
+      "A8": "Yellow",
+      "B8": "Amritsar",
+      "C8": "3300",
+      "D8": "300",
+      "E8": "1600",
+      "F8": "2800",
+      "G8": "4000",
+      "H8": "5300",
+      "I8": "4000",
+      "J8": "1700",
+      "K8": "E"
+    },
+    {
+      "A9": "Yellow",
+      "B9": "Srinagar",
+      "C9": "5000",
+      "D9": "600",
+      "E9": "3500",
+      "F9": "5000",
+      "G9": "7000",
+      "H9": "8000",
+      "I9": "6000",
+      "J9": "2500",
+      "K9": "Sourced"
+    },
+    {
+      "A10": "Yellow",
+      "B10": "Madras",
+      "C10": "7000",
+      "D10": "700",
+      "E10": "3500",
+      "F10": "6000",
+      "G10": "8400",
+      "H10": "11200",
+      "I10": "6000",
+      "J10": "3500",
+      "K10": "E"
+    },
+    {
+      "A11": "Yellow",
+      "B11": "Bangalore",
+      "C11": "4000",
+      "D11": "400",
+      "E11": "2000",
+      "F11": "3400",
+      "G11": "4800",
+      "H11": "6400",
+      "I11": "5000",
+      "J11": "2000",
+      "K11": "E"
+    },
+    {
+      "A12": "Red",
+      "B12": "Darjeeling",
+      "C12": "2500",
+      "D12": "200",
+      "E12": "1200",
+      "F12": "2600",
+      "G12": "3500",
+      "H12": "5000",
+      "I12": "3000",
+      "J12": "1300",
+      "K12": "Sourced"
+    },
+    {
+      "A13": "Red",
+      "B13": "Ahmedabad",
+      "C13": "4000",
+      "D13": "400",
+      "E13": "2000",
+      "F13": "3400",
+      "G13": "4800",
+      "H13": "6400",
+      "I13": "5000",
+      "J13": "2000",
+      "K13": "E"
+    },
+    {
+      "A14": "Red",
+      "B14": "Bombay",
+      "C14": "8500",
+      "D14": "1200",
+      "E14": "4000",
+      "F14": "7200",
+      "G14": "10200",
+      "H14": "13600",
+      "I14": "7000",
+      "J14": "4300",
+      "K14": "Partial source"
+    },
+    {
+      "A15": "Red",
+      "B15": "Hyderabad",
+      "C15": "3500",
+      "D15": "400",
+      "E15": "1800",
+      "F15": "3000",
+      "G15": "4200",
+      "H15": "5600",
+      "I15": "4000",
+      "J15": "1800",
+      "K15": "E"
+    },
+    {
+      "A16": "Red",
+      "B16": "Kolkatta",
+      "C16": "6500",
+      "D16": "700",
+      "E16": "3200",
+      "F16": "5500",
+      "G16": "7800",
+      "H16": "10400",
+      "I16": "5500",
+      "J16": "3300",
+      "K16": "E"
+    },
+    {
+      "A17": "Blue",
+      "B17": "Patna",
+      "C17": "2000",
+      "D17": "200",
+      "E17": "1000",
+      "F17": "1700",
+      "G17": "2400",
+      "H17": "3200",
+      "I17": "2500",
+      "J17": "1000",
+      "K17": "E"
+    },
+    {
+      "A18": "Blue",
+      "B18": "Indore",
+      "C18": "1500",
+      "D18": "200",
+      "E18": "800",
+      "F18": "1300",
+      "G18": "1800",
+      "H18": "2400",
+      "I18": "2000",
+      "J18": "800",
+      "K18": "E"
+    },
+    {
+      "A19": "Blue",
+      "B19": "Jaipur",
+      "C19": "3000",
+      "D19": "300",
+      "E19": "1500",
+      "F19": "2600",
+      "G19": "3600",
+      "H19": "4800",
+      "I19": "3500",
+      "J19": "1500",
+      "K19": "E"
+    },
+    {
+      "A20": "Blue",
+      "B20": "Agra",
+      "C20": "2500",
+      "D20": "300",
+      "E20": "1200",
+      "F20": "2100",
+      "G20": "3000",
+      "H20": "4000",
+      "I20": "3000",
+      "J20": "1300",
+      "K20": "E"
+    },
+    {
+      "A21": "Blue",
+      "B21": "Kanpur",
+      "C21": "4000",
+      "D21": "400",
+      "E21": "2000",
+      "F21": "3400",
+      "G21": "4800",
+      "H21": "6400",
+      "I21": "5000",
+      "J21": "2000",
+      "K21": "E"
+    }
+  ],
+  "Special Properties": [
+    {
+      "A1": "Property",
+      "B1": "Price",
+      "C1": "Mortgage",
+      "D1": "Rent Alone",
+      "E1": "Rent With Pair",
+      "F1": "Pair"
+    },
+    {
+      "A2": "Railway",
+      "B2": "9500",
+      "C2": "4800",
+      "D2": "\u20b9600 fixed",
+      "E2": "\u20b91,200 fixed",
+      "F2": "Railway + Roadways"
+    },
+    {
+      "A3": "Roadways",
+      "B3": "3200",
+      "C3": "1600",
+      "D3": "\u20b950 \u00d7 dice",
+      "E3": "\u20b9100 \u00d7 dice",
+      "F3": "Railway + Roadways"
+    },
+    {
+      "A4": "Electrical Company",
+      "B4": "2500",
+      "C4": "1300",
+      "D4": "\u20b925 \u00d7 dice",
+      "E4": "\u20b975 \u00d7 dice",
+      "F4": "Electrical Company + Air India"
+    },
+    {
+      "A5": "Air India",
+      "B5": "10500",
+      "C5": "5300",
+      "D5": "\u20b9800 fixed",
+      "E5": "\u20b91,500 fixed",
+      "F5": "Electrical Company + Air India"
+    },
+    {
+      "A6": "Water Works",
+      "B6": "3200",
+      "C6": "1600",
+      "D6": "\u20b950 \u00d7 dice",
+      "E6": "\u20b9100 \u00d7 dice",
+      "F6": "Water Works + Motor Boat"
+    },
+    {
+      "A7": "Motor Boat",
+      "B7": "5500",
+      "C7": "2800",
+      "D7": "\u20b975 \u00d7 dice",
+      "E7": "\u20b9150 \u00d7 dice",
+      "F7": "Water Works + Motor Boat"
+    }
+  ],
+  "Chance": [
+    {
+      "A1": "Section",
+      "B1": "Dice Sum",
+      "C1": "Declaration"
+    },
+    {
+      "A2": "Odd",
+      "B2": "3",
+      "C2": "Lottery prize, Rs. 2500"
+    },
+    {
+      "A3": "Odd",
+      "B3": "5",
+      "C3": "You have won consolation competition prize of Rs. 1000"
+    },
+    {
+      "A4": "Odd",
+      "B4": "7",
+      "C4": "You have won Jack Pot of Rs. 2000"
+    },
+    {
+      "A5": "Odd",
+      "B5": "9",
+      "C5": "Go back to Bombay. If you have to pass starting point, collect Rs. 1500 & go to Darjeeling."
+    },
+    {
+      "A6": "Odd",
+      "B6": "11",
+      "C6": "Prize for best performance in export, Rs. 3000"
+    },
+    {
+      "A7": "Even",
+      "B7": "2",
+      "C7": "Loss in share market, Rs. 2000"
+    },
+    {
+      "A8": "Even",
+      "B8": "4",
+      "C8": "Fine for accident due to driving under liquor influence, Rs. 1000"
+    },
+    {
+      "A9": "Even",
+      "B9": "6",
+      "C9": "House Renovating, Rs. 1500"
+    },
+    {
+      "A10": "Even",
+      "B10": "8",
+      "C10": "Loss due to fire in godown, Rs. 3000"
+    },
+    {
+      "A11": "Even",
+      "B11": "10",
+      "C11": "Go to Jail"
+    },
+    {
+      "A12": "Even",
+      "B12": "12",
+      "C12": "Go to Rest House. You cannot play next turn."
+    }
+  ],
+  "Community Chest": [
+    {
+      "A1": "Section",
+      "B1": "Dice Sum",
+      "C1": "Declaration"
+    },
+    {
+      "A2": "Odd",
+      "B2": "3",
+      "C2": "Go to Jail"
+    },
+    {
+      "A3": "Odd",
+      "B3": "5",
+      "C3": "School and medical fees, Rs. 1000"
+    },
+    {
+      "A4": "Odd",
+      "B4": "7",
+      "C4": "Marriage celebration, Rs. 2000"
+    },
+    {
+      "A5": "Odd",
+      "B5": "9",
+      "C5": "Make general repair on all your houses. Each house pay Rs. 50. Each hotel pay Rs. 100."
+    },
+    {
+      "A6": "Odd",
+      "B6": "11",
+      "C6": "Pay insurance premium, Rs. 1500"
+    },
+    {
+      "A7": "Even",
+      "B7": "2",
+      "C7": "If it is your Birthday. Collect from each player Rs. 500"
+    },
+    {
+      "A8": "Even",
+      "B8": "4",
+      "C8": "1st Prize in Beauty contest, Rs. 2500"
+    },
+    {
+      "A9": "Even",
+      "B9": "6",
+      "C9": "Income tax refund, Rs. 2000"
+    },
+    {
+      "A10": "Even",
+      "B10": "8",
+      "C10": "Go to Rest House. You cannot play next turn."
+    },
+    {
+      "A11": "Even",
+      "B11": "10",
+      "C11": "Receive interest on shares, Rs. 1500"
+    },
+    {
+      "A12": "Even",
+      "B12": "12",
+      "C12": "Sale of stocks, collect Rs. 3000"
+    }
+  ],
+  "Rules": [
+    {
+      "A1": "Section",
+      "B1": "Rule",
+      "C1": "Value / Description"
+    },
+    {
+      "A2": "Game Setup",
+      "B2": "Player count",
+      "C2": "2\u20136 players"
+    },
+    {
+      "A3": "Game Setup",
+      "B3": "Starting money options",
+      "C3": "\u20b920,000 / \u20b925,000 / \u20b930,000"
+    },
+    {
+      "A4": "Game Setup",
+      "B4": "Default starting money",
+      "C4": "\u20b925,000"
+    },
+    {
+      "A5": "Game Setup",
+      "B5": "Starting cash timing",
+      "C5": "Players begin with \u20b90; receive selected starting capital after completing first rotation"
+    },
+    {
+      "A6": "Game Setup",
+      "B6": "Starting position",
+      "C6": "Start"
+    },
+    {
+      "A7": "Game Setup",
+      "B7": "Starting order",
+      "C7": "Highest two-dice total starts; ties reroll among tied players"
+    },
+    {
+      "A8": "Game Setup",
+      "B8": "Turn direction",
+      "C8": "Clockwise"
+    },
+    {
+      "A9": "Game Setup",
+      "B9": "Doubles",
+      "C9": "Host chooses ON/OFF before game"
+    },
+    {
+      "A10": "Game Setup",
+      "B10": "Doubles ON",
+      "C10": "Doubles give an extra turn"
+    },
+    {
+      "A11": "Game Setup",
+      "B11": "Three doubles",
+      "C11": "Third consecutive doubles sends player directly to Jail; third movement is not resolved"
+    },
+    {
+      "A12": "Game Setup",
+      "B12": "Doubles OFF",
+      "C12": "One turn/one roll; no extra-turn or three-doubles rule"
+    },
+    {
+      "A13": "Movement",
+      "B13": "Dice",
+      "C13": "Two standard 6-sided dice"
+    },
+    {
+      "A14": "Movement",
+      "B14": "Pass Start",
+      "C14": "\u20b91,500 after first rotation; landing exactly on Start counts"
+    },
+    {
+      "A15": "First Rotation",
+      "B15": "Property purchase",
+      "C15": "Not allowed"
+    },
+    {
+      "A16": "First Rotation",
+      "B16": "Auction",
+      "C16": "No auction"
+    },
+    {
+      "A17": "First Rotation",
+      "B17": "Payments",
+      "C17": "No payments during first rotation"
+    },
+    {
+      "A18": "First Rotation",
+      "B18": "Chance/Chest",
+      "C18": "Effects ignored"
+    },
+    {
+      "A19": "First Rotation",
+      "B19": "Special spaces",
+      "C19": "Inactive"
+    },
+    {
+      "A20": "First Rotation",
+      "B20": "Start bonus",
+      "C20": "No \u20b91,500 bonus; starting capital awarded when first rotation completes"
+    },
+    {
+      "A21": "Property Purchase",
+      "B21": "Unowned property",
+      "C21": "Eligible player may buy at printed price"
+    },
+    {
+      "A22": "Property Purchase",
+      "B22": "Decline",
+      "C22": "Property remains unowned; no auction"
+    },
+    {
+      "A23": "Property Purchase",
+      "B23": "Cannot afford",
+      "C23": "Player may legally raise funds during same decision, then buy if affordable"
+    },
+    {
+      "A24": "Property Purchase",
+      "B24": "Ownership",
+      "C24": "Transfers immediately after purchase"
+    },
+    {
+      "A25": "Building",
+      "B25": "When allowed",
+      "C25": "Only when player lands on a property they own"
+    },
+    {
+      "A26": "Building",
+      "B26": "Affordability",
+      "C26": "Player must have enough money to pay building cost"
+    },
+    {
+      "A27": "Color Set",
+      "B27": "Complete group",
+      "C27": "Owning complete color group doubles undeveloped/base rent"
+    },
+    {
+      "A28": "Color Set",
+      "B28": "Developed property",
+      "C28": "Use applicable 1H/2H/3H/Hotel rent instead of doubled base rent"
+    },
+    {
+      "A29": "Money",
+      "B29": "Rounding",
+      "C29": "All monetary values are multiples of \u20b9100; round upward to next \u20b9100"
+    }
+  ],
+  "Color Groups": [
+    {
+      "A1": "Color",
+      "B1": "Properties",
+      "C1": "Complete Group Rule"
+    },
+    {
+      "A2": "Green",
+      "B2": "Margoa, Cochin, Ootacamund, Chandigadh, Delhi",
+      "C2": "Undeveloped/base rent doubles when complete group is owned"
+    },
+    {
+      "A3": "Yellow",
+      "B3": "Simla, Amritsar, Srinagar, Madras, Bangalore",
+      "C3": "Undeveloped/base rent doubles when complete group is owned"
+    },
+    {
+      "A4": "Red",
+      "B4": "Darjeeling, Ahmedabad, Bombay, Hyderabad, Kolkatta",
+      "C4": "Undeveloped/base rent doubles when complete group is owned"
+    },
+    {
+      "A5": "Blue",
+      "B5": "Patna, Indore, Jaipur, Agra, Kanpur",
+      "C5": "Undeveloped/base rent doubles when complete group is owned"
+    }
+  ]
+}

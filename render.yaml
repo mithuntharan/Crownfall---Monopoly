@@ -1,0 +1,39 @@
+# ==============================================================================
+# Crownfall — Render Blueprint (render.yaml)
+# Defines the free-tier deployment for both the Static Frontend and Docker Server.
+# ==============================================================================
+
+services:
+  # Authoritative C++ Multiplayer Room Server (Render Web Service)
+  - type: web
+    name: crownfall-server
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: MAX_CONNECTIONS
+        value: 500
+
+  # Crownfall Browser Client (Render Static Site)
+  - type: web
+    name: crownfall-web
+    runtime: static
+    plan: free
+    region: oregon
+    buildCommand: pnpm install && pnpm build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_WS_URL
+        value: wss://crownfall-server.onrender.com
+      - key: VITE_MULTIPLAYER_SERVER_URL
+        value: https://crownfall-server.onrender.com

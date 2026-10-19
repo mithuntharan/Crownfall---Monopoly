@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.cache
+.git
+.vscode
+.figma
+bin/*.exe
+*.log
+.env*
+!*.example

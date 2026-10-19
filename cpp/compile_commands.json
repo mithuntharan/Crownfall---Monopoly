@@ -1,0 +1,17 @@
+[
+  {
+    "directory": "D:/Monopoly/cpp",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Wall -Wextra -I include -c src/BusinessData.cpp -o ../bin/BusinessData.o",
+    "file": "D:/Monopoly/cpp/src/BusinessData.cpp"
+  },
+  {
+    "directory": "D:/Monopoly/cpp",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Wall -Wextra -I include -c src/GameEngine.cpp -o ../bin/GameEngine.o",
+    "file": "D:/Monopoly/cpp/src/GameEngine.cpp"
+  },
+  {
+    "directory": "D:/Monopoly/cpp",
+    "command": "C:/msys64/ucrt64/bin/g++.exe -std=c++17 -Wall -Wextra -I include -c src/main.cpp -o ../bin/main.o",
+    "file": "D:/Monopoly/cpp/src/main.cpp"
+  }
+]

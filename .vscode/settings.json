@@ -1,0 +1,18 @@
+{
+  "cmake.sourceDirectory": "D:/Monopoly",
+  "C_Cpp.default.cppStandard": "c++17",
+  "C_Cpp.default.cStandard": "c17",
+  "C_Cpp.default.compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
+  "C_Cpp.default.compilerArgs": [
+    "-std=c++17"
+  ],
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/cpp/include"
+  ],
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}",
+    "--header-insertion=never",
+    "--query-driver=C:/msys64/ucrt64/bin/g++.exe,C:/msys64/**"
+  ]
+}

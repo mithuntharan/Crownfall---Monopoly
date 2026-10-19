@@ -1,0 +1,7 @@
+CompileFlags:
+  Add:
+    - -std=c++17
+    - -Iinclude
+    - -ID:/Monopoly/cpp/include
+Diagnostics:
+  UnusedIncludes: None
