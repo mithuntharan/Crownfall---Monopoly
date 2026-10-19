@@ -1154,6 +1154,17 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
               << ",\"state\":" << toCompactJson(engine->exportStateJson())
               << "}\n"
               << std::flush;
+  } else if (action == "sellProperty") {
+    int playerId =
+        getJsonIntField(line, "playerId", engine->getActivePlayerIndex());
+    std::string propId = getJsonStringField(line, "propertyId");
+    int sellPrice = 0;
+    bool success = engine->sellProperty(playerId, propId, sellPrice);
+    std::cout << "{\"ok\":" << (success ? "true" : "false")
+              << ",\"sellPrice\":" << sellPrice
+              << ",\"state\":" << toCompactJson(engine->exportStateJson())
+              << "}\n"
+              << std::flush;
   } else if (action == "mortgage") {
     int playerId =
         getJsonIntField(line, "playerId", engine->getActivePlayerIndex());

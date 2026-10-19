@@ -199,6 +199,12 @@ export interface IGameEngine {
     success: boolean
     state: GameState
   }>
+  sellProperty(playerId: number, propertyId: string): Promise<{
+    success: boolean
+    state: GameState
+    sellPrice?: number
+    error?: string
+  }>
   createTradeOffer?(
     senderId: number,
     receiverId: number,

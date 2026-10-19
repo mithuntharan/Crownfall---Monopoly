@@ -146,6 +146,23 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     return { success: true, state }
   }
 
+  async sellProperty(
+    playerId: number,
+    propertyId: string,
+  ): Promise<{ success: boolean; state: GameState; sellPrice?: number; error?: string }> {
+    try {
+      const res = await (multiplayerClient as any).sendWsOrHttp?.("ACTION", {
+        action: "sellProperty",
+        propertyId,
+        playerId,
+      })
+      const state = res?.snapshot?.gameState || (await this.getState())
+      return { success: true, state, sellPrice: (res as any)?.sellPrice }
+    } catch (e: any) {
+      return { success: false, state: await this.getState(), error: e?.message }
+    }
+  }
+
   async endSession(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
     try {
       await multiplayerClient.resign()

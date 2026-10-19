@@ -51,6 +51,7 @@ public:
     bool declinePropertyPurchase(int playerId);
     bool buildHouseOrHotel(int playerId, const std::string& propertyId);
     bool sellHouseOrHotel(int playerId, const std::string& propertyId);
+    bool sellProperty(int playerId, const std::string& propertyId, int& outSellPrice);
     bool mortgageProperty(int playerId, const std::string& propertyId);
     bool unmortgageProperty(int playerId, const std::string& propertyId);
 

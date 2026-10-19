@@ -927,9 +927,82 @@ bool GameEngine::sellHouseOrHotel(int playerId, const std::string& propertyId) {
     return true;
 }
 
+bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& outSellPrice) {
+    outSellPrice = 0;
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
+    Player& player = m_players[playerId];
+
+    // Ownership check
+    bool ownsProperty = false;
+    for (const auto& owned : player.ownedProperties) {
+        if (owned == propertyId) { ownsProperty = true; break; }
+    }
+    if (!ownsProperty) return false;
+
+    // Must sell buildings first
+    if (player.buildings[propertyId] > 0) return false;
+
+    int basePrice = 0;
+    int mortgageVal = 0;
+    std::string propName = propertyId;
+    auto city = BusinessData::getCityPropertyById(propertyId);
+    if (city) {
+        basePrice = city->purchasePrice;
+        mortgageVal = city->mortgageValue;
+        propName = city->name;
+    } else {
+        auto sp = BusinessData::getSpecialPropertyById(propertyId);
+        if (sp) {
+            basePrice = sp->purchasePrice;
+            mortgageVal = sp->mortgageValue;
+            propName = sp->name;
+        }
+    }
+    if (basePrice <= 0) return false;
+
+    int boughtRound = 1;
+    for (const auto& tx : m_transactionLedger) {
+        if (tx.propertyId == propertyId && tx.type == "PURCHASE") {
+            boughtRound = tx.turnNumber;
+            break;
+        }
+    }
+
+    int roundsElapsed = std::max(0, m_roundNumber - boughtRound);
+    int depreciationPercent = std::min(90, roundsElapsed * 5);
+    int depreciatedValue = std::max(
+        static_cast<int>(std::round(basePrice * 0.1)),
+        static_cast<int>(std::round(basePrice * (1.0 - depreciationPercent / 100.0)))
+    );
+
+    bool isMortgaged = player.mortgages[propertyId];
+    int mortgageDeduction = isMortgaged ? (mortgageVal > 0 ? mortgageVal : static_cast<int>(std::round(basePrice * 0.5))) : 0;
+    int netCashProceeds = std::max(0, depreciatedValue - mortgageDeduction);
+
+    // Remove from owned
+    player.ownedProperties.erase(
+        std::remove(player.ownedProperties.begin(), player.ownedProperties.end(), propertyId),
+        player.ownedProperties.end()
+    );
+    player.mortgages.erase(propertyId);
+    player.buildings.erase(propertyId);
+    player.money += netCashProceeds;
+    outSellPrice = netCashProceeds;
+
+    std::string desc = player.name + " sold " + propName + " back to the bank for ₹" + std::to_string(netCashProceeds);
+    if (isMortgaged) {
+        desc += " (depreciated ₹" + std::to_string(depreciatedValue) + " minus mortgage payoff ₹" + std::to_string(mortgageDeduction) + ").";
+    } else {
+        desc += " (" + std::to_string(depreciationPercent) + "% depreciation over " + std::to_string(roundsElapsed) + " round(s)).";
+    }
+
+    addLogEntry(playerId, "sell_property", desc, netCashProceeds);
+    recordTransaction("PROPERTY_SALE", desc, netCashProceeds, playerId, -1, propertyId);
+    return true;
+}
+
 bool GameEngine::mortgageProperty(int playerId, const std::string& propertyId) {
     if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
-    if (!m_devMode && playerId != m_activePlayerIndex) return false;
     Player& player = m_players[playerId];
 
     // Ownership check
@@ -965,7 +1038,6 @@ bool GameEngine::mortgageProperty(int playerId, const std::string& propertyId) {
 
 bool GameEngine::unmortgageProperty(int playerId, const std::string& propertyId) {
     if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
-    if (!m_devMode && playerId != m_activePlayerIndex) return false;
     Player& player = m_players[playerId];
 
     // Ownership check

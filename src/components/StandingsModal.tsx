@@ -7,6 +7,9 @@ export function StandingsModal({
   activePlayerIndex = 0,
   localPlayerId = 0,
   roundNumber = 1,
+  isHost = false,
+  isMultiplayer = false,
+  onKickPlayer,
   onInspectPortfolio,
   close,
 }: {
@@ -14,6 +17,9 @@ export function StandingsModal({
   activePlayerIndex: number
   localPlayerId?: number
   roundNumber?: number
+  isHost?: boolean
+  isMultiplayer?: boolean
+  onKickPlayer?: (playerId: number) => void
   onInspectPortfolio?: (playerIdx: number) => void
   close: () => void
 }) {
@@ -189,17 +195,44 @@ export function StandingsModal({
                   </div>
                 </div>
 
-                {/* Inspect Portfolio Button */}
-                {onInspectPortfolio && (
-                  <div className="standings-card-actions">
+                {/* Actions Row */}
+                <div className="standings-card-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  {onInspectPortfolio && (
                     <button
                       className="standings-inspect-btn"
                       onClick={() => onInspectPortfolio(player.id)}
                     >
                       💼 INSPECT PORTFOLIO
                     </button>
-                  </div>
-                )}
+                  )}
+                  {isHost && isMultiplayer && player.id !== localPlayerId && !player.isBankrupt && (
+                    <button
+                      type="button"
+                      className="standings-kick-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (window.confirm(`Kick ${player.name} from the match?`)) {
+                          onKickPlayer?.(player.id)
+                        }
+                      }}
+                      title={`Host Control: Kick ${player.name} from match`}
+                      style={{
+                        padding: "6px 12px",
+                        background: "rgba(239, 68, 68, 0.2)",
+                        border: "1px solid rgba(239, 68, 68, 0.6)",
+                        borderRadius: "6px",
+                        color: "#fca5a5",
+                        fontFamily: "'Oswald', sans-serif",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      🥾 KICK PLAYER
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}

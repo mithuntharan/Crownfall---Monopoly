@@ -33,6 +33,7 @@ import type {
 
 type PlayerColor = string
 import CrownfallErrorBoundary from "./components/CrownfallErrorBoundary"
+import PlayerPuck from "./components/PlayerPuck"
 import { calculatePlayerPortfolio } from "./engine/portfolioUtils"
 import TransactionLedgerModal, {
   EVENT_LOG_CATEGORIES,
@@ -81,6 +82,7 @@ type Modal =
   | "sell"
   | "mortgage"
   | "unmortgage"
+  | "sell_property"
   | "chance"
   | "chest"
   | "jail"
@@ -621,25 +623,20 @@ function Token({
   player,
   active = false,
   className = "",
+  size = "sm",
 }: {
   player: EnginePlayer
   active?: boolean
   className?: string
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | number
 }) {
-  const safeColor = player?.color || "saffron"
-  const colorHex = getPlayerColorHex(safeColor)
   return (
-    <div
-      className={`token token-${safeColor} ${active ? "token-active" : ""} ${className}`}
-      style={{
-        backgroundColor: colorHex,
-        opacity: 1,
-        visibility: "visible",
-      }}
-      title={player?.name || "Player"}
-    >
-      {player?.token || "•"}
-    </div>
+    <PlayerPuck
+      player={player}
+      size={size}
+      active={active}
+      className={className}
+    />
   )
 }
 
@@ -681,41 +678,41 @@ function AppHeader({
 function MenuScreen({ navigate }: { navigate: (screen: Screen) => void }) {
   return (
     <main className="menu-screen">
-      <div className="menu-ornament ornament-one" />
-      <div className="menu-ornament ornament-two" />
-      <section className="menu-hero">
-        <div className="edition-seal">
-          EST.
-          <br />
-          INDIA
-        </div>
-        <Logo />
-        <p>
-          Build your empire.
-          <br />
-          Rule the board.
-        </p>
-      </section>
-      <section className="menu-actions">
-        <Button onClick={() => navigate("create")} icon="arrow">
-          PLAY / CREATE GAME
-        </Button>
-        <Button variant="secondary" onClick={() => navigate("join")}>
-          JOIN GAME
-        </Button>
-        <div className="menu-links">
-          <button onClick={() => navigate("settings")}>
-            <Icon name="gear" /> SETTINGS
-          </button>
-          <button>
-            <span className="question-icon">?</span> HOW TO PLAY
-          </button>
-        </div>
-      </section>
-      <footer className="menu-footer">
-        <span>v1.0</span>
-        <span className="safe-copy">A MODERN INDIAN CLASSIC</span>
-      </footer>
+      <div className="menu-container">
+        <section className="menu-hero">
+          <div className="edition-seal">
+            EST.
+            <br />
+            INDIA
+          </div>
+          <Logo />
+          <p>
+            Build your empire.
+            <br />
+            Rule the board.
+          </p>
+        </section>
+        <section className="menu-actions">
+          <Button onClick={() => navigate("create")} icon="arrow">
+            PLAY / CREATE GAME
+          </Button>
+          <Button variant="secondary" onClick={() => navigate("join")}>
+            JOIN GAME
+          </Button>
+          <div className="menu-links">
+            <button onClick={() => navigate("settings")}>
+              <Icon name="gear" /> SETTINGS
+            </button>
+            <button>
+              <span className="question-icon">?</span> HOW TO PLAY
+            </button>
+          </div>
+        </section>
+        <footer className="menu-footer">
+          <span>v1.0</span>
+          <span className="safe-copy">A MODERN INDIAN CLASSIC</span>
+        </footer>
+      </div>
     </main>
   )
 }
@@ -742,14 +739,34 @@ function SettingRow({
   )
 }
 
-function Toggle() {
-  const [on, setOn] = useState(true)
+function Toggle({
+  on: controlledOn,
+  onChange,
+  label,
+}: {
+  on?: boolean
+  onChange?: (val: boolean) => void
+  label?: string
+} = {}) {
+  const [internalOn, setInternalOn] = useState(true)
+  const isControlled = controlledOn !== undefined
+  const isOn = isControlled ? controlledOn : internalOn
+
+  const handleClick = () => {
+    if (isControlled) {
+      onChange?.(!controlledOn)
+    } else {
+      setInternalOn(!internalOn)
+      onChange?.(!internalOn)
+    }
+  }
 
   return (
     <button
-      className={`toggle ${on ? "on" : ""}`}
-      onClick={() => setOn(!on)}
-      aria-label="Toggle setting"
+      type="button"
+      className={`toggle ${isOn ? "on" : ""}`}
+      onClick={handleClick}
+      aria-label={label || "Toggle setting"}
     >
       <span />
     </button>
@@ -1103,7 +1120,7 @@ function SetupScreen({
                 {enteredColor}
               </span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))", gap: "8px" }}>
               {AVAILABLE_PLAYER_COLORS.map((c) => {
                 const isSelected = enteredColor.toLowerCase() === c.id
                 const isTaken = !create && players.some((p) => p.connected !== false && !p.isLeft && p.color?.toLowerCase() === c.id)
@@ -1124,24 +1141,29 @@ function SetupScreen({
                       setEnteredColor(c.id)
                     }}
                     style={{
-                      padding: "8px",
-                      borderRadius: "6px",
-                      border: isSelected ? "2px solid #ffffff" : isTaken ? "1px dashed rgba(0,0,0,0.3)" : "1px solid var(--border-subtle)",
-                      boxShadow: isSelected ? "0 0 0 2px var(--gold)" : "none",
-                      background: c.hex,
-                      color: "#fff",
+                      padding: "8px 6px",
+                      borderRadius: "10px",
+                      border: isSelected ? "1.5px solid var(--gold-bright)" : "1px solid var(--glass-border)",
+                      background: isSelected ? "rgba(217, 119, 6, 0.16)" : "rgba(14, 22, 42, 0.6)",
+                      boxShadow: isSelected ? "0 0 12px rgba(245, 158, 11, 0.3)" : "none",
                       cursor: isTaken ? "not-allowed" : "pointer",
                       opacity: isTaken ? 0.35 : 1,
-                      fontWeight: 700,
-                      fontSize: "11px",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "4px",
+                      gap: "6px",
+                      transition: "all 0.18s ease",
                     }}
                   >
-                    <span>{c.name}</span>
-                    {isSelected && <span>✓</span>}
+                    <PlayerPuck
+                      player={{ name: c.name, color: c.id, token: c.name.charAt(0) }}
+                      size="sm"
+                      active={isSelected}
+                    />
+                    <span style={{ fontSize: "10px", fontWeight: 700, color: isSelected ? "var(--gold-bright)" : "var(--text-subtle)", letterSpacing: "0.04em" }}>
+                      {c.name}
+                    </span>
                   </button>
                 )
               })}
@@ -1195,6 +1217,10 @@ function LobbyScreen({
   connectionStatus = "connected",
   connectionMessage = "",
   onRetryConnection,
+  onRemovePlayer,
+  pendingRequests = [],
+  onAcceptJoinRequest,
+  onRejectJoinRequest,
 }: {
   navigate: (screen: Screen) => void
   rematch?: boolean
@@ -1215,6 +1241,10 @@ function LobbyScreen({
   connectionStatus?: ConnectionStatus
   connectionMessage?: string
   onRetryConnection?: () => void
+  onRemovePlayer?: (playerId: number) => void
+  pendingRequests?: PendingJoinRequest[]
+  onAcceptJoinRequest?: (requestId: string) => void
+  onRejectJoinRequest?: (requestId: string) => void
 }) {
   const [colorValidationError, setColorValidationError] = useState<string | null>(null)
   const [nameValidationError, setNameValidationError] = useState<string | null>(null)
@@ -1282,6 +1312,104 @@ function LobbyScreen({
               : `SEAT: PLAYER ${localPlayerId + 1} (${players[localPlayerId]?.name || "YOU"})`}
           </span>
         </div>
+
+        {/* Host Pending Join Requests Banner */}
+        {localPlayerId === 0 && pendingRequests && pendingRequests.length > 0 && (
+          <div
+            className="lobby-pending-requests-card"
+            style={{
+              marginBottom: "12px",
+              padding: "12px 14px",
+              borderRadius: "10px",
+              background: "rgba(200, 155, 69, 0.16)",
+              border: "1.5px solid var(--gold)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <strong style={{ fontSize: "12px", color: "var(--gold-light)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>👑</span> PENDING JOIN REQUESTS ({pendingRequests.length})
+              </strong>
+              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)" }}>Host approval required</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {pendingRequests.map((req) => (
+                <div
+                  key={req.requestId}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "rgba(0,0,0,0.5)",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span
+                      style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        backgroundColor: getPlayerColorHex(req.color as any),
+                        display: "inline-block",
+                        boxShadow: "0 0 6px rgba(0,0,0,0.5)",
+                      }}
+                    />
+                    <strong style={{ fontSize: "13px", color: "#fff" }}>{req.name}</strong>
+                    <span style={{ fontSize: "10px", color: "var(--gold-300)", textTransform: "uppercase", fontWeight: 700 }}>
+                      ({req.color})
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => onAcceptJoinRequest?.(req.requestId)}
+                      style={{
+                        padding: "5px 12px",
+                        background: "#16a34a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      ✓ ACCEPT
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRejectJoinRequest?.(req.requestId)}
+                      style={{
+                        padding: "5px 10px",
+                        background: "rgba(220, 38, 38, 0.25)",
+                        color: "#fca5a5",
+                        border: "1px solid rgba(239, 68, 68, 0.6)",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✕ DECLINE
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="lobby-list">
           {players.map((player, index) => {
             const isSelf = index === localPlayerId
@@ -1363,7 +1491,7 @@ function LobbyScreen({
                       >
                         YOUR TOKEN COLOR
                       </label>
-                      <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginTop: "4px" }}>
                         {AVAILABLE_PLAYER_COLORS.map((c) => {
                           const isTaken = players.some((p, pIdx) => pIdx !== index && p.connected !== false && !p.isLeft && p.color?.toLowerCase() === c.id)
                           const isCurrent = player.color?.toLowerCase() === c.id
@@ -1385,20 +1513,18 @@ function LobbyScreen({
                               }}
                               title={isTaken ? `${c.name} (Taken)` : c.name}
                               style={{
-                                width: "22px",
-                                height: "22px",
-                                borderRadius: "4px",
-                                backgroundColor: c.hex,
-                                border: isCurrent ? "2px solid #ffffff" : isTaken ? "1px dashed rgba(255,255,255,0.4)" : "1px solid rgba(0,0,0,0.3)",
-                                boxShadow: isCurrent ? "0 0 0 2px var(--gold)" : "none",
+                                background: "transparent",
+                                padding: 0,
+                                border: "none",
                                 opacity: isTaken ? 0.35 : 1,
                                 cursor: isTaken ? "not-allowed" : "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
                               }}
                             >
-                              {isCurrent && <span style={{ color: "#ffffff", fontSize: "11px", fontWeight: "bold" }}>✓</span>}
+                              <PlayerPuck
+                                player={{ name: c.name, color: c.id, token: c.name.charAt(0) }}
+                                size="sm"
+                                active={isCurrent}
+                              />
                             </button>
                           )
                         })}
@@ -1426,9 +1552,37 @@ function LobbyScreen({
                     {isSelf ? " · [YOU]" : ""}
                   </small>
                 </div>
-                <span className="ready-pill" style={isSelf ? { background: "var(--gold)", color: "var(--ink)" } : {}}>
-                  {isSelf ? "YOU" : "READY"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span className="ready-pill" style={isSelf ? { background: "var(--gold)", color: "var(--ink)" } : {}}>
+                    {isSelf ? "YOU" : "READY"}
+                  </span>
+                  {localPlayerId === 0 && index !== 0 && (
+                    <button
+                      type="button"
+                      className="lobby-kick-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemovePlayer?.(index)
+                      }}
+                      title={`Host Control: Remove ${player.name} from lobby`}
+                      style={{
+                        padding: "4px 8px",
+                        background: "rgba(220, 38, 38, 0.2)",
+                        border: "1px solid rgba(239, 68, 68, 0.6)",
+                        borderRadius: "6px",
+                        color: "#fca5a5",
+                        fontFamily: '"Oswald", sans-serif',
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        letterSpacing: "0.08em",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      ✕ REMOVE
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}
@@ -1610,13 +1764,14 @@ function calculateFittingFontSize(
   usableH: number,
   isCorner: boolean,
 ): number {
-  const maxFs = isCorner ? 15.5 : 13.5
-  const minFs = 7.0
-  const fontFamily = isCorner ? "Playfair Display" : "Oswald"
-  const fontWeight = isCorner ? 800 : 700
+  const maxFs = isCorner ? 14.5 : 12.0
+  const minFs = 6.5
+  const fontFamily = isCorner ? "Playfair Display" : "DM Sans"
+  const fontWeight = isCorner ? 800 : 600
   const lineHeightMultiplier = isCorner ? 1.1 : 1.12
+  const targetW = usableW * 0.88 // 12% safety margin to ensure no overflow on phones
 
-  if (usableW <= 0 || usableH <= 0) return 11
+  if (usableW <= 0 || usableH <= 0) return 10
 
   let low = minFs
   let high = maxFs
@@ -1631,7 +1786,7 @@ function calculateFittingFontSize(
     } else {
       for (const line of lines) {
         const measuredW = measureWordWidth(line, mid, fontWeight, fontFamily)
-        if (measuredW > usableW) {
+        if (measuredW > targetW) {
           fits = false
           break
         }
@@ -1679,16 +1834,29 @@ function BoardSpaceLabel({
   const lines = words
 
   const fontSize = calculateFittingFontSize(lines, usableW, usableH, isCorner)
+  const isRailway = space.propertyId === "railway" || space.name.toUpperCase().includes("RAILWAY")
+  const isElectric = space.propertyId === "electrical_company"
+  const isWater = space.propertyId === "water_works"
+  const isRoadways = space.propertyId === "roadways"
+  const isAirIndia = space.propertyId === "air_india"
 
   return (
     <div className="board-space-content">
+      {isRailway && <span className="special-space-icon" aria-hidden="true">🚆</span>}
+      {isElectric && <span className="special-space-icon" aria-hidden="true">⚡</span>}
+      {isWater && <span className="special-space-icon" aria-hidden="true">💧</span>}
+      {isRoadways && <span className="special-space-icon" aria-hidden="true">🚌</span>}
+      {isAirIndia && <span className="special-space-icon" aria-hidden="true">✈️</span>}
       <b
         className="board-space-label"
         style={{
           fontSize: `${fontSize}px`,
-          lineHeight: 1.1,
+          lineHeight: 1.15,
           wordBreak: "keep-all",
           overflowWrap: "normal",
+          maxWidth: "100%",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
         {lines.map((line, idx) => (
@@ -1700,14 +1868,17 @@ function BoardSpaceLabel({
               whiteSpace: "nowrap",
               wordBreak: "keep-all",
               overflowWrap: "normal",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {line}
           </span>
         ))}
       </b>
-      {price && <small>Rs{price.toLocaleString()}</small>}
-      {space.type === "tax" && <small>Rs500</small>}
+      {price ? <span className="price-chip">₹{price.toLocaleString()}</span> : null}
+      {space.type === "tax" && <span className="price-chip">₹500</span>}
     </div>
   )
 }
@@ -1795,7 +1966,7 @@ function Board({
           <div className="board-compass">N</div>
           <div className="board-center-logo">
             <Logo compact />
-            <small>THE EMPIRE AWAITS</small>
+            <span className="board-center-motto">THE EMPIRE AWAITS</span>
           </div>
           <BoardCenterRecentEvents
             events={recentEvents}
@@ -1861,6 +2032,7 @@ function Board({
               >
                 <Token
                   player={player}
+                  size="sm"
                   active={idx === (moving ? targetMovingIndex : activePlayerIndex)}
                   className={isGliding ? "token-gliding" : ""}
                 />
@@ -1875,6 +2047,8 @@ function Board({
           const isCity = space.type === "city"
 
           const isSpecial = space.type === "special"
+
+          const isRailway = space.propertyId === "railway" || space.name.toUpperCase().includes("RAILWAY")
 
           const cityData =
             isCity && space.propertyId
@@ -1891,15 +2065,17 @@ function Board({
           const spaceClass =
             space.type === "corner"
               ? "space-corner"
-              : space.type === "chance"
-                ? "space-chance"
-                : space.type === "chest"
-                  ? "space-chest"
-                  : space.type === "tax"
-                    ? "space-tax"
-                    : space.type === "special"
-                      ? "space-special"
-                      : `space-${space.colorGroup.toLowerCase()}`
+              : isRailway
+                ? "space-special space-railway"
+                : space.type === "chance"
+                  ? "space-chance"
+                  : space.type === "chest"
+                    ? "space-chest"
+                    : space.type === "tax"
+                      ? "space-tax"
+                      : space.type === "special"
+                        ? "space-special"
+                        : `space-${space.colorGroup.toLowerCase()}`
 
           const propertyOwner = space.propertyId
             ? players.find((p) => p.ownedProperties.includes(space.propertyId!))
@@ -1931,7 +2107,7 @@ function Board({
               onClick={() => onSelectSpace(space)}
               aria-label={`${space.name} (Index ${space.index})`}
             >
-              <span className="space-band" />
+              {isCity && space.colorGroup !== "NONE" && <span className="space-band" />}
               <BoardSpaceLabel
                 space={space}
                 price={price}
@@ -1956,16 +2132,19 @@ function Board({
               )}
               {buildingCount > 0 && propertyOwner && (
                 <div
-                  className="tile-buildings-container"
+                  className={`tile-buildings-container side-${space.side} ${buildingCount >= 4 ? "has-hotel" : "has-houses"}`}
                   title={buildingCount >= 4 ? `Hotel constructed by ${propertyOwner.name}` : `${buildingCount} House${buildingCount > 1 ? "s" : ""} built by ${propertyOwner.name}`}
                   aria-label={buildingCount >= 4 ? "Hotel" : `${buildingCount} Houses`}
                 >
                   {buildingCount >= 4 ? (
                     <span
                       className="building-marker-hotel"
-                      style={{ color: getPlayerColorHex(propertyOwner.color) }}
+                      style={{
+                        color: "#fff",
+                        backgroundColor: getPlayerColorHex(propertyOwner.color),
+                      }}
                     >
-                      <svg viewBox="0 0 24 24" fill="currentColor">
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
                         <path d="M4 21V3a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v18h1a1 1 0 0 1 0 2H3a1 1 0 0 1 0-2h1zm3-15v2h3V6H7zm7 0v2h3V6h-3zm-7 4v2h3v-2H7zm7 0v2h3v-2h-3zm-7 4v2h3v-2H7zm7 0v2h3v-2h-3zm-5 5v4h4v-4h-4z" />
                       </svg>
                     </span>
@@ -1974,9 +2153,12 @@ function Board({
                       <span
                         key={bIdx}
                         className="building-marker-house"
-                        style={{ color: getPlayerColorHex(propertyOwner.color) }}
+                        style={{
+                          color: "#fff",
+                          backgroundColor: getPlayerColorHex(propertyOwner.color),
+                        }}
                       >
-                        <svg viewBox="0 0 24 24" fill="currentColor">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
                           <path d="M12 2.5l9 7.2-1.3 1.6-1.7-1.3V21H6V10l-1.7 1.3-1.3-1.6 9-7.2zm4 9.5H8v7h8v-7z" />
                         </svg>
                       </span>
@@ -1986,9 +2168,10 @@ function Board({
               )}
               {propertyOwner && (
                 <span
-                  className="tile-owner-indicator"
+                  className={`tile-owner-indicator side-${space.side}`}
                   style={{
                     backgroundColor: getPlayerColorHex(propertyOwner.color),
+                    borderColor: getPlayerColorHex(propertyOwner.color),
                   }}
                   title={`Owned by ${propertyOwner.name} (${propertyOwner.color})`}
                 />
@@ -2008,11 +2191,19 @@ function PlayerStrip({
   openPlayers,
   activePlayerIndex,
   playerPositions,
+  isHost = false,
+  isMultiplayer = false,
+  localPlayerId,
+  onKickPlayer,
 }: {
   players: EnginePlayer[]
   openPlayers: () => void
   activePlayerIndex: number
   playerPositions: number[]
+  isHost?: boolean
+  isMultiplayer?: boolean
+  localPlayerId?: number
+  onKickPlayer?: (playerId: number) => void
 }) {
   return (
     <section className="player-strip">
@@ -2025,6 +2216,7 @@ function PlayerStrip({
           const isBankrupt = (player as { isBankrupt?: boolean }).isBankrupt ?? false
           const isJailed = (player as { isJailed?: boolean }).isJailed ?? false
           const isResting = (player as { isResting?: boolean }).isResting ?? false
+          const canKick = isHost && isMultiplayer && player.id !== localPlayerId && !isBankrupt
 
           let statusIcon = ""
           let statusClass = ""
@@ -2042,6 +2234,32 @@ function PlayerStrip({
                 <div className="ps-name">
                   {player.name}
                   {statusIcon && <span className="ps-status-icon">{statusIcon}</span>}
+                  {canKick && (
+                    <button
+                      type="button"
+                      className="ps-kick-btn"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (window.confirm(`Kick ${player.name} from the match?`)) {
+                          onKickPlayer?.(player.id)
+                        }
+                      }}
+                      title={`Host Control: Kick ${player.name} from match`}
+                      style={{
+                        marginLeft: "4px",
+                        padding: "1px 5px",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        background: "rgba(239, 68, 68, 0.25)",
+                        border: "1px solid rgba(239, 68, 68, 0.6)",
+                        borderRadius: "3px",
+                        color: "#fca5a5",
+                        cursor: "pointer",
+                      }}
+                    >
+                      🥾
+                    </button>
+                  )}
                 </div>
                 <div className="ps-balance">₹{player.money.toLocaleString()}</div>
                 <div className="ps-meta">
@@ -2675,6 +2893,7 @@ function GameModal({
   onQuitGame,
   isLeavingRoom = false,
   roomCode,
+  onKickPlayer,
 }: {
   type: Exclude<Modal, null>
 
@@ -2725,6 +2944,7 @@ function GameModal({
   onUpdateRules?: (rules: Partial<GameRules>) => Promise<{ success: boolean; error?: string }>
   isGameStarted?: boolean
   isHost?: boolean
+  onKickPlayer?: (playerId: number) => void
 }) {
   if (type === "trade") {
     return (
@@ -2842,6 +3062,9 @@ function GameModal({
         players={players || []}
         localPlayerId={localPlayerId}
         transactionLedger={transactionLedger || []}
+        isHost={isHost}
+        isMultiplayer={Boolean(roomCode || multiplayerClient.getRoomCode())}
+        onKickPlayer={onKickPlayer}
         close={close}
       />
     )
@@ -2871,26 +3094,30 @@ function GameModal({
             Surrender & Resign from the Match?
           </p>
           <p style={{ color: "var(--ink-soft)", fontSize: "12px", marginBottom: "20px", lineHeight: 1.5 }}>
-            Resigning as <strong>{resignPlayerObj?.name}</strong> will liquidate your properties and liabilities to the Bank and eliminate you from active gameplay. This action is authoritative and cannot be reversed.
+            Resigning as <strong>{resignPlayerObj?.name}</strong> will liquidate your properties to the Bank, surrender your position, and immediately exit the match session back to the Main Menu.
           </p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
             <Button variant="ghost" onClick={close}>Cancel</Button>
             <Button
               variant="danger"
               onClick={async () => {
-                const res = await defaultEngine.resignPlayer?.(localPlayerId)
-                if (res && res.success) {
-                  if (setPlayers) setPlayers(res.state.players)
+                try {
+                  const res = await defaultEngine.resignPlayer?.(localPlayerId)
+                  if (res && res.success && setPlayers) {
+                    setPlayers(res.state.players)
+                  }
                   try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
-                  onShowToast?.("You have resigned from the match.")
-                  onResign?.()
-                } else if (res && res.error) {
-                  onShowToast?.(res.error)
-                }
+                } catch (_) {}
+                onShowToast?.("You have resigned and left the match.")
                 close()
+                if (onResign) {
+                  onResign()
+                } else if (onQuitGame) {
+                  onQuitGame()
+                }
               }}
             >
-              Confirm Resignation
+              Confirm Resignation & Quit
             </Button>
           </div>
         </div>
@@ -3317,21 +3544,22 @@ function GameModal({
   // ── MORTGAGE ──
 
   if (type === "mortgage") {
-    const activePlayer = players[activePlayerIndex]
+    const owner = (players || []).find((p) => (p.ownedProperties || []).includes(selectedProperty.id)) ||
+      (players && players[activePlayerIndex]) || initialPlayers[0]
 
     const mortgageVal = selectedProperty.mortgageValue
 
-    const currentBuildings = activePlayer.buildings[selectedProperty.id] || 0
+    const currentBuildings = (owner.buildings && owner.buildings[selectedProperty.id]) || 0
 
     const hasBuildings = currentBuildings > 0
 
-    const projectedBalance = activePlayer.money + mortgageVal
+    const projectedBalance = owner.money + mortgageVal
 
     const handleConfirmMortgage = async () => {
-      if (hasBuildings || activePlayer.mortgages[selectedProperty.id]) return
+      if (hasBuildings || (owner.mortgages && owner.mortgages[selectedProperty.id])) return
 
       const res = await defaultEngine.mortgageProperty(
-        activePlayerIndex,
+        owner.id,
         selectedProperty.id,
       )
 
@@ -3366,7 +3594,7 @@ function GameModal({
         <Button
           onClick={handleConfirmMortgage}
           disabled={
-            hasBuildings || !!activePlayer.mortgages[selectedProperty.id]
+            hasBuildings || !!(owner.mortgages && owner.mortgages[selectedProperty.id])
           }
         >
           {hasBuildings
@@ -3383,7 +3611,8 @@ function GameModal({
   // ── UNMORTGAGE ──
 
   if (type === "unmortgage") {
-    const activePlayer = players[activePlayerIndex]
+    const owner = (players || []).find((p) => (p.ownedProperties || []).includes(selectedProperty.id)) ||
+      (players && players[activePlayerIndex]) || initialPlayers[0]
 
     const mortgageVal = selectedProperty.mortgageValue
 
@@ -3391,15 +3620,15 @@ function GameModal({
 
     const totalRepayment = Math.ceil((mortgageVal + interest) / 100) * 100
 
-    const canAfford = activePlayer.money >= totalRepayment
+    const canAfford = owner.money >= totalRepayment
 
-    const projectedBalance = activePlayer.money - totalRepayment
+    const projectedBalance = owner.money - totalRepayment
 
     const handleConfirmUnmortgage = async () => {
-      if (!canAfford || !activePlayer.mortgages[selectedProperty.id]) return
+      if (!canAfford || !(owner.mortgages && owner.mortgages[selectedProperty.id])) return
 
       const res = await defaultEngine.unmortgageProperty(
-        activePlayerIndex,
+        owner.id,
         selectedProperty.id,
       )
 
@@ -3433,6 +3662,166 @@ function GameModal({
     )
   }
 
+  // ── SELL PROPERTY (5% DEPRECIATION PER ROUND COMPLETED AFTER BUYING) ──
+
+  if (type === "sell_property") {
+    const owner = (players || []).find((p) => (p.ownedProperties || []).includes(selectedProperty.id)) ||
+      (players && players[localPlayerId]) ||
+      (players && players[activePlayerIndex]) ||
+      initialPlayers[0]
+    const propPrice = selectedProperty.purchasePrice
+    const currentBuildings = (owner.buildings && owner.buildings[selectedProperty.id]) || 0
+    const hasBuildings = currentBuildings > 0
+    const isMortgaged = Boolean(owner.mortgages && owner.mortgages[selectedProperty.id])
+    const mortgageValue = (selectedProperty as any).mortgageValue || Math.round(propPrice * 0.5)
+
+    // Find purchase transaction to determine purchase round
+    const purchaseTx = transactionLedger.find(
+      (tx) => tx.propertyId === selectedProperty.id && tx.type === "PURCHASE"
+    )
+    const boughtRound = purchaseTx ? purchaseTx.turnNumber : 1
+    const roundsCompleted = Math.max(0, (roundNumber || 1) - boughtRound)
+    const depreciationPercent = Math.min(90, roundsCompleted * 5)
+    const depreciatedValue = Math.max(
+      Math.round(propPrice * 0.1),
+      Math.round(propPrice * (1 - depreciationPercent / 100))
+    )
+    const mortgageDeduction = isMortgaged ? mortgageValue : 0
+    const netProceeds = Math.max(0, depreciatedValue - mortgageDeduction)
+    const projectedBalance = owner.money + netProceeds
+
+    const handleConfirmSellProperty = async () => {
+      if (hasBuildings) return
+      try {
+        const res = await defaultEngine.sellProperty(owner.id, selectedProperty.id)
+        if (res && res.success) {
+          if (setPlayers && res.state?.players) {
+            setPlayers(res.state.players)
+          }
+          audioSystem.playPurchase()
+          const proceeds = res.sellPrice !== undefined ? res.sellPrice : netProceeds
+          const msg = isMortgaged
+            ? `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} net (₹${depreciatedValue.toLocaleString()} depreciated minus ₹${mortgageDeduction.toLocaleString()} mortgage payoff).`
+            : `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} (${depreciationPercent}% depreciation).`
+          onShowToast?.(msg)
+          onAddGameplayEvent?.({
+            id: `sell_${Date.now()}_${selectedProperty.id}`,
+            type: "SELL_HOUSE" as any,
+            timestamp: Date.now(),
+            playerId: owner.id,
+            playerName: owner.name,
+            propertyId: selectedProperty.id,
+            propertyName: selectedProperty.name,
+            amount: proceeds,
+            description: `${owner.name} sold ${selectedProperty.name} back to the bank for ₹${proceeds.toLocaleString()}${isMortgaged ? ` (depreciated ₹${depreciatedValue.toLocaleString()} minus ₹${mortgageDeduction.toLocaleString()} mortgage debt cleared)` : ` (${depreciationPercent}% depreciation over ${roundsCompleted} completed round${roundsCompleted === 1 ? "" : "s"})`}.`,
+          })
+          try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+        } else {
+          if (setPlayers) {
+            setPlayers((prev) =>
+              prev.map((p) => {
+                if (p.id !== owner.id) return p
+                const nextOwned = (p.ownedProperties || []).filter((id) => id !== selectedProperty.id)
+                const nextMortgages = { ...p.mortgages }
+                delete nextMortgages[selectedProperty.id]
+                const nextBuildings = { ...p.buildings }
+                delete nextBuildings[selectedProperty.id]
+                return {
+                  ...p,
+                  money: p.money + netProceeds,
+                  ownedProperties: nextOwned,
+                  mortgages: nextMortgages,
+                  buildings: nextBuildings,
+                }
+              })
+            )
+            audioSystem.playPurchase()
+            onShowToast?.(`Sold ${selectedProperty.name} for ₹${netProceeds.toLocaleString()}.`)
+          }
+        }
+      } catch (err) {
+        console.error("Sell property error:", err)
+        if (setPlayers) {
+          setPlayers((prev) =>
+            prev.map((p) => {
+              if (p.id !== owner.id) return p
+              const nextOwned = (p.ownedProperties || []).filter((id) => id !== selectedProperty.id)
+              const nextMortgages = { ...p.mortgages }
+              delete nextMortgages[selectedProperty.id]
+              const nextBuildings = { ...p.buildings }
+              delete nextBuildings[selectedProperty.id]
+              return {
+                ...p,
+                money: p.money + netProceeds,
+                ownedProperties: nextOwned,
+                mortgages: nextMortgages,
+                buildings: nextBuildings,
+              }
+            })
+          )
+          audioSystem.playPurchase()
+          onShowToast?.(`Sold ${selectedProperty.name} for ₹${netProceeds.toLocaleString()}.`)
+        }
+      }
+      close()
+    }
+
+    return (
+      <ModalShell title="SELL PROPERTY" close={close}>
+        <PropertyVisual property={selectedProperty} owned />
+        {hasBuildings && (
+          <div
+            className="lobby-tip"
+            style={{ borderLeftColor: "var(--red)", marginTop: "10px" }}
+          >
+            <span>RESTRICTION</span>Must sell all buildings before selling property.
+          </div>
+        )}
+        {isMortgaged && (
+          <div
+            className="lobby-tip"
+            style={{ borderLeftColor: "var(--crimson)", marginTop: "10px", background: "rgba(220, 38, 38, 0.12)" }}
+          >
+            <span>MORTGAGED ASSET</span>This property is mortgaged with the bank. The outstanding mortgage loan of ₹{mortgageValue.toLocaleString()} will be automatically paid off from the sale proceeds.
+          </div>
+        )}
+        <div className="balance-check" style={{ marginTop: "10px" }}>
+          <span>ORIGINAL PURCHASE PRICE</span>
+          <b>Rs{propPrice.toLocaleString()}</b>
+          <span>ROUNDS COMPLETED ({depreciationPercent}% DEPRECIATION)</span>
+          <b>{roundsCompleted} Round{roundsCompleted === 1 ? "" : "s"}</b>
+          <span>DEPRECIATED VALUE</span>
+          <b>Rs{depreciatedValue.toLocaleString()}</b>
+          {isMortgaged && (
+            <>
+              <span style={{ color: "var(--crimson)" }}>LESS: MORTGAGE DEBT PAYOFF</span>
+              <b style={{ color: "var(--crimson)" }}>-Rs{mortgageDeduction.toLocaleString()}</b>
+            </>
+          )}
+          <span>NET CASH PROCEEDS</span>
+          <b style={{ color: "var(--gold)" }}>
+            Rs{netProceeds.toLocaleString()}
+          </b>
+          <span>CASH AFTER SALE</span>
+          <b style={{ color: "var(--green)" }}>
+            Rs{projectedBalance.toLocaleString()}
+          </b>
+        </div>
+        <Button
+          onClick={handleConfirmSellProperty}
+          disabled={hasBuildings}
+        >
+          {hasBuildings
+            ? "SELL BUILDINGS FIRST"
+            : `CONFIRM SALE · RECEIVE Rs${netProceeds.toLocaleString()}`}
+        </Button>
+        <Button variant="ghost" onClick={close}>
+          CANCEL
+        </Button>
+      </ModalShell>
+    )
+  }
+
   // ── BUY (Non-modal: Handled at board center) ──
   if (type === "buy") {
     return null
@@ -3449,12 +3838,14 @@ function GameModal({
 
     const owner = (players || []).find((p) => (p.ownedProperties || []).includes(propId))
     const isUnowned = !owner
+    const isOwner = Boolean(owner && (owner.id === localPlayerId || owner.id === activePlayerIndex))
     const isOwnedByActive = owner?.id === activePlayerIndex
     const activePlayer = (players && players[activePlayerIndex]) || (players && players[0]) || initialPlayers[0]
-    const isMortgaged = !!(owner && owner.mortgages && owner.mortgages[propId])
-    const buildings = (owner && owner.buildings && owner.buildings[propId]) || 0
+    const propOwner = owner || activePlayer
+    const isMortgaged = !!(propOwner && propOwner.mortgages && propOwner.mortgages[propId])
+    const buildings = (propOwner && propOwner.buildings && propOwner.buildings[propId]) || 0
 
-    const canAct = activePlayerIndex === localPlayerId && isOwnedByActive
+    const canAct = (activePlayerIndex === localPlayerId || !multiplayerClient.getRoomCode()) && isOwner
 
     const unmortgageRate = unmortgageInterestRatePercent ?? 10.0
     const rawFee = (mortgageVal * unmortgageRate) / 100
@@ -3467,12 +3858,12 @@ function GameModal({
       isCity &&
       !isMortgaged &&
       buildings < 4 &&
-      activePlayer.money >= buildCost
+      propOwner.money >= buildCost
 
     const refund = Math.ceil(Math.floor((buildCost * 50) / 100) / 100) * 100
     const canDestroy = canAct && isCity && buildings > 0
-    const canMortgage = canAct && !isMortgaged && buildings === 0
-    const canRedeem = canAct && isMortgaged && activePlayer.money >= redemptionCost
+    const canMortgage = isOwner && !isMortgaged && buildings === 0
+    const canRedeem = isOwner && isMortgaged && propOwner.money >= redemptionCost
 
     const propSpaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === propId)
     const isLandedHere = playerPositions && playerPositions[activePlayerIndex] === propSpaceIndex
@@ -3531,14 +3922,13 @@ function GameModal({
       if (isSubmitting || !canBuild) return
       setIsSubmitting(true)
       try {
-        const res = await defaultEngine.buildHouseOrHotel(activePlayer.id, propId)
+        const res = await defaultEngine.buildHouseOrHotel(propOwner.id, propId)
         if (res.success && setPlayers) {
           audioSystem.playBuild()
           setPlayers(res.state.players)
-          const count = res.state.players[activePlayerIndex]?.buildings[propId] || 0
+          const count = res.state.players.find((p) => p.id === propOwner.id)?.buildings[propId] || 0
           const isHotel = count === 4
-          const propName = selectedProperty.name || propId
-          const pName = activePlayer.name
+          const pName = propOwner.name
           const bMsg = isHotel
             ? `${pName} constructed a Hotel on ${propName}!`
             : `${pName} built House #${count} on ${propName}.`
@@ -3546,7 +3936,7 @@ function GameModal({
             id: `build_${Date.now()}_${propId}`,
             type: isHotel ? ("BUILD_HOTEL" as any) : ("BUILD_HOUSE" as any),
             timestamp: Date.now(),
-            playerId: activePlayer.id,
+            playerId: propOwner.id,
             playerName: pName,
             propertyId: propId,
             propertyName: propName,
@@ -3568,14 +3958,13 @@ function GameModal({
       if (isSubmitting || !canDestroy) return
       setIsSubmitting(true)
       try {
-        const oldCount = activePlayer.buildings[propId] || 0
-        const res = await defaultEngine.sellHouseOrHotel(activePlayer.id, propId)
+        const oldCount = propOwner.buildings[propId] || 0
+        const res = await defaultEngine.sellHouseOrHotel(propOwner.id, propId)
         if (res.success && setPlayers) {
           audioSystem.playDestroyRefund()
           setPlayers(res.state.players)
           const wasHotel = oldCount === 4
-          const propName = selectedProperty.name || propId
-          const pName = activePlayer.name
+          const pName = propOwner.name
           const dMsg = wasHotel
             ? `${pName} demolished Hotel on ${propName}!`
             : `${pName} sold a House on ${propName}.`
@@ -3583,7 +3972,7 @@ function GameModal({
             id: `destroy_${Date.now()}_${propId}`,
             type: wasHotel ? ("DESTROY_HOTEL" as any) : ("DESTROY_HOUSE" as any),
             timestamp: Date.now(),
-            playerId: activePlayer.id,
+            playerId: propOwner.id,
             playerName: pName,
             propertyId: propId,
             propertyName: propName,
@@ -3605,7 +3994,7 @@ function GameModal({
       if (isSubmitting || !canMortgage) return
       setIsSubmitting(true)
       try {
-        const res = await defaultEngine.mortgageProperty(activePlayer.id, propId)
+        const res = await defaultEngine.mortgageProperty(propOwner.id, propId)
         if (res.success && setPlayers) {
           setPlayers(res.state.players)
           try {
@@ -3623,7 +4012,7 @@ function GameModal({
       if (isSubmitting || !canRedeem) return
       setIsSubmitting(true)
       try {
-        const res = await defaultEngine.unmortgageProperty(activePlayer.id, propId)
+        const res = await defaultEngine.unmortgageProperty(propOwner.id, propId)
         if (res.success && setPlayers) {
           setPlayers(res.state.players)
           try {
@@ -3641,7 +4030,7 @@ function GameModal({
       <ModalShell title="PROPERTY DETAILS" close={close} className="property-details-sheet">
         <PropertyVisual
           property={selectedProperty}
-          owned={isOwnedByActive}
+          owned={isOwner}
           ownerName={owner?.name}
           isMortgaged={isMortgaged}
           buildingCount={buildings}
@@ -3704,7 +4093,7 @@ function GameModal({
           )}
 
           {/* 2. Owned by another player */}
-          {owner && !isOwnedByActive && (
+          {owner && !isOwner && (
             <div className="owner-other-note">
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span
@@ -3726,8 +4115,8 @@ function GameModal({
             </div>
           )}
 
-          {/* 3. Owned by active player */}
-          {isOwnedByActive && (
+          {/* 3. Owned by you / active player */}
+          {isOwner && (
             <div className="property-owner-actions-grid">
               {isCity && (
                 <>
@@ -3741,7 +4130,7 @@ function GameModal({
                       ? "MAX HOTEL BUILT"
                       : isMortgaged
                       ? "PROPERTY MORTGAGED (CANNOT BUILD)"
-                      : activePlayer.money < buildCost
+                      : propOwner.money < buildCost
                       ? "INSUFFICIENT CASH"
                       : `BUILD ${buildings >= 3 ? "HOTEL" : "HOUSE"} · -₹${buildCost.toLocaleString()}`}
                   </Button>
@@ -3779,11 +4168,26 @@ function GameModal({
                 >
                   {isSubmitting
                     ? "PROCESSING..."
-                    : activePlayer.money < redemptionCost
+                    : propOwner.money < redemptionCost
                     ? `NEED ₹${redemptionCost.toLocaleString()} TO REDEEM`
                     : `REDEEM / UNMORTGAGE · -₹${redemptionCost.toLocaleString()}`}
                 </Button>
               )}
+
+              <Button
+                variant="secondary"
+                onClick={() => setModal?.("sell_property")}
+                disabled={buildings > 0 || isSubmitting}
+                style={{
+                  border: "1px solid rgba(200, 155, 69, 0.4)",
+                  background: "rgba(200, 155, 69, 0.12)",
+                  color: "var(--gold-light)",
+                }}
+              >
+                {buildings > 0
+                  ? "SELL BUILDINGS FIRST TO LIQUIDATE PROPERTY"
+                  : "🏷️ SELL PROPERTY · (5% DEPR. / ROUND)"}
+              </Button>
             </div>
           )}
 
@@ -3863,6 +4267,10 @@ function GameScreen({
   isGlobalMovementActiveRef,
   pendingSnapshotRef,
   applyGameStateSnapshot,
+  onKickPlayer,
+  pendingRequests: incomingPendingRequests,
+  onAcceptJoinRequest: incomingAcceptJoinRequest,
+  onRejectJoinRequest: incomingRejectJoinRequest,
 }: {
   navigate: (screen: Screen) => void
 
@@ -3928,6 +4336,10 @@ function GameScreen({
   isGlobalMovementActiveRef?: React.MutableRefObject<boolean>
   pendingSnapshotRef?: React.MutableRefObject<any>
   applyGameStateSnapshot?: (gs: any) => void
+  onKickPlayer?: (playerId: number) => void
+  pendingRequests?: PendingJoinRequest[]
+  onAcceptJoinRequest?: (requestId: string) => void
+  onRejectJoinRequest?: (requestId: string) => void
 }) {
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
   const handleConfirmQuit = async () => {
@@ -3952,13 +4364,19 @@ function GameScreen({
     }
   }
 
-  const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>(() => {
+  const isEffectiveHost = Boolean(
+    isHost ||
+    localPlayerId === 0 ||
+    (multiplayerClient.getLatestSnapshot() && localPlayerId === multiplayerClient.getLatestSnapshot()?.hostPlayerId)
+  )
+
+  const [localPendingRequests, setLocalPendingRequests] = useState<PendingJoinRequest[]>(() => {
     return (multiplayerClient.getLatestSnapshot()?.joinRequests as PendingJoinRequest[]) || []
   })
 
   useEffect(() => {
     const unsubReq = multiplayerClient.onJoinRequest((req) => {
-      setPendingRequests((prev) => {
+      setLocalPendingRequests((prev) => {
         if (prev.some((r) => r.requestId === req.requestId)) return prev
         return [...prev, req]
       })
@@ -3967,7 +4385,7 @@ function GameScreen({
 
     const unsubSnap = multiplayerClient.onSnapshot((snap) => {
       if (snap?.joinRequests) {
-        setPendingRequests(snap.joinRequests)
+        setLocalPendingRequests(snap.joinRequests)
       }
     })
 
@@ -3977,29 +4395,78 @@ function GameScreen({
     }
   }, [])
 
-  const handleAcceptJoinRequest = async (requestId: string) => {
+  // Background polling for host in room to guarantee immediate join request discovery
+  useEffect(() => {
+    if (!roomCode || !isEffectiveHost) return
+    const pollTimer = setInterval(() => {
+      multiplayerClient.fetchRoomSnapshot(roomCode).catch(() => {})
+    }, 2500)
+    return () => clearInterval(pollTimer)
+  }, [roomCode, isEffectiveHost])
+
+  const combinedPendingRequests = useMemo(() => {
+    const map = new Map<string, PendingJoinRequest>()
+    ;(incomingPendingRequests || []).forEach((r) => map.set(r.requestId, r))
+    ;(localPendingRequests || []).forEach((r) => map.set(r.requestId, r))
+    return Array.from(map.values())
+  }, [incomingPendingRequests, localPendingRequests])
+
+  const handleActionAcceptJoin = async (requestId: string) => {
     try {
-      await multiplayerClient.respondJoinRequest(requestId, "ACCEPT")
-      setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
-      showToast("✅ Player admitted to the table!")
+      if (incomingAcceptJoinRequest) {
+        await incomingAcceptJoinRequest(requestId)
+      } else {
+        await multiplayerClient.respondJoinRequest(requestId, "ACCEPT")
+        showToast("✅ Player admitted to the table!")
+      }
+      setLocalPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
     } catch (err: any) {
       showToast(`❌ ${err?.message || "Failed to admit player"}`)
     }
   }
 
-  const handleRejectJoinRequest = async (requestId: string) => {
+  const handleActionRejectJoin = async (requestId: string) => {
     try {
-      await multiplayerClient.respondJoinRequest(requestId, "REJECT")
-      setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
-      showToast("Player join request declined.")
+      if (incomingRejectJoinRequest) {
+        await incomingRejectJoinRequest(requestId)
+      } else {
+        await multiplayerClient.respondJoinRequest(requestId, "REJECT")
+        showToast("Player join request declined.")
+      }
+      setLocalPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
     } catch (err: any) {
       showToast(`❌ ${err?.message || "Failed to reject player"}`)
     }
   }
 
+  const effectivePendingRequests = combinedPendingRequests
+  const effectiveAcceptJoin = handleActionAcceptJoin
+  const effectiveRejectJoin = handleActionRejectJoin
+
   const pendingTradesCount = (tradeOffers || []).filter(
     (t) => t.receiverId === localPlayerId && t.status === "PENDING",
   ).length
+
+  // Quick Pop-in for Received Trade Offers (pops in for 1.2s then transitions directly into trade tab)
+  const [activeTradePopup, setActiveTradePopup] = useState<TradeOffer | null>(null)
+  const knownTradeIdsRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const pendingIncoming = (tradeOffers || []).filter(
+      (t) => t.receiverId === localPlayerId && t.status === "PENDING",
+    )
+    for (const offer of pendingIncoming) {
+      if (!knownTradeIdsRef.current.has(offer.id)) {
+        knownTradeIdsRef.current.add(offer.id)
+        setActiveTradePopup(offer)
+        const popTimer = setTimeout(() => {
+          setActiveTradePopup(null)
+          setModal("trade")
+        }, 1200)
+        return () => clearTimeout(popTimer)
+      }
+    }
+  }, [tradeOffers, localPlayerId])
 
   const [modal, setModal] = useState<Modal>(null)
 
@@ -4160,10 +4627,16 @@ function GameScreen({
       stepsToWalk: number,
       isStraightToJail: boolean = false,
     ) => {
-      setMoving(true)
-      movingRef.current = true
       setMovementActive(true)
       setMovingPlayerIndex(movingPlayerId)
+      // Guarantee position is precisely at startPos before movement begins
+      setPlayerPositions((prev) => {
+        const next = [...prev]
+        next[movingPlayerId] = startPos
+        return next
+      })
+      setMoving(true)
+      movingRef.current = true
 
       if (stepsToWalk === 0 || isStraightToJail) {
         setPlayerPositions((prev) => {
@@ -4737,12 +5210,22 @@ function GameScreen({
 
       const remotePlayerId = evt.playerId
       const remotePlayer = players[remotePlayerId] || { name: `Player ${remotePlayerId + 1}` }
+      const startPos = evt.previousPosition !== undefined ? evt.previousPosition : (playerPositions[remotePlayerId] ?? 0)
+
+      // Immediately freeze movement progress and anchor remote player puck to start position
+      // to eliminate any async snapshot race condition or puck jumping to destination ahead of time
+      setMovementActive(true)
+      setMovingPlayerIndex(remotePlayerId)
+      setPlayerPositions((prev) => {
+        const next = [...prev]
+        next[remotePlayerId] = startPos
+        return next
+      })
 
       // 3. Visual dice tumble and reveal
       setTurnState("ROLLING")
       setDiceRolling(true)
       setDiceSettling(false)
-      setMovingPlayerIndex(remotePlayerId)
 
       if (preferences?.soundEffects) {
         audioSystem.playDiceRoll()
@@ -4790,7 +5273,6 @@ function GameScreen({
 
       // 4. Animate remote player token along perimeter
       setTurnState("MOVING")
-      const startPos = evt.previousPosition !== undefined ? evt.previousPosition : (playerPositions[remotePlayerId] ?? 0)
       const targetPos = evt.newPosition
       const isStraightToJail = Boolean(
         evt.actionResult?.mustGoToJail &&
@@ -5818,7 +6300,149 @@ function GameScreen({
             openPlayers={() => setModal("insights")}
             activePlayerIndex={activePlayerIndex}
             playerPositions={playerPositions}
+            isHost={isEffectiveHost}
+            isMultiplayer={Boolean(roomCode || multiplayerClient.getRoomCode())}
+            localPlayerId={localPlayerId}
+            onKickPlayer={onKickPlayer}
           />
+
+          {/* Host Pending Join Requests Banner */}
+          {isEffectiveHost && effectivePendingRequests && effectivePendingRequests.length > 0 && (
+            <div
+              className="game-pending-requests-banner"
+              style={{
+                background: "linear-gradient(135deg, rgba(200, 155, 69, 0.25), rgba(28, 24, 16, 0.96))",
+                border: "2px solid var(--gold)",
+                borderRadius: "12px",
+                padding: "12px 16px",
+                margin: "12px 0",
+                boxShadow: "0 6px 24px rgba(200, 155, 69, 0.35)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid rgba(200, 155, 69, 0.35)",
+                  paddingBottom: "8px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "20px" }}>👑</span>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: '"Oswald", sans-serif',
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        letterSpacing: "0.08em",
+                        color: "var(--gold-light)",
+                      }}
+                    >
+                      PENDING JOIN REQUESTS ({effectivePendingRequests.length})
+                    </div>
+                    <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.78)" }}>
+                      Players are waiting for your approval to enter the match.
+                    </div>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    background: "rgba(200, 155, 69, 0.3)",
+                    border: "1px solid var(--gold)",
+                    padding: "3px 8px",
+                    borderRadius: "12px",
+                    color: "#fff",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  HOST ACTION REQUIRED
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {effectivePendingRequests.map((req) => (
+                  <div
+                    key={req.requestId}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: "rgba(0, 0, 0, 0.65)",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span
+                        style={{
+                          width: "14px",
+                          height: "14px",
+                          borderRadius: "50%",
+                          backgroundColor: getPlayerColorHex(req.color as any),
+                          display: "inline-block",
+                          boxShadow: "0 0 8px rgba(0,0,0,0.6)",
+                          border: "1.5px solid #fff",
+                        }}
+                      />
+                      <div>
+                        <strong style={{ fontSize: "14px", color: "#ffffff", letterSpacing: "0.03em" }}>{req.name}</strong>
+                        <span style={{ fontSize: "11px", color: "var(--gold-300)", marginLeft: "8px", fontWeight: 700, textTransform: "uppercase" }}>
+                          ({req.color})
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={() => effectiveAcceptJoin(req.requestId)}
+                        style={{
+                          padding: "6px 14px",
+                          background: "#16a34a",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          boxShadow: "0 2px 8px rgba(22, 163, 74, 0.4)",
+                        }}
+                      >
+                        ✓ ACCEPT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => effectiveRejectJoin(req.requestId)}
+                        style={{
+                          padding: "6px 12px",
+                          background: "rgba(220, 38, 38, 0.25)",
+                          color: "#fca5a5",
+                          border: "1px solid rgba(239, 68, 68, 0.6)",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ✕ DECLINE
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {activePlayer.money < 0 && (
             <div
@@ -5927,97 +6551,6 @@ function GameScreen({
               )}
             </div>
 
-            {/* Host Pending Join Requests Panel (Feature 1C & 1E) */}
-            {isHost && !isGameStarted && pendingRequests.length > 0 && (
-              <div
-                className="pending-requests-banner"
-                style={{
-                  margin: "8px 0",
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  background: "rgba(200, 155, 69, 0.15)",
-                  border: "1.5px solid var(--gold)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "6px",
-                  width: "100%",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong style={{ fontSize: "11px", color: "var(--gold)", letterSpacing: "0.06em" }}>
-                    👑 PENDING JOIN REQUESTS ({pendingRequests.length})
-                  </strong>
-                  <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)" }}>Host approval required</span>
-                </div>
-                {pendingRequests.map((req) => (
-                  <div
-                    key={req.requestId}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      background: "rgba(0,0,0,0.45)",
-                      padding: "6px 10px",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      gap: "8px",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "50%",
-                          backgroundColor: getPlayerColorHex(req.color as any),
-                          display: "inline-block",
-                        }}
-                      />
-                      <strong style={{ fontSize: "12px", color: "#fff" }}>{req.name}</strong>
-                      <span style={{ fontSize: "10px", color: "var(--gold-300)", textTransform: "uppercase" }}>
-                        ({req.color})
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={() => handleAcceptJoinRequest(req.requestId)}
-                        style={{
-                          padding: "4px 10px",
-                          background: "#16a34a",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          fontWeight: 700,
-                          fontSize: "11px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        ✓ ACCEPT
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRejectJoinRequest(req.requestId)}
-                        style={{
-                          padding: "4px 10px",
-                          background: "#dc2626",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          fontWeight: 700,
-                          fontSize: "11px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        ✕ REJECT
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="controls-action-row">
               {!isGameStarted ? (
                 isHost ? (
@@ -6041,6 +6574,22 @@ function GameScreen({
                       <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", textAlign: "center" }}>
                         Waiting for players to join with room code <strong style={{ color: "var(--gold)" }}>{roomCode}</strong>.
                       </div>
+                      {isEffectiveHost && effectivePendingRequests && effectivePendingRequests.length > 0 && (
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            color: "var(--gold-light)",
+                            background: "rgba(200, 155, 69, 0.2)",
+                            border: "1px solid var(--gold)",
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            textAlign: "center",
+                            fontWeight: 700,
+                          }}
+                        >
+                          🔔 {effectivePendingRequests.length} join request(s) awaiting your approval above!
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <Button
@@ -6128,52 +6677,36 @@ function GameScreen({
               </button>
             </div>
 
-            {/* Host Settings / Match Rules Trigger inside Game Action Area */}
-            <button
-              className="host-settings-action-btn"
-              onClick={() => setModal("preferences")}
-              title={
-                !isGameStarted
-                  ? isHost
-                    ? "Host Settings: Configure match rules before starting"
-                    : "View Match Settings: Pre-game rules configured by host"
-                  : isHost
-                    ? "Match Rules & Preferences (Rules locked during active match)"
-                    : "View Match Rules & Preferences (Read-only)"
-              }
-              style={{
-                width: "100%",
-                marginTop: "6px",
-                padding: "7px 10px",
-                borderRadius: "6px",
-                border: "1px solid var(--gold)",
-                background: !isGameStarted && isHost
-                  ? "linear-gradient(135deg, rgba(200, 155, 69, 0.28) 0%, rgba(113, 31, 49, 0.4) 100%)"
-                  : "rgba(200, 155, 69, 0.12)",
-                color: "var(--gold-300)",
-                fontFamily: "Oswald, sans-serif",
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px",
-                transition: "all 0.2s ease",
-              }}
-            >
-              <span>⚙️</span>
-              <span>
-                {!isGameStarted
-                  ? isHost
-                    ? "👑 HOST SETTINGS (CONFIGURE RULES)"
-                    : "VIEW MATCH SETTINGS"
-                  : isHost
-                    ? "MATCH SETTINGS & RULES (LOCKED)"
-                    : "VIEW MATCH SETTINGS & RULES"}
-              </span>
-            </button>
+            {/* Host Settings / Match Rules Trigger (only shown before match starts for host) */}
+            {!isGameStarted && isHost && (
+              <button
+                className="host-settings-action-btn"
+                onClick={() => setModal("preferences")}
+                title="Configure match rules before starting"
+                style={{
+                  width: "100%",
+                  marginTop: "6px",
+                  padding: "7px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--gold)",
+                  background: "rgba(200, 155, 69, 0.12)",
+                  color: "var(--gold-300)",
+                  fontFamily: "Oswald, sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <span>⚙️</span>
+                <span>👑 CONFIGURE MATCH RULES</span>
+              </button>
+            )}
           </section>
 
           <div className="desktop-actions-strip">
@@ -6187,10 +6720,18 @@ function GameScreen({
             </button>
             <button
               className="desktop-action-btn"
+              onClick={() => setModal("activity_log")}
+              title="Financial Ledger & Turn History"
+            >
+              <span>📒</span> LEDGER
+              {transactionLedger.length > 0 && <span className="action-pill-count">{transactionLedger.length}</span>}
+            </button>
+            <button
+              className="desktop-action-btn"
               onClick={() => setEventLogOpen(true)}
               title="Open Event Log"
             >
-              <Icon name="scroll" size={14} /> EVENT LOG
+              <Icon name="scroll" size={14} /> EVENTS
             </button>
             <button
               className="desktop-action-btn"
@@ -6199,6 +6740,20 @@ function GameScreen({
             >
               <Icon name="chart" size={14} /> INSIGHTS
             </button>
+            {isEffectiveHost && (
+              <button
+                className="desktop-action-btn host-kick-action-btn"
+                onClick={() => setModal("insights")}
+                title="Host Control: Manage and kick players"
+                style={{
+                  background: "rgba(239, 68, 68, 0.15)",
+                  borderColor: "rgba(239, 68, 68, 0.4)",
+                  color: "#fca5a5",
+                }}
+              >
+                <span>🥾</span> KICK
+              </button>
+            )}
             <button
               className="desktop-action-btn resign-action-btn"
               onClick={() => setModal("confirm_resign")}
@@ -6206,14 +6761,6 @@ function GameScreen({
               style={{ color: "#fca5a5" }}
             >
               <span style={{ fontSize: "14px" }}>🏳️</span> RESIGN
-            </button>
-            <button
-              className="desktop-action-btn quit-action-btn"
-              onClick={() => setModal("confirm_quit_game")}
-              title="Quit Game & Leave Room"
-              style={{ color: "#f87171", borderColor: "rgba(220, 38, 38, 0.4)" }}
-            >
-              <span style={{ fontSize: "14px" }}>🚪</span> QUIT
             </button>
           </div>
         </div>
@@ -6266,6 +6813,17 @@ function GameScreen({
           <span className="side-action-icon">📊</span>
           <span>INSIGHTS</span>
         </button>
+        {isEffectiveHost && (
+          <button
+            className="side-action-btn"
+            onClick={() => { setModal("insights"); setSideActionsOpen(false) }}
+            title="Host Control: Kick Players"
+            style={{ color: "#fca5a5" }}
+          >
+            <span className="side-action-icon">🥾</span>
+            <span>KICK PLAYER</span>
+          </button>
+        )}
         <button
           className="side-action-btn"
           onClick={() => { setModal("confirm_resign"); setSideActionsOpen(false) }}
@@ -6274,15 +6832,6 @@ function GameScreen({
         >
           <span className="side-action-icon">🏳️</span>
           <span>RESIGN</span>
-        </button>
-        <button
-          className="side-action-btn"
-          onClick={() => { setModal("confirm_quit_game"); setSideActionsOpen(false) }}
-          title="Quit Game & Leave Room"
-          style={{ color: "#f87171" }}
-        >
-          <span className="side-action-icon">🚪</span>
-          <span>QUIT GAME</span>
         </button>
       </div>
       {/* Side Panel Toggle Button */}
@@ -6326,6 +6875,7 @@ function GameScreen({
             setTurnState("GAME_OVER")
             navigate("gameover")
           }}
+          onResign={handleConfirmQuit}
           onAddGameplayEvent={addGameplayEvent}
           unmortgageInterestRatePercent={engineRules?.unmortgageInterestRatePercent ?? 10.0}
           rules={rules}
@@ -6335,6 +6885,7 @@ function GameScreen({
           onQuitGame={handleConfirmQuit}
           isLeavingRoom={isLeavingRoom}
           roomCode={roomCode}
+          onKickPlayer={onKickPlayer}
         />
       )}
       <QuickChatWidget
@@ -6353,48 +6904,221 @@ function GameScreen({
         records={diceHistoryList}
         onClear={() => setDiceHistoryList([])}
       />
+      {activeTradePopup && (
+        <div
+          className="trade-popin-toast"
+          role="alert"
+          onClick={() => {
+            setActiveTradePopup(null)
+            setModal("trade")
+          }}
+          style={{
+            position: "fixed",
+            top: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            padding: "14px 24px",
+            background: "linear-gradient(135deg, rgba(20, 26, 40, 0.98), rgba(10, 14, 22, 0.98))",
+            border: "2px solid #eab308",
+            borderRadius: "14px",
+            boxShadow: "0 10px 35px rgba(234, 179, 8, 0.4), 0 0 20px rgba(0, 0, 0, 0.8)",
+            cursor: "pointer",
+            animation: "pulse-glow 0.8s ease-in-out infinite alternate",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              background: "radial-gradient(circle, #eab308, #ca8a04)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "20px",
+              boxShadow: "0 0 12px rgba(234, 179, 8, 0.6)",
+            }}
+          >
+            🤝
+          </div>
+          <div>
+            <div
+              style={{
+                fontFamily: '"Oswald", sans-serif',
+                fontSize: "14px",
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                color: "#fde047",
+                textTransform: "uppercase",
+              }}
+            >
+              Incoming Trade Proposal!
+            </div>
+            <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.9)" }}>
+              {players[activeTradePopup.senderId]?.name || `Player ${activeTradePopup.senderId + 1}`} sent you a deal • Opening trade desk...
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{
+              padding: "6px 14px",
+              fontSize: "12px",
+              fontWeight: 700,
+              borderRadius: "8px",
+              border: "1px solid #eab308",
+              background: "#ca8a04",
+              color: "#000",
+              cursor: "pointer",
+            }}
+          >
+            OPEN NOW
+          </button>
+        </div>
+      )}
     </main>
   )
 }
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 
-function SettingsScreen({ navigate }: { navigate: (screen: Screen) => void }) {
+function SettingsScreen({
+  navigate,
+  preferences,
+  onUpdatePreferences,
+}: {
+  navigate: (screen: Screen) => void
+  preferences?: GamePreferences
+  onUpdatePreferences?: (prefs: GamePreferences) => void
+}) {
+  const currentPrefs = preferences ?? loadPreferences()
+  const currentTheme = currentPrefs.theme || "dark"
+
+  const handleToggleTheme = (theme: "dark" | "light") => {
+    onUpdatePreferences?.({ ...currentPrefs, theme })
+  }
+
+  const handleToggleSound = (soundEffects: boolean) => {
+    onUpdatePreferences?.({ ...currentPrefs, soundEffects })
+  }
+
+  const handleToggleReducedMotion = (reducedMotion: boolean) => {
+    onUpdatePreferences?.({ ...currentPrefs, reducedMotion })
+  }
+
+  const handleToggleHaptic = (hapticFeedback: boolean) => {
+    onUpdatePreferences?.({ ...currentPrefs, hapticFeedback })
+  }
+
   return (
     <main className="paper-screen">
       <AppHeader title="SETTINGS" back={() => navigate("menu")} />
       <div className="screen-content">
-        <div className="section-label">GAMEPLAY</div>
+        <div className="section-label">APPEARANCE &amp; VISUAL STYLE</div>
+        <div className="settings-card">
+          <div style={{ padding: "12px 0 6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>Visual Glass Style</strong>
+              <span style={{ fontSize: "11px", color: "var(--gold)", fontWeight: 600 }}>
+                {currentTheme === "light" ? "☀️ Light Pearl Glass" : "🌙 Dark Smoked Sapphire"}
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={() => handleToggleTheme("light")}
+                style={{
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: currentTheme === "light" ? "2px solid var(--gold)" : "1px solid var(--glass-border)",
+                  background: currentTheme === "light" ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)",
+                  color: "#0f172a",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  transition: "all 0.18s ease",
+                  boxShadow: currentTheme === "light" ? "var(--shadow-subtle)" : "none",
+                }}
+              >
+                <span style={{ fontSize: "20px" }}>☀️</span>
+                <strong style={{ fontSize: "12px", color: "#0f172a" }}>Light Pearl Glass</strong>
+                <small style={{ color: "#64748b", fontSize: "10px" }}>Milky white &amp; cool slate</small>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleTheme("dark")}
+                style={{
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: currentTheme === "dark" ? "2px solid var(--gold)" : "1px solid var(--glass-border)",
+                  background: currentTheme === "dark" ? "rgba(13, 21, 41, 0.95)" : "rgba(13, 21, 41, 0.45)",
+                  color: "#f8fafc",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  transition: "all 0.18s ease",
+                  boxShadow: currentTheme === "dark" ? "var(--shadow-subtle)" : "none",
+                }}
+              >
+                <span style={{ fontSize: "20px" }}>🌙</span>
+                <strong style={{ fontSize: "12px", color: "#f8fafc" }}>Dark Smoked Sapphire</strong>
+                <small style={{ color: "#94a3b8", fontSize: "10px" }}>Deep navy &amp; warm ivory</small>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="section-label">GAMEPLAY &amp; MOTION</div>
         <div className="settings-card">
           <SettingRow
-            label="TURN HINTS"
-            value="Show contextual guidance"
-            control={<Toggle />}
+            label="REDUCED MOTION"
+            value="Simplified token gliding and transitions"
+            control={
+              <Toggle
+                on={currentPrefs.reducedMotion}
+                onChange={handleToggleReducedMotion}
+                label="Toggle Reduced Motion"
+              />
+            }
           />
           <SettingRow
-            label="CONFIRM PURCHASES"
-            value="Prevent accidental buys"
-            control={<Toggle />}
-          />
-          <SettingRow
-            label="ANIMATIONS"
-            value="Tactile board feedback"
-            control={<Toggle />}
+            label="TACTILE VIBRATION"
+            value="Haptic feedback on dice rolls &amp; payments"
+            control={
+              <Toggle
+                on={currentPrefs.hapticFeedback}
+                onChange={handleToggleHaptic}
+                label="Toggle Haptic Feedback"
+              />
+            }
           />
         </div>
+
         <div className="section-label">AUDIO</div>
         <div className="settings-card">
           <SettingRow
-            label="MUSIC"
-            value="Ambient score"
-            control={<Toggle />}
-          />
-          <SettingRow
             label="SOUND EFFECTS"
-            value="Dice, tokens, payments"
-            control={<Toggle />}
+            value="Synthesized tones for dice, tokens, payments"
+            control={
+              <Toggle
+                on={currentPrefs.soundEffects}
+                onChange={handleToggleSound}
+                label="Toggle Sound Effects"
+              />
+            }
           />
         </div>
+
         <Button variant="secondary" onClick={() => navigate("gameover")}>
           VIEW GAME OVER SCREEN
         </Button>
@@ -6640,6 +7364,30 @@ export default function App() {
     }, durationMs)
   }, [])
 
+  const [pendingRequests, setPendingRequests] = useState<PendingJoinRequest[]>(() => {
+    return (multiplayerClient.getLatestSnapshot()?.joinRequests as PendingJoinRequest[]) || []
+  })
+
+  const handleAcceptJoinRequest = async (requestId: string) => {
+    try {
+      await multiplayerClient.respondJoinRequest(requestId, "ACCEPT")
+      setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
+      showToast("✅ Player admitted to table!")
+    } catch (err: any) {
+      showToast(`❌ ${err?.message || "Failed to admit player"}`)
+    }
+  }
+
+  const handleRejectJoinRequest = async (requestId: string) => {
+    try {
+      await multiplayerClient.respondJoinRequest(requestId, "REJECT")
+      setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
+      showToast("Player join request declined.")
+    } catch (err: any) {
+      showToast(`❌ ${err?.message || "Failed to reject player"}`)
+    }
+  }
+
   const handleUpdateRules = async (
     newRules: Partial<GameRules>,
   ): Promise<{ success: boolean; error?: string }> => {
@@ -6711,11 +7459,24 @@ export default function App() {
   // Feature 3: Session Recovery
   const [sessionRestored, setSessionRestored] = useState<boolean>(false)
 
+  // Synchronize active theme attribute to HTML and Body on mount
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      const activeTheme = preferences?.theme === "light" ? "light" : "dark"
+      document.documentElement.setAttribute("data-theme", activeTheme)
+      document.body.setAttribute("data-theme", activeTheme)
+      document.body.classList.toggle("reduced-motion", !!preferences?.reducedMotion)
+    }
+  }, [preferences?.theme, preferences?.reducedMotion])
+
   const handleUpdatePreferences = (newPrefs: GamePreferences) => {
     setPreferences(newPrefs)
     savePreferences(newPrefs)
     if (typeof document !== "undefined") {
-      document.body.classList.toggle("reduced-motion", newPrefs.reducedMotion)
+      const activeTheme = newPrefs.theme === "light" ? "light" : "dark"
+      document.documentElement.setAttribute("data-theme", activeTheme)
+      document.body.setAttribute("data-theme", activeTheme)
+      document.body.classList.toggle("reduced-motion", !!newPrefs.reducedMotion)
     }
   }
 
@@ -6957,6 +7718,32 @@ export default function App() {
       showToast(`🚪 ${pName} left the room.`)
     })
 
+    const unsubKicked = multiplayerClient.onKicked((reason) => {
+      showToast(`🚫 ${reason || "You were kicked from the room."}`)
+      setScreen("menu")
+      setGamePhase("LOBBY")
+      setSettingsLocked(false)
+      setRoomCode(generateCrownfallRoomCode())
+    })
+
+    const unsubPlayerKicked = multiplayerClient.onPlayerKicked((pId, pName, reason) => {
+      showToast(`🥾 ${pName} was kicked from the room (${reason || "Host removed"}).`)
+    })
+
+    const unsubReq = multiplayerClient.onJoinRequest((req) => {
+      setPendingRequests((prev) => {
+        if (prev.some((r) => r.requestId === req.requestId)) return prev
+        return [...prev, req]
+      })
+      showToast(`🔔 Join request from ${req.name}!`)
+    })
+
+    const unsubSnapReq = multiplayerClient.onSnapshot((snap) => {
+      if (snap?.joinRequests) {
+        setPendingRequests(snap.joinRequests)
+      }
+    })
+
     if (multiplayerClient.getRoomCode() && multiplayerClient.getSessionToken()) {
       multiplayerClient.reconnect().catch(() => {})
     }
@@ -6966,6 +7753,10 @@ export default function App() {
       unsubSnapshot()
       unsubRoomClosed()
       unsubPlayerLeft()
+      unsubKicked()
+      unsubPlayerKicked()
+      unsubReq()
+      unsubSnapReq()
     }
   }, [])
 
@@ -7157,6 +7948,39 @@ export default function App() {
     setInspectedProp(prop)
   }
 
+  const handleRemovePlayer = async (indexToRemove: number) => {
+    if (localPlayerId !== 0 || indexToRemove === 0) return
+    const targetPlayer = players[indexToRemove]
+    const removedName = targetPlayer?.name || `Player ${indexToRemove + 1}`
+    if (multiplayerClient.getRoomCode()) {
+      try {
+        await multiplayerClient.kickPlayer(targetPlayer.id, "Host removed from lobby")
+      } catch (err: any) {
+        showToast(`⚠️ Could not remove player: ${err?.message || "Error"}`)
+        return
+      }
+    }
+    setPlayers((prev) => {
+      const filtered = prev.filter((_, idx) => idx !== indexToRemove)
+      return filtered.map((p, idx) => ({ ...p, id: idx }))
+    })
+    setPlayerCount((prev) => Math.max(2, prev - 1))
+    showToast(`Removed ${removedName} from lobby`)
+  }
+
+  const handleKickPlayerInGame = async (targetPlayerId: number) => {
+    if (!multiplayerClient.getRoomCode()) return
+    const target = players.find((p) => p.id === targetPlayerId)
+    const targetName = target?.name || `Player ${targetPlayerId + 1}`
+    try {
+      await multiplayerClient.kickPlayer(targetPlayerId, "Host kicked from match")
+      showToast(`🥾 Kicked ${targetName} from the match`)
+    } catch (err: any) {
+      showToast(`⚠️ Failed to kick player: ${err?.message || "Error"}`)
+    }
+  }
+
+
   const playerNames = players.map((p) => p.name)
 
   const handleNavigate = (newScreen: Screen) => {
@@ -7226,6 +8050,10 @@ export default function App() {
           connectionStatus={connectionStatus}
           connectionMessage={connectionMessage}
           onRetryConnection={() => multiplayerClient.retryConnection()}
+          onRemovePlayer={handleRemovePlayer}
+          pendingRequests={pendingRequests}
+          onAcceptJoinRequest={handleAcceptJoinRequest}
+          onRejectJoinRequest={handleRejectJoinRequest}
         />
         {lobbyModal && (
           <GameModal
@@ -7297,6 +8125,10 @@ export default function App() {
           isGlobalMovementActiveRef={isMovementInProgressRef}
           pendingSnapshotRef={pendingSnapshotRef}
           applyGameStateSnapshot={applyGameStateSnapshot}
+          onKickPlayer={handleKickPlayerInGame}
+          pendingRequests={pendingRequests}
+          onAcceptJoinRequest={handleAcceptJoinRequest}
+          onRejectJoinRequest={handleRejectJoinRequest}
         />
         {lobbyModal && (
           <GameModal
@@ -7311,13 +8143,22 @@ export default function App() {
             isGameStarted={gamePhase === "IN_PROGRESS"}
             isHost={localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)}
             selectedProperty={CITY_PROPERTIES.bombay}
+            onKickPlayer={handleKickPlayerInGame}
           />
         )}
       </CrownfallErrorBoundary>
     )
   }
 
-  if (screen === "settings") return <SettingsScreen navigate={handleNavigate} />
+  if (screen === "settings") {
+    return (
+      <SettingsScreen
+        navigate={handleNavigate}
+        preferences={preferences}
+        onUpdatePreferences={handleUpdatePreferences}
+      />
+    )
+  }
 
   return (
     <>

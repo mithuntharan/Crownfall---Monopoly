@@ -138,6 +138,22 @@ function resolveServerEndpoints(customUrl?: string): { wsUrl: string; httpUrl: s
   }
 }
 
+function getOrCreateClientId(): string {
+  if (typeof window === "undefined") {
+    return "cid_" + Math.random().toString(36).substring(2, 10)
+  }
+  // Try sessionStorage first so each browser tab/window gets a distinct client ID
+  let cid = sessionStorage.getItem("crownfall_client_id")
+  if (!cid) {
+    cid = "cid_" + Date.now() + "_" + Math.random().toString(36).substring(2, 10)
+    try {
+      sessionStorage.setItem("crownfall_client_id", cid)
+      localStorage.removeItem("crownfall_client_id")
+    } catch (_) {}
+  }
+  return cid
+}
+
 export class MultiplayerClient {
   private ws: WebSocket | null = null
   private serverUrl: string
@@ -145,6 +161,7 @@ export class MultiplayerClient {
   private roomCode: string | null = null
   private sessionToken: string | null = null
   private playerId: number | null = null
+  private clientId: string = getOrCreateClientId()
   private status: ConnectionStatus = "disconnected"
   private statusMessage = ""
   private reconnectAttempts = 0
@@ -162,6 +179,8 @@ export class MultiplayerClient {
   private rematchStateListeners: ((rematchState: RematchState) => void)[] = []
   private playerLeftListeners: ((playerId: number, playerName: string, newHostPlayerId: number | null) => void)[] = []
   private roomClosedListeners: ((reason: string) => void)[] = []
+  private kickedListeners: ((reason: string) => void)[] = []
+  private playerKickedListeners: ((playerId: number, playerName: string, reason?: string) => void)[] = []
   private pendingJoinRequestId: string | null = null
   private pendingRequests = new Map<
     string,
@@ -216,6 +235,24 @@ export class MultiplayerClient {
 
   public getLatestSnapshot(): MultiplayerRoomSnapshot | null {
     return this.latestSnapshot
+  }
+
+  public getClientId(): string {
+    return this.clientId
+  }
+
+  public onKicked(cb: (reason: string) => void): () => void {
+    this.kickedListeners.push(cb)
+    return () => {
+      this.kickedListeners = this.kickedListeners.filter((l) => l !== cb)
+    }
+  }
+
+  public onPlayerKicked(cb: (playerId: number, playerName: string, reason?: string) => void): () => void {
+    this.playerKickedListeners.push(cb)
+    return () => {
+      this.playerKickedListeners = this.playerKickedListeners.filter((l) => l !== cb)
+    }
   }
 
   public onSnapshot(cb: (snapshot: MultiplayerRoomSnapshot) => void): () => void {
@@ -387,7 +424,7 @@ export class MultiplayerClient {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostName, hostColor, rules }),
+        body: JSON.stringify({ hostName, hostColor, rules, clientId: this.clientId }),
       })
       window.clearTimeout(wakingTimer)
       const data = await res.json()
@@ -434,7 +471,13 @@ export class MultiplayerClient {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode, playerName, playerColor }),
+        body: JSON.stringify({
+          roomCode,
+          playerName,
+          playerColor,
+          clientId: this.clientId,
+          sessionToken: this.sessionToken,
+        }),
       })
       window.clearTimeout(wakingTimer)
       const data = await res.json()
@@ -507,6 +550,24 @@ export class MultiplayerClient {
     }
   }
 
+  public async fetchRoomSnapshot(roomCode?: string): Promise<MultiplayerRoomSnapshot | null> {
+    const code = (roomCode || this.roomCode || "").trim().toUpperCase()
+    if (!code) return null
+    try {
+      const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/${code}/state`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      })
+      const data = await res.json()
+      if (data?.ok && data?.snapshot) {
+        this.latestSnapshot = data.snapshot
+        this.snapshotListeners.forEach((l) => l(data.snapshot))
+        return data.snapshot
+      }
+    } catch (_) {}
+    return null
+  }
+
   public async respondJoinRequest(
     requestId: string,
     decision: "ACCEPT" | "REJECT",
@@ -556,7 +617,11 @@ export class MultiplayerClient {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/reconnect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode: this.roomCode, sessionToken: this.sessionToken }),
+        body: JSON.stringify({
+          roomCode: this.roomCode,
+          sessionToken: this.sessionToken,
+          clientId: this.clientId,
+        }),
       })
       const data = await res.json()
       if (!data.ok) {
@@ -595,6 +660,7 @@ export class MultiplayerClient {
             type: "JOIN_WS",
             roomCode: this.roomCode,
             sessionToken: this.sessionToken,
+            clientId: this.clientId,
           }),
         )
       }
@@ -649,8 +715,17 @@ export class MultiplayerClient {
               this.snapshotListeners.forEach((l) => l(msg.snapshot))
             }
           } else if (msg.type === "JOIN_REQUEST") {
+            if (msg.snapshot) {
+              this.latestSnapshot = msg.snapshot
+              this.snapshotListeners.forEach((l) => l(msg.snapshot))
+            }
             if (msg.request) {
               this.joinRequestListeners.forEach((l) => l(msg.request))
+            }
+          } else if (msg.type === "JOIN_REQUEST_REJECTED") {
+            if (msg.snapshot) {
+              this.latestSnapshot = msg.snapshot
+              this.snapshotListeners.forEach((l) => l(msg.snapshot))
             }
           } else if (msg.type === "JOIN_REQUEST_DECISION") {
             if (msg.status === "ACCEPTED" && msg.sessionToken) {
@@ -676,6 +751,28 @@ export class MultiplayerClient {
               this.snapshotListeners.forEach((l) => l(msg.snapshot))
             }
             this.playerLeftListeners.forEach((l) => l(msg.playerId, msg.playerName, msg.newHostPlayerId))
+          } else if (msg.type === "KICKED") {
+            this.clearSession()
+            this.setStatus(
+              "disconnected",
+              msg.reason || "You were kicked from the room by the host.",
+            )
+            this.kickedListeners.forEach((l) => l(msg.reason || "You were kicked from the room by the host."))
+          } else if (msg.type === "SUPERSEDED") {
+            this.clearSession()
+            this.setStatus(
+              "disconnected",
+              msg.message || "Connected from another session or tab.",
+            )
+            this.kickedListeners.forEach((l) => l(msg.message || "Connected from another session or tab."))
+          } else if (msg.type === "PLAYER_KICKED") {
+            if (msg.snapshot) {
+              this.latestSnapshot = msg.snapshot
+              this.snapshotListeners.forEach((l) => l(msg.snapshot))
+            }
+            this.playerKickedListeners.forEach((l) =>
+              l(msg.kickedPlayerId, msg.kickedPlayerName, msg.reason),
+            )
           } else if (msg.type === "ROOM_CLOSED") {
             this.clearSession()
             this.setStatus(
@@ -751,7 +848,12 @@ export class MultiplayerClient {
 
   private sendHttp(msgType: string, payload: any = {}): Promise<any> {
     if (!this.roomCode) return Promise.reject(new Error("No active room."))
-    return fetch(`${this.httpBaseUrl}/api/multiplayer/room/${this.roomCode}/action`, {
+    const endpoint =
+      msgType === "KICK_PLAYER" || msgType === "REMOVE_PLAYER" || payload.action === "kick"
+        ? `${this.httpBaseUrl}/api/multiplayer/room/${this.roomCode}/kick`
+        : `${this.httpBaseUrl}/api/multiplayer/room/${this.roomCode}/action`
+
+    return fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -869,6 +971,10 @@ export class MultiplayerClient {
     return this.sendWsOrHttp("ACTION", { action: "sell", propertyId })
   }
 
+  public sellProperty(propertyId: string) {
+    return this.sendWsOrHttp("ACTION", { action: "sellProperty", propertyId })
+  }
+
   public resign() {
     return this.sendWsOrHttp("ACTION", { action: "resign" })
   }
@@ -939,6 +1045,15 @@ export class MultiplayerClient {
 
   public cancelTradeOffer(tradeId: string) {
     return this.sendWsOrHttp("ACTION", { action: "tradeCancel", tradeId })
+  }
+
+  public async kickPlayer(targetPlayerId: number, reason = "Kicked by host"): Promise<{ ok: boolean; message?: string }> {
+    if (!this.roomCode) return { ok: true }
+    return this.sendWsOrHttp("KICK_PLAYER", { targetPlayerId, reason })
+  }
+
+  public async removePlayer(targetPlayerId: number): Promise<{ ok: boolean; message?: string }> {
+    return this.kickPlayer(targetPlayerId, "Removed from lobby by host")
   }
 }
 

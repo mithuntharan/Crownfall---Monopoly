@@ -120,6 +120,7 @@ export class LocalGameEngine implements IGameEngine {
     this.rules = {
       minPlayers: rules.minPlayers ?? 2,
       maxPlayers: rules.maxPlayers ?? 6,
+      playerCount: rules.playerCount ?? 4,
       defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
       startingMoneyOptions: rules.startingMoneyOptions ?? [20000, 25000, 30000],
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
@@ -1132,6 +1133,65 @@ export class LocalGameEngine implements IGameEngine {
       propertyId,
     )
     return { success: true, state: await this.getState() }
+  }
+
+  async sellProperty(playerId: number, propertyId: string): Promise<{
+    success: boolean
+    state: GameState
+    sellPrice?: number
+    error?: string
+  }> {
+    if (playerId < 0 || playerId >= this.players.length) {
+      return { success: false, state: await this.getState(), error: "Invalid player" }
+    }
+    const player = this.players[playerId]
+    if (!player.ownedProperties.includes(propertyId)) {
+      return { success: false, state: await this.getState(), error: "Player does not own property" }
+    }
+    const currentBuildings = player.buildings[propertyId] || 0
+    if (currentBuildings > 0) {
+      return { success: false, state: await this.getState(), error: "Must sell all buildings first" }
+    }
+
+    const city = CITY_PROPERTIES[propertyId]
+    const sp = SPECIAL_PROPERTIES[propertyId]
+    const basePrice = city?.purchasePrice || sp?.purchasePrice || 0
+    const propName = city?.name || sp?.name || propertyId
+
+    const purchaseTx = this.transactionLedger.find(
+      (tx) => tx.propertyId === propertyId && tx.type === "PURCHASE",
+    )
+    const boughtRound = purchaseTx ? purchaseTx.turnNumber : 1
+    const roundsElapsed = Math.max(0, this.roundNumber - boughtRound)
+    const depreciationPercent = Math.min(90, roundsElapsed * 5)
+    const depreciatedValue = Math.max(
+      Math.round(basePrice * 0.1),
+      Math.round(basePrice * (1 - depreciationPercent / 100)),
+    )
+    const isMortgaged = !!player.mortgages[propertyId]
+    const mortgageValue = city?.mortgageValue || sp?.mortgageValue || Math.round(basePrice * 0.5)
+    const mortgageDeduction = isMortgaged ? mortgageValue : 0
+    const netSellProceeds = Math.max(0, depreciatedValue - mortgageDeduction)
+
+    player.ownedProperties = player.ownedProperties.filter((id) => id !== propertyId)
+    delete player.mortgages[propertyId]
+    delete player.buildings[propertyId]
+    player.money += netSellProceeds
+
+    const desc = isMortgaged
+      ? `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (depreciated ₹${depreciatedValue.toLocaleString()} minus mortgage payoff ₹${mortgageDeduction.toLocaleString()}).`
+      : `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (${depreciationPercent}% depreciation over ${roundsElapsed} round(s)).`
+
+    this.recordTransaction(
+      "PROPERTY_SALE",
+      desc,
+      netSellProceeds,
+      playerId,
+      -1,
+      propertyId,
+    )
+
+    return { success: true, state: await this.getState(), sellPrice: netSellProceeds }
   }
 
   async getState(): Promise<GameState> {

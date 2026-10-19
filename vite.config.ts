@@ -11,8 +11,8 @@ function cppEnginePlugin(): Plugin {
     name: 'cpp-engine-plugin',
     configureServer(server) {
       server.middlewares.use(engineBridge.createViteMiddleware());
-      if (server.httpServer && engineBridge.attachWebSocket) {
-        engineBridge.attachWebSocket(server.httpServer);
+      if (server.httpServer && (engineBridge as any).attachWebSocket) {
+        (engineBridge as any).attachWebSocket(server.httpServer);
       }
     },
   };

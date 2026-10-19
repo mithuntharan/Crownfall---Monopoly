@@ -10,6 +10,9 @@ interface TurnOverviewDrawerProps {
   localPlayerId?: number
   playerPositions: number[]
   roundNumber: number
+  isHost?: boolean
+  isMultiplayer?: boolean
+  onKickPlayer?: (playerId: number) => void
 }
 
 export function TurnOverviewDrawer({
@@ -20,6 +23,9 @@ export function TurnOverviewDrawer({
   localPlayerId = 0,
   playerPositions,
   roundNumber,
+  isHost = false,
+  isMultiplayer = false,
+  onKickPlayer,
 }: TurnOverviewDrawerProps) {
   // Find next active solvent player
   const nextPlayerIndex = (() => {
@@ -290,6 +296,31 @@ export function TurnOverviewDrawer({
                         >
                           {statusBadge.text}
                         </span>
+                        {isHost && isMultiplayer && p.id !== localPlayerId && !p.isBankrupt && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (window.confirm(`Kick ${p.name} from the match?`)) {
+                                onKickPlayer?.(p.id)
+                              }
+                            }}
+                            title={`Host Control: Kick ${p.name} from match`}
+                            style={{
+                              background: "rgba(239, 68, 68, 0.2)",
+                              border: "1px solid rgba(239, 68, 68, 0.6)",
+                              borderRadius: "4px",
+                              color: "#fca5a5",
+                              fontSize: "8.5px",
+                              fontWeight: 700,
+                              padding: "1px 5px",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            🥾 KICK
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

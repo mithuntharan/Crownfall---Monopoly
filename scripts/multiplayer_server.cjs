@@ -133,7 +133,7 @@ const AVAILABLE_COLORS = [
 const EMPTY_ROOM_TIMEOUT_MS = parseInt(process.env.EMPTY_ROOM_TIMEOUT_MS || String(10 * 60 * 1000), 10); // Exactly 10 minutes default
 
 class Room {
-  constructor(roomCode, hostName = 'Host', hostColor = 'saffron', rules = {}) {
+  constructor(roomCode, hostName = 'Host', hostColor = 'saffron', rules = {}, hostClientId = null) {
     this.roomCode = roomCode;
     this.hostPlayerId = 0;
     this.gamePhase = 'LOBBY'; // 'LOBBY' | 'IN_PROGRESS' | 'GAME_OVER'
@@ -169,6 +169,7 @@ class Room {
         isHost: true,
         connected: true,
         sessionToken: hostToken,
+        clientId: hostClientId || null,
         socket: null,
         lastSeen: Date.now(),
       }
@@ -279,10 +280,75 @@ class Room {
     return 'saffron';
   }
 
-  requestJoin(name, preferredColor, requesterSocket = null) {
+  requestJoin(name, preferredColor, requesterSocket = null, clientId = null, sessionToken = null) {
     if (this.isExpired || this.isClosed) {
       throw new Error('Room has been closed or expired and is no longer available.');
     }
+
+    const cleanName = (name && name.trim()) ? name.trim().slice(0, 20) : '';
+
+    // 1. Same player joining same room twice: reclaim the existing player instance instead of creating a new one
+    let existingPlayer = null;
+    if (sessionToken) {
+      existingPlayer = this.getPlayerByToken(sessionToken);
+    }
+    if (!existingPlayer && clientId) {
+      existingPlayer = this.players.find(p => p.clientId === clientId && !p.isLeft);
+    }
+
+    if (existingPlayer) {
+      console.log(`[MULTIPLAYER SERVER] Existing player '${existingPlayer.name}' (id: ${existingPlayer.id}) re-joining room ${this.roomCode}. Reclaiming instance.`);
+
+      // Disconnect previous socket if any with notification
+      if (existingPlayer.socket && existingPlayer.socket !== requesterSocket && !existingPlayer.socket.destroyed) {
+        try {
+          existingPlayer.socket.write(encodeWsTextFrame(JSON.stringify({
+            type: 'SUPERSEDED',
+            message: 'Connected from another session or tab.',
+          })));
+          existingPlayer.socket.destroy();
+        } catch (_) {}
+      }
+
+      existingPlayer.connected = true;
+      existingPlayer.isLeft = false;
+      existingPlayer.lastSeen = Date.now();
+      if (requesterSocket) existingPlayer.socket = requesterSocket;
+      if (clientId) existingPlayer.clientId = clientId;
+
+      // Clean up any pending join requests for this player name or clientId
+      for (const [reqId, req] of this.joinRequests.entries()) {
+        if (
+          (cleanName && req.name.toLowerCase() === cleanName.toLowerCase()) ||
+          (clientId && req.clientId === clientId)
+        ) {
+          this.joinRequests.delete(reqId);
+        }
+      }
+
+      this.cancelEmptyExpiration();
+      this.touch();
+
+      broadcastToRoom(this, {
+        type: 'PLAYER_STATUS',
+        playerId: existingPlayer.id,
+        connected: true,
+        message: `${existingPlayer.name} reconnected.`,
+        snapshot: this.getSnapshot(),
+      }, requesterSocket);
+
+      return {
+        status: 'ACCEPTED',
+        roomCode: this.roomCode,
+        playerId: existingPlayer.id,
+        sessionToken: existingPlayer.sessionToken,
+        isHost: existingPlayer.isHost,
+        snapshot: this.getSnapshot(),
+        reclaimed: true,
+      };
+    }
+
+    // 2. New player checks: validate room phase and capacity
     if (this.gamePhase !== 'LOBBY') {
       throw new Error('Game already in progress in this room.');
     }
@@ -290,11 +356,13 @@ class Room {
       throw new Error(`Room is full (maximum ${this.rules.maxPlayers} players).`);
     }
 
-    const cleanName = (name && name.trim()) ? name.trim().slice(0, 20) : 'Guest Player';
-
-    // Prevent duplicate pending requests from same player name
+    // Prevent duplicate pending requests from same player name or clientId
     for (const [id, existingReq] of this.joinRequests.entries()) {
-      if (existingReq.status === 'PENDING' && existingReq.name.toLowerCase() === cleanName.toLowerCase()) {
+      if (
+        existingReq.status === 'PENDING' &&
+        ((cleanName && existingReq.name.toLowerCase() === cleanName.toLowerCase()) ||
+         (clientId && existingReq.clientId === clientId))
+      ) {
         if (requesterSocket) existingReq.socket = requesterSocket;
         return {
           status: 'PENDING',
@@ -308,7 +376,7 @@ class Room {
     // Join Game when the room exists but has no active host:
     // The first player successfully admitted becomes the host.
     if (!this.hasActiveHost()) {
-      const player = this.addPlayer(cleanName, preferredColor);
+      const player = this.addPlayer(cleanName || 'Player 1', preferredColor, clientId);
       player.isHost = true;
       this.hostPlayerId = player.id;
       this.cancelEmptyExpiration();
@@ -333,8 +401,9 @@ class Room {
 
     const joinReq = {
       requestId,
-      name: cleanName,
+      name: cleanName || 'Guest Player',
       color: chosenColor,
+      clientId: clientId || null,
       requestedAt: Date.now(),
       status: 'PENDING',
       socket: requesterSocket || null,
@@ -394,7 +463,7 @@ class Room {
       }
 
       // Authoritative admission
-      const player = this.addPlayer(joinReq.name, joinReq.color);
+      const player = this.addPlayer(joinReq.name, joinReq.color, joinReq.clientId);
       joinReq.status = 'ACCEPTED';
       joinReq.playerId = player.id;
       joinReq.sessionToken = player.sessionToken;
@@ -456,7 +525,7 @@ class Room {
     }
   }
 
-  addPlayer(name, preferredColor) {
+  addPlayer(name, preferredColor, clientId = null) {
     if (this.gamePhase !== 'LOBBY') {
       throw new Error('Game already in progress in this room.');
     }
@@ -481,6 +550,7 @@ class Room {
       isHost: false,
       connected: true,
       sessionToken,
+      clientId: clientId || null,
       socket: null,
       lastSeen: Date.now(),
     };
@@ -749,6 +819,7 @@ class Room {
       actionResult: res.result,
       sequence: this.actionSequence,
       snapshot: this.getSnapshot(),
+      sellPrice: res?.sellPrice,
     };
   }
 
@@ -1062,6 +1133,23 @@ class Room {
         sequenceNumber: seq,
         description: `${player.name} demolished a building on ${propName}.`,
       });
+    } else if (action === 'sellProperty') {
+      const propId = payload.propertyId || '';
+      const propName = formatPropName(propId);
+      const sellPrice = engineRes?.sellPrice || 0;
+      this.addEvent({
+        id: `ev_sellprop_${now}_${player.id}_${propId}_${seq}`,
+        type: 'SELL_PROPERTY',
+        category: 'ACQUISITION',
+        timestamp: now,
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        propertyId: propId,
+        propertyName: propName,
+        sequenceNumber: seq,
+        description: `${player.name} sold ${propName} back to the bank for ₹${sellPrice.toLocaleString()}.`,
+      });
     } else if (action === 'resign') {
       this.addEvent({
         id: `ev_resign_${now}_${player.id}_${seq}`,
@@ -1298,6 +1386,122 @@ class Room {
     return { ok: true, message: 'Successfully left active match.' };
   }
 
+  async kickPlayer(requesterPlayerId, targetPlayerId, reason = 'Kicked by host') {
+    if (requesterPlayerId !== null && requesterPlayerId !== undefined) {
+      if (requesterPlayerId !== this.hostPlayerId) {
+        throw new Error('Only the room host can kick players.');
+      }
+    }
+
+    const targetId = parseInt(targetPlayerId, 10);
+    const player = this.getPlayerById(targetId);
+    if (!player) {
+      throw new Error(`Player with ID ${targetPlayerId} not found in room.`);
+    }
+
+    if (requesterPlayerId !== null && player.id === this.hostPlayerId) {
+      throw new Error('Host cannot kick themselves.');
+    }
+
+    console.log(`[MULTIPLAYER SERVER] Kicking player ${player.name} (id: ${player.id}) from room ${this.roomCode}. Reason: ${reason}`);
+
+    // If player has an open socket, send KICKED frame and destroy socket
+    if (player.socket && !player.socket.destroyed) {
+      try {
+        player.socket.write(encodeWsTextFrame(JSON.stringify({
+          type: 'KICKED',
+          reason: reason || 'You were kicked from the room.',
+          roomCode: this.roomCode,
+        })));
+        player.socket.destroy();
+      } catch (_) {}
+    }
+    player.socket = null;
+    player.connected = false;
+    player.isLeft = true;
+    this.touch();
+
+    // If in lobby, remove player from list entirely
+    if (this.gamePhase === 'LOBBY') {
+      this.players = this.players.filter(p => p.id !== player.id);
+
+      // If host was removed (e.g. server auto-kick from another room)
+      if (player.id === this.hostPlayerId) {
+        player.isHost = false;
+        const nextHost = this.players.find(p => p.connected && !p.isLeft);
+        if (nextHost) {
+          nextHost.isHost = true;
+          this.hostPlayerId = nextHost.id;
+        } else {
+          this.hostPlayerId = null;
+        }
+      }
+
+      const connectedCount = this.players.filter(p => p.connected).length;
+      if (connectedCount === 0) {
+        this.startEmptyExpiration();
+      }
+
+      broadcastToRoom(this, {
+        type: 'PLAYER_KICKED',
+        kickedPlayerId: targetId,
+        kickedPlayerName: player.name,
+        reason,
+        newHostPlayerId: this.hostPlayerId,
+        snapshot: this.getSnapshot(),
+      });
+
+      return { ok: true, message: `Player ${player.name} removed from lobby.`, snapshot: this.getSnapshot() };
+    }
+
+    // If game IN_PROGRESS:
+    this.addEvent({
+      id: `ev_kick_${Date.now()}_${player.id}`,
+      type: 'PLAYER_LEFT',
+      category: 'SYSTEM_ERRORS',
+      timestamp: Date.now(),
+      playerId: targetId,
+      playerName: player.name,
+      description: `${player.name} was kicked from the match (${reason}).`,
+    });
+
+    // Advance turn if it was their active turn
+    if (this.gameState && this.gameState.activePlayerIndex === targetId) {
+      try {
+        const res = await this.engine.sendCommand({ action: 'endTurn', playerId: targetId });
+        if (res && res.ok && res.state) {
+          this.setGameState(res.state);
+        }
+      } catch (_) {}
+    }
+
+    // Check remaining active non-bankrupt players
+    const activeRemaining = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
+    if (activeRemaining.length <= 1) {
+      this.gamePhase = 'GAME_OVER';
+      if (this.gameState) {
+        this.gameState.turnState = 'GAME_OVER';
+        this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+      }
+    }
+
+    const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
+    if (connectedCount === 0) {
+      this.startEmptyExpiration();
+    }
+
+    broadcastToRoom(this, {
+      type: 'PLAYER_KICKED',
+      kickedPlayerId: targetId,
+      kickedPlayerName: player.name,
+      reason,
+      newHostPlayerId: this.hostPlayerId,
+      snapshot: this.getSnapshot(),
+    });
+
+    return { ok: true, message: `Player ${player.name} kicked from match.`, snapshot: this.getSnapshot() };
+  }
+
   getSnapshot() {
     return {
       roomCode: this.roomCode,
@@ -1365,6 +1569,28 @@ class Room {
 
 // Global active rooms map: roomCode -> Room
 const rooms = new Map();
+
+// Helper to auto-kick a client from other rooms when they join/create a new room
+async function kickClientFromOtherRooms(clientId, currentRoomCode, sessionToken = null) {
+  if (!clientId && !sessionToken) return;
+  for (const [code, room] of rooms.entries()) {
+    if (code === currentRoomCode) continue;
+    const targetPlayer = room.players.find(p =>
+      !p.isLeft && (
+        (clientId && p.clientId === clientId) ||
+        (sessionToken && p.sessionToken === sessionToken)
+      )
+    );
+    if (targetPlayer) {
+      console.log(`[MULTIPLAYER SERVER] Auto-kicking player ${targetPlayer.name} (id: ${targetPlayer.id}) from Room ${code} because they connected to Room ${currentRoomCode}`);
+      try {
+        await room.kickPlayer(null, targetPlayer.id, 'You connected to another room.');
+      } catch (err) {
+        console.error(`[MULTIPLAYER SERVER] Error auto-kicking player from Room ${code}:`, err);
+      }
+    }
+  }
+}
 
 // Registry of closed rooms: roomCode -> { closedAt, reason, closedBy }
 const closedRooms = new Map();
@@ -1575,7 +1801,7 @@ function handleWsConnection(socket, req, head = null) {
 }
 
 async function handleClientMessage(msg, socket, bindContext) {
-  const { type, roomCode, sessionToken, payload, requestId } = msg;
+  const { type, roomCode, sessionToken, payload, requestId, clientId } = msg;
 
   if (type === 'LISTEN_JOIN_REQUEST') {
     const room = rooms.get(roomCode);
@@ -1614,14 +1840,35 @@ async function handleClientMessage(msg, socket, bindContext) {
       socket.write(encodeWsTextFrame(JSON.stringify({ type: 'ERROR', message: 'Room not found or expired.', requestId })));
       return;
     }
-    const player = room.getPlayerByToken(sessionToken);
+
+    const cId = clientId || payload?.clientId || msg.clientId;
+    if (cId) {
+      await kickClientFromOtherRooms(cId, roomCode, sessionToken);
+    }
+
+    let player = room.getPlayerByToken(sessionToken);
+    if (!player && cId) {
+      player = room.players.find(p => p.clientId === cId && !p.isLeft);
+    }
     if (!player) {
       socket.write(encodeWsTextFrame(JSON.stringify({ type: 'ERROR', message: 'Invalid player session token.', requestId })));
       return;
     }
 
+    // Disconnect old socket if any
+    if (player.socket && player.socket !== socket && !player.socket.destroyed) {
+      try {
+        player.socket.write(encodeWsTextFrame(JSON.stringify({
+          type: 'SUPERSEDED',
+          message: 'Connected from another session or tab.',
+        })));
+        player.socket.destroy();
+      } catch (_) {}
+    }
+
     player.connected = true;
     player.socket = socket;
+    if (cId) player.clientId = cId;
     player.lastSeen = Date.now();
     room.cancelEmptyExpiration();
     bindContext(room, player);
@@ -1708,6 +1955,7 @@ async function handleClientMessage(msg, socket, bindContext) {
         actionResult: result.actionResult,
         snapshot: result.snapshot,
         sequence: result.sequence,
+        sellPrice: result.sellPrice,
         requestId,
       });
     } else if (type === 'REMATCH_READY') {
@@ -1729,6 +1977,15 @@ async function handleClientMessage(msg, socket, bindContext) {
       socket.write(encodeWsTextFrame(JSON.stringify({
         type: 'LEFT_ROOM',
         ...res,
+        requestId,
+      })));
+    } else if (type === 'KICK_PLAYER' || type === 'REMOVE_PLAYER') {
+      const targetId = payload?.targetPlayerId ?? payload?.playerId;
+      const reason = payload?.reason || 'Kicked by host';
+      const result = await room.kickPlayer(player.id, targetId, reason);
+      socket.write(encodeWsTextFrame(JSON.stringify({
+        type: 'KICK_PLAYER_ACK',
+        ...result,
         requestId,
       })));
     }
@@ -1812,7 +2069,10 @@ const server = http.createServer((req, res) => {
         if (rooms.has(roomCode)) {
           return sendJson(res, 400, { ok: false, error: 'Room code already exists. Please retry.' });
         }
-        const room = new Room(roomCode, payload.hostName, payload.hostColor, payload.rules);
+        if (payload.clientId) {
+          await kickClientFromOtherRooms(payload.clientId, roomCode);
+        }
+        const room = new Room(roomCode, payload.hostName, payload.hostColor, payload.rules, payload.clientId);
         rooms.set(roomCode, room);
         const host = room.players[0];
         return sendJson(res, 200, {
@@ -1830,7 +2090,7 @@ const server = http.createServer((req, res) => {
     // Join Room: POST /api/multiplayer/room/join
     if (pathname === '/api/multiplayer/room/join') {
       try {
-        const { roomCode, playerName, playerColor } = payload;
+        const { roomCode, playerName, playerColor, clientId, sessionToken } = payload;
         const cleanCode = (roomCode || '').trim().toUpperCase();
         if (closedRooms.has(cleanCode)) {
           return sendJson(res, 410, { ok: false, error: 'Room has been closed by the server administrator.' });
@@ -1839,7 +2099,10 @@ const server = http.createServer((req, res) => {
         if (!room || room.isExpired) {
           return sendJson(res, 404, { ok: false, error: 'Room not found or has expired. Check the code and try again.' });
         }
-        const joinResult = room.requestJoin(playerName, playerColor);
+        if (clientId) {
+          await kickClientFromOtherRooms(clientId, cleanCode, sessionToken);
+        }
+        const joinResult = room.requestJoin(playerName, playerColor, null, clientId, sessionToken);
         return sendJson(res, 200, {
           ok: true,
           ...joinResult,
@@ -1924,6 +2187,12 @@ const server = http.createServer((req, res) => {
       if (!player) return sendJson(res, 401, { ok: false, error: 'Unauthorized.' });
       try {
         const { action, ...actionPayload } = payload;
+        if (action === 'kick' || action === 'remove_player' || action === 'removePlayer') {
+          const targetId = actionPayload.targetPlayerId ?? actionPayload.playerId;
+          const reason = actionPayload.reason || 'Kicked by host';
+          const result = await room.kickPlayer(player.id, targetId, reason);
+          return sendJson(res, 200, result);
+        }
         if (action === 'start_game' || action === 'startGame') {
           const snapshot = await room.startGame(player.id);
           broadcastToRoom(room, {
@@ -1942,6 +2211,26 @@ const server = http.createServer((req, res) => {
           sequence: result.sequence,
         });
         return sendJson(res, 200, { ok: true, ...result });
+      } catch (err) {
+        return sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }
+
+    // Host Kicks Player: POST /api/multiplayer/room/:code/kick or /remove
+    const kickMatch = pathname.match(/^\/api\/multiplayer\/room\/([A-Za-z0-9-]+)\/(?:kick|remove)$/);
+    if (kickMatch) {
+      const roomCode = kickMatch[1].toUpperCase();
+      const room = rooms.get(roomCode);
+      if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
+      const hostPlayer = room.getPlayerByToken(payload.sessionToken);
+      if (!hostPlayer || hostPlayer.id !== room.hostPlayerId) {
+        return sendJson(res, 403, { ok: false, error: 'Only the host can kick players.' });
+      }
+      try {
+        const targetId = payload.targetPlayerId ?? payload.playerId;
+        const reason = payload.reason || 'Kicked by host';
+        const result = await room.kickPlayer(hostPlayer.id, targetId, reason);
+        return sendJson(res, 200, result);
       } catch (err) {
         return sendJson(res, 400, { ok: false, error: err.message });
       }

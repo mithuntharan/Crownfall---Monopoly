@@ -208,6 +208,29 @@ export class CppEngineClient implements IGameEngine {
     return { success: !!data.ok, state: data.state }
   }
 
+  async sellProperty(
+    playerId: number,
+    propertyId: string,
+  ): Promise<{
+    success: boolean
+    state: GameState
+    sellPrice?: number
+    error?: string
+  }> {
+    const res = await fetch(`${this.baseUrl}/sellProperty`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId, propertyId }),
+    })
+    const data = await res.json()
+    return {
+      success: !!data.ok,
+      state: data.state,
+      sellPrice: data.sellPrice,
+      error: data.error,
+    }
+  }
+
   async getState(): Promise<GameState> {
     const res = await fetch(`${this.baseUrl}/state`)
     const data = await res.json()

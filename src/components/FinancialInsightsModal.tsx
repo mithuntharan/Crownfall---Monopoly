@@ -8,6 +8,9 @@ interface FinancialInsightsModalProps {
   players: EnginePlayer[]
   localPlayerId: number
   transactionLedger?: TransactionRecord[]
+  isHost?: boolean
+  isMultiplayer?: boolean
+  onKickPlayer?: (playerId: number) => void
   close: () => void
 }
 
@@ -15,6 +18,9 @@ export function FinancialInsightsModal({
   players,
   localPlayerId,
   transactionLedger = [],
+  isHost = false,
+  isMultiplayer = false,
+  onKickPlayer,
   close,
 }: FinancialInsightsModalProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number>(localPlayerId)
@@ -323,24 +329,51 @@ export function FinancialInsightsModal({
                             ₹{item.netWorth.toLocaleString()}
                           </td>
                           <td style={{ padding: "8px", textAlign: "center" }}>
-                            <button
-                              onClick={() => {
-                                setSelectedPlayerId(item.player.id)
-                                setActiveTab("player_detail")
-                              }}
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: "4px",
-                                border: "1px solid var(--gold-400)",
-                                background: "rgba(200,155,69,0.15)",
-                                color: "var(--gold-300)",
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Inspect
-                            </button>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "center", alignItems: "center" }}>
+                              <button
+                                onClick={() => {
+                                  setSelectedPlayerId(item.player.id)
+                                  setActiveTab("player_detail")
+                                }}
+                                style={{
+                                  padding: "4px 8px",
+                                  borderRadius: "4px",
+                                  border: "1px solid var(--gold-400)",
+                                  background: "rgba(200,155,69,0.15)",
+                                  color: "var(--gold-300)",
+                                  fontSize: "10px",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Inspect
+                              </button>
+                              {isHost && isMultiplayer && item.player.id !== localPlayerId && !item.player.isBankrupt && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (window.confirm(`Kick ${item.player.name} from the match?`)) {
+                                      onKickPlayer?.(item.player.id)
+                                    }
+                                  }}
+                                  title={`Host Control: Kick ${item.player.name} from match`}
+                                  style={{
+                                    padding: "4px 8px",
+                                    borderRadius: "4px",
+                                    border: "1px solid rgba(239, 68, 68, 0.7)",
+                                    background: "rgba(239, 68, 68, 0.2)",
+                                    color: "#fca5a5",
+                                    fontSize: "10px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    transition: "all 0.15s ease",
+                                  }}
+                                >
+                                  🥾 Kick
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       )

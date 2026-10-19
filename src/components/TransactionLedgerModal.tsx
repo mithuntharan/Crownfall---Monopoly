@@ -394,13 +394,22 @@ export function TransactionLedgerModal({
                       </div>
 
                       <div className="ledger-parties-row">
-                        <strong>{tx.primaryPlayerName}</strong>
-                        <span className="ledger-party-arrow">➔</span>
-                        <strong>{tx.counterpartyPlayerName}</strong>
+                        <span className="ledger-party-chip primary">
+                          <span className="party-role-tag">FROM</span>
+                          <strong>{tx.primaryPlayerName}</strong>
+                        </span>
+                        <div className="ledger-transfer-flow">
+                          <span className="ledger-transfer-line" />
+                          <span className="ledger-transfer-icon">⟶</span>
+                        </div>
+                        <span className="ledger-party-chip counterparty">
+                          <span className="party-role-tag">TO</span>
+                          <strong>{tx.counterpartyPlayerName}</strong>
+                        </span>
                       </div>
 
                       <div className="ledger-desc-row">
-                        <span>{tx.description}</span>
+                        <span className="ledger-description-text">{tx.description}</span>
                         {tx.amount > 0 && (
                           <span
                             className={`ledger-amount-tag ${

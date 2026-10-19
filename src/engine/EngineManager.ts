@@ -159,6 +159,23 @@ export class EngineManager implements IGameEngine {
     return engine.unmortgageProperty(playerId, propertyId)
   }
 
+  async sellProperty(
+    playerId: number,
+    propertyId: string,
+  ): Promise<{
+    success: boolean
+    state: GameState
+    sellPrice?: number
+    error?: string
+  }> {
+    const engine = await this.getActiveEngine()
+    if (engine.sellProperty) {
+      return engine.sellProperty(playerId, propertyId)
+    }
+    const state = await engine.getState()
+    return { success: false, state, error: "sellProperty not supported on active engine" }
+  }
+
   async getState(): Promise<GameState> {
     const engine = await this.getActiveEngine()
     return engine.getState()

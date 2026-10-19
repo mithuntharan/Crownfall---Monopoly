@@ -5,7 +5,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crownfall</title>
-    <meta name="description" content="Crownfall — Real-time multiplayer strategy board game" />
+    <script>
+      (function() {
+        try {
+          var p = localStorage.getItem("crownfall_game_preferences") || localStorage.getItem("dominion_game_preferences");
+          if (p) {
+            var prefs = JSON.parse(p);
+            var theme = prefs.theme;
+            if (theme === "light" || theme === "dark") {
+              document.documentElement.setAttribute("data-theme", theme);
+            }
+          }
+        } catch (_) {}
+      })();
+    </script>
     <!-- figma:head-end -->
   </head>
   <body>

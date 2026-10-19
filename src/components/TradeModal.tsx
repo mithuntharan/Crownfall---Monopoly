@@ -492,8 +492,21 @@ export function TradeModal({
                             <div style={{ fontWeight: 600, color: "var(--gold-300)" }}>
                               {offer.senderCash > 0 && `₹${offer.senderCash.toLocaleString()} Cash`}
                               {offer.senderPropertyIds.length > 0 && (
-                                <div>
-                                  {offer.senderPropertyIds.map((p) => getPropName(p)).join(", ")}
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: offer.senderCash > 0 ? "4px" : "0" }}>
+                                  {offer.senderPropertyIds.map((p) => {
+                                    const senderPlayer = players.find((pl) => pl.id === offer.senderId)
+                                    const isMortgaged = Boolean(senderPlayer?.mortgages?.[p])
+                                    return (
+                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                        <span>{getPropName(p)}</span>
+                                        {isMortgaged && (
+                                          <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
+                                            MORTGAGED
+                                          </span>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )}
                               {offer.senderCash === 0 && offer.senderPropertyIds.length === 0 && "Nothing"}
@@ -504,8 +517,21 @@ export function TradeModal({
                             <div style={{ fontWeight: 600, color: "var(--gold-300)" }}>
                               {offer.receiverCash > 0 && `₹${offer.receiverCash.toLocaleString()} Cash`}
                               {offer.receiverPropertyIds.length > 0 && (
-                                <div>
-                                  {offer.receiverPropertyIds.map((p) => getPropName(p)).join(", ")}
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: offer.receiverCash > 0 ? "4px" : "0" }}>
+                                  {offer.receiverPropertyIds.map((p) => {
+                                    const receiverPlayer = players.find((pl) => pl.id === offer.receiverId)
+                                    const isMortgaged = Boolean(receiverPlayer?.mortgages?.[p])
+                                    return (
+                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                        <span>{getPropName(p)}</span>
+                                        {isMortgaged && (
+                                          <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
+                                            MORTGAGED
+                                          </span>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )}
                               {offer.receiverCash === 0 && offer.receiverPropertyIds.length === 0 && "Nothing"}
@@ -622,9 +648,11 @@ export function TradeModal({
                           alignItems: "center",
                         }}
                       >
-                        <span>
-                          {offer.senderName} ↔ {offer.receiverName}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontWeight: 700, color: "var(--gold-300)" }}>{offer.senderName}</span>
+                          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>⇄</span>
+                          <span style={{ fontWeight: 700, color: "#fff" }}>{offer.receiverName}</span>
+                        </div>
                         <span
                           style={{
                             fontWeight: 700,

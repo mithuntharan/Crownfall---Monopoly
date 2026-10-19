@@ -22,8 +22,8 @@ cpp/.clangd/
 
 # Environment and sensitive files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.log
 *-debug.log*
 logs/
