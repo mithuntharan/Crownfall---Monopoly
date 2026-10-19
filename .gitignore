@@ -1,21 +1,46 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Production build outputs
 dist/
 build/
 .cache/
-.env*
 .vite/
-vite.config.*.timestamp-*
 *.tsbuildinfo
+vite.config.*.timestamp-*
+
+# C++ Build & Object files
+*.o
+*.obj
+bin/*.o
+bin/dominion_engine.exe
+compile_commands.json
+cpp/compile_commands.json
+.clangd/
+cpp/.clangd/
+
+# Environment and sensitive files
+.env
+.env.local
+.env.*.local
+*.log
 *-debug.log*
 logs/
-*.log
-.claude-replay.*
-.tmp-*
-/.figma/design-context/
 
-# Platform-managed agentplat state, not project source. In the
-# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
-# repo root IS the workspace root, so these land inside this repo rather than
-# beside it.
+# Agent & temporary files
+.tmp-*
+.claude*
+CLAUDE.md
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+sheet_summary.txt
+extracted_sheets.json
+
+# Platform & Figma Make
+/.figma/design-context/
 /.plugins/
 /.opencode-skills/
