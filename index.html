@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<!-- figma:lang -->">
+<html lang="<!-- figma:lang -->" data-theme="light">
   <head>
     <!-- figma:head-start -->
     <meta charset="UTF-8" />
@@ -8,20 +8,13 @@
     <script>
       (function() {
         try {
-          var p = localStorage.getItem("crownfall_game_preferences") || localStorage.getItem("dominion_game_preferences");
-          if (p) {
-            var prefs = JSON.parse(p);
-            var theme = prefs.theme;
-            if (theme === "light" || theme === "dark") {
-              document.documentElement.setAttribute("data-theme", theme);
-            }
-          }
+          document.documentElement.setAttribute("data-theme", "light");
         } catch (_) {}
       })();
     </script>
     <!-- figma:head-end -->
   </head>
-  <body>
+  <body data-theme="light">
     <!-- figma:body-start -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

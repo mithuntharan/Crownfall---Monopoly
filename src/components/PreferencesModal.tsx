@@ -53,12 +53,9 @@ export function PreferencesModal({
   }, [rules])
 
   const updatePref = <K extends keyof GamePreferences>(key: K, val: GamePreferences[K]) => {
-    const updated = { ...prefs, [key]: val }
+    const updated = { ...prefs, [key]: val, theme: "light" as const }
     setPrefs(updated)
     onUpdatePreferences(updated)
-    if (key === "theme") {
-      document.documentElement.setAttribute("data-theme", val as string)
-    }
   }
 
   const handleApplyRules = async () => {
@@ -190,60 +187,6 @@ export function PreferencesModal({
           {activeTab === "appearance" && (
             /* ── SECTION A: APPEARANCE ── */
             <>
-              {/* Theme Selection */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <strong style={{ fontSize: "13px", color: "#fff" }}>Theme &amp; Visual Style</strong>
-                  <span style={{ fontSize: "11px", color: "var(--gold-300)", fontWeight: 700, textTransform: "uppercase" }}>
-                    {prefs.theme === "light" ? "☀️ Light Imperial" : "🌙 Dark Royal"}
-                  </span>
-                </div>
-                <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "0 0 10px" }}>
-                  Switch between deep midnight navy or warm imperial parchment while preserving rich gold accents.
-                </p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <button
-                    onClick={() => updatePref("theme", "dark")}
-                    style={{
-                      padding: "10px",
-                      borderRadius: "6px",
-                      border: prefs.theme !== "light" ? "2px solid var(--gold)" : "1px solid var(--border-subtle)",
-                      background: "#0c1527",
-                      color: "#f8fafc",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <span style={{ fontSize: "18px" }}>🌙</span>
-                    <strong style={{ fontSize: "12px" }}>Dark Royal</strong>
-                    <small style={{ color: "#94a3b8", fontSize: "10px" }}>Midnight Navy &amp; Gold</small>
-                  </button>
-
-                  <button
-                    onClick={() => updatePref("theme", "light")}
-                    style={{
-                      padding: "10px",
-                      borderRadius: "6px",
-                      border: prefs.theme === "light" ? "2px solid var(--gold)" : "1px solid var(--border-subtle)",
-                      background: "#f7f2e7",
-                      color: "#1e293b",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "4px",
-                    }}
-                  >
-                    <span style={{ fontSize: "18px" }}>☀️</span>
-                    <strong style={{ fontSize: "12px" }}>Light Imperial</strong>
-                    <small style={{ color: "#64748b", fontSize: "10px" }}>Parchment &amp; Antique Gold</small>
-                  </button>
-                </div>
-              </div>
-
               {/* Reduced Motion */}
               <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

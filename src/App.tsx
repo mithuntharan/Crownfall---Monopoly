@@ -1098,9 +1098,9 @@ function SetupScreen({
                 border: nameError ? "1.5px solid var(--red)" : "1.5px solid var(--gold)",
                 padding: "0 12px",
                 fontSize: "14px",
-                fontWeight: 700,
-                background: "var(--surface)",
-                color: "var(--ink)",
+                fontWeight: 600,
+                background: "#ffffff",
+                color: "#0f172a",
               }}
             />
             {nameError && (
@@ -1470,9 +1470,9 @@ function LobbyScreen({
                           border: nameValidationError ? "1.5px solid var(--red)" : "1px solid var(--gold)",
                           padding: "0 10px",
                           fontSize: "13px",
-                          fontWeight: 700,
-                          background: "var(--surface)",
-                          color: "var(--ink)",
+                          fontWeight: 600,
+                          background: "#ffffff",
+                          color: "#0f172a",
                         }}
                       />
                       {nameValidationError && (
@@ -6997,11 +6997,6 @@ function SettingsScreen({
   onUpdatePreferences?: (prefs: GamePreferences) => void
 }) {
   const currentPrefs = preferences ?? loadPreferences()
-  const currentTheme = currentPrefs.theme || "dark"
-
-  const handleToggleTheme = (theme: "dark" | "light") => {
-    onUpdatePreferences?.({ ...currentPrefs, theme })
-  }
 
   const handleToggleSound = (soundEffects: boolean) => {
     onUpdatePreferences?.({ ...currentPrefs, soundEffects })
@@ -7019,65 +7014,6 @@ function SettingsScreen({
     <main className="paper-screen">
       <AppHeader title="SETTINGS" back={() => navigate("menu")} />
       <div className="screen-content">
-        <div className="section-label">APPEARANCE &amp; VISUAL STYLE</div>
-        <div className="settings-card">
-          <div style={{ padding: "12px 0 6px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-              <strong style={{ fontSize: "13px", color: "var(--text-primary)" }}>Visual Glass Style</strong>
-              <span style={{ fontSize: "11px", color: "var(--gold)", fontWeight: 600 }}>
-                {currentTheme === "light" ? "☀️ Light Pearl Glass" : "🌙 Dark Smoked Sapphire"}
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "8px" }}>
-              <button
-                type="button"
-                onClick={() => handleToggleTheme("light")}
-                style={{
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: currentTheme === "light" ? "2px solid var(--gold)" : "1px solid var(--glass-border)",
-                  background: currentTheme === "light" ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.4)",
-                  color: "#0f172a",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "4px",
-                  transition: "all 0.18s ease",
-                  boxShadow: currentTheme === "light" ? "var(--shadow-subtle)" : "none",
-                }}
-              >
-                <span style={{ fontSize: "20px" }}>☀️</span>
-                <strong style={{ fontSize: "12px", color: "#0f172a" }}>Light Pearl Glass</strong>
-                <small style={{ color: "#64748b", fontSize: "10px" }}>Milky white &amp; cool slate</small>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleToggleTheme("dark")}
-                style={{
-                  padding: "10px",
-                  borderRadius: "8px",
-                  border: currentTheme === "dark" ? "2px solid var(--gold)" : "1px solid var(--glass-border)",
-                  background: currentTheme === "dark" ? "rgba(13, 21, 41, 0.95)" : "rgba(13, 21, 41, 0.45)",
-                  color: "#f8fafc",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "4px",
-                  transition: "all 0.18s ease",
-                  boxShadow: currentTheme === "dark" ? "var(--shadow-subtle)" : "none",
-                }}
-              >
-                <span style={{ fontSize: "20px" }}>🌙</span>
-                <strong style={{ fontSize: "12px", color: "#f8fafc" }}>Dark Smoked Sapphire</strong>
-                <small style={{ color: "#94a3b8", fontSize: "10px" }}>Deep navy &amp; warm ivory</small>
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="section-label">GAMEPLAY &amp; MOTION</div>
         <div className="settings-card">
           <SettingRow
@@ -7462,20 +7398,19 @@ export default function App() {
   // Synchronize active theme attribute to HTML and Body on mount
   useEffect(() => {
     if (typeof document !== "undefined") {
-      const activeTheme = preferences?.theme === "light" ? "light" : "dark"
-      document.documentElement.setAttribute("data-theme", activeTheme)
-      document.body.setAttribute("data-theme", activeTheme)
+      document.documentElement.setAttribute("data-theme", "light")
+      document.body.setAttribute("data-theme", "light")
       document.body.classList.toggle("reduced-motion", !!preferences?.reducedMotion)
     }
-  }, [preferences?.theme, preferences?.reducedMotion])
+  }, [preferences?.reducedMotion])
 
   const handleUpdatePreferences = (newPrefs: GamePreferences) => {
-    setPreferences(newPrefs)
-    savePreferences(newPrefs)
+    const updated = { ...newPrefs, theme: "light" as const }
+    setPreferences(updated)
+    savePreferences(updated)
     if (typeof document !== "undefined") {
-      const activeTheme = newPrefs.theme === "light" ? "light" : "dark"
-      document.documentElement.setAttribute("data-theme", activeTheme)
-      document.body.setAttribute("data-theme", activeTheme)
+      document.documentElement.setAttribute("data-theme", "light")
+      document.body.setAttribute("data-theme", "light")
       document.body.classList.toggle("reduced-motion", !!newPrefs.reducedMotion)
     }
   }
@@ -7585,9 +7520,9 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const currentTheme = preferences.theme || "dark"
-    document.documentElement.setAttribute("data-theme", currentTheme)
-  }, [preferences.theme])
+    document.documentElement.setAttribute("data-theme", "light")
+    document.body.setAttribute("data-theme", "light")
+  }, [])
 
   useEffect(() => {
     let isMounted = true

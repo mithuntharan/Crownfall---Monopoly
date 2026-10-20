@@ -288,11 +288,11 @@ export function TradeModal({
                         onChange={(e) => setOfferedCash(Math.max(0, Math.min(localPlayer.money, Number(e.target.value) || 0)))}
                         style={{
                           width: "100%",
-                          background: "#0c1527",
-                          border: "1px solid var(--border-subtle)",
+                          background: "#ffffff",
+                          border: "1px solid rgba(148, 163, 184, 0.4)",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: "var(--gold-300)",
+                          color: "#0f172a",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
@@ -359,11 +359,11 @@ export function TradeModal({
                         onChange={(e) => setRequestedCash(Math.max(0, Math.min(partner.money, Number(e.target.value) || 0)))}
                         style={{
                           width: "100%",
-                          background: "#0c1527",
-                          border: "1px solid var(--border-subtle)",
+                          background: "#ffffff",
+                          border: "1px solid rgba(148, 163, 184, 0.4)",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: "var(--gold-300)",
+                          color: "#0f172a",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
