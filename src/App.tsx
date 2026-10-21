@@ -782,6 +782,8 @@ export const AVAILABLE_PLAYER_COLORS = [
   { id: "burgundy", name: "Burgundy", hex: "#991b1b" },
   { id: "emerald", name: "Emerald", hex: "#059669" },
   { id: "purple", name: "Purple", hex: "#7c3aed" },
+  { id: "coral", name: "Coral", hex: "#f97316" },
+  { id: "bronze", name: "Bronze", hex: "#b45309" },
 ]
 
 export function generateCrownfallRoomCode(): string {
@@ -835,6 +837,9 @@ function SetupScreen({
     return "teal"
   })
 
+  const [targetRoomSnapshot, setTargetRoomSnapshot] = useState<MultiplayerRoomSnapshot | null>(null)
+  const [isLookingUpRoom, setIsLookingUpRoom] = useState<boolean>(false)
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPendingApproval, setIsPendingApproval] = useState(false)
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null)
@@ -864,6 +869,74 @@ function SetupScreen({
       } catch (_) {}
     }
   }, [turnstileSiteKey])
+
+  // Look up authoritative target room state when entering a room code in Join mode
+  useEffect(() => {
+    if (create) return
+    const { valid, normalized } = normalizeAndValidateRoomCode(inputCode)
+    if (!valid) {
+      setTargetRoomSnapshot(null)
+      return
+    }
+
+    let isMounted = true
+    const lookup = async () => {
+      try {
+        setIsLookingUpRoom(true)
+        const snap = await multiplayerClient.fetchRoomSnapshot(normalized)
+        if (isMounted && snap) {
+          setTargetRoomSnapshot(snap)
+        }
+      } finally {
+        if (isMounted) setIsLookingUpRoom(false)
+      }
+    }
+
+    lookup()
+
+    // Periodically refresh room occupancy while on the join screen
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        multiplayerClient.fetchRoomSnapshot(normalized).then((snap) => {
+          if (isMounted && snap) {
+            setTargetRoomSnapshot(snap)
+          }
+        })
+      }
+    }, 2000)
+
+    // Listen to live snapshot events for this room code
+    const unsub = multiplayerClient.onSnapshot((snap) => {
+      if (isMounted && snap.roomCode?.toUpperCase() === normalized) {
+        setTargetRoomSnapshot(snap)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      clearInterval(pollInterval)
+      unsub()
+    }
+  }, [create, inputCode])
+
+  // Ensure selected color is genuinely available whenever target room occupancy updates
+  useEffect(() => {
+    if (create || !targetRoomSnapshot) return
+    const occupied = new Set(
+      (targetRoomSnapshot.players || [])
+        .filter((p) => !p.isLeft)
+        .map((p) => (p.color || "").trim().toLowerCase())
+    )
+    if (occupied.has(enteredColor.toLowerCase())) {
+      const firstFree = AVAILABLE_PLAYER_COLORS.find(
+        (c) => !occupied.has(c.id.toLowerCase())
+      )
+      if (firstFree) {
+        setEnteredColor(firstFree.id)
+        setColorError(null)
+      }
+    }
+  }, [create, targetRoomSnapshot, enteredColor])
 
   // Polling & WebSocket listening effect for join approval
   useEffect(() => {
@@ -952,6 +1025,24 @@ function SetupScreen({
         setCodeError("Invalid game code. Enter a valid Crownfall code beginning with CRN- (e.g. CRN-4821).")
         return
       }
+
+      // Check current room occupancy and capacity if room snapshot is available
+      if (targetRoomSnapshot) {
+        const activePlayers = (targetRoomSnapshot.players || []).filter((p) => !p.isLeft)
+        const maxCapacity = targetRoomSnapshot.rules?.maxPlayers ?? 4
+        if (activePlayers.length >= maxCapacity) {
+          setCodeError(`Room ${normalized} is currently full (${activePlayers.length}/${maxCapacity} players).`)
+          return
+        }
+        const isColorOccupied = activePlayers.some(
+          (p) => (p.color || "").trim().toLowerCase() === enteredColor.toLowerCase()
+        )
+        if (isColorOccupied) {
+          setColorError(`Color '${enteredColor}' is already taken in this room. Please select an available color.`)
+          return
+        }
+      }
+
       setIsSubmitting(true)
       setCodeError(null)
       try {
@@ -1149,18 +1240,27 @@ function SetupScreen({
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))", gap: "8px" }}>
               {AVAILABLE_PLAYER_COLORS.map((c) => {
                 const isSelected = enteredColor.toLowerCase() === c.id
-                const isTaken = !create && players.some((p) => p.connected !== false && !p.isLeft && p.color?.toLowerCase() === c.id)
+                const occupyingPlayer = !create && targetRoomSnapshot
+                  ? (targetRoomSnapshot.players || []).find(
+                      (p) => !p.isLeft && (p.color || "").trim().toLowerCase() === c.id
+                    )
+                  : null
+                const isTaken = Boolean(occupyingPlayer)
 
                 return (
                   <button
                     key={c.id}
                     type="button"
+                    disabled={isTaken}
+                    aria-disabled={isTaken}
                     onClick={() => {
                       if (isTaken) {
                         const available = AVAILABLE_PLAYER_COLORS.filter(
-                          (ac) => !players.some((p) => p.connected !== false && !p.isLeft && p.color?.toLowerCase() === ac.id)
+                          (ac) => !(targetRoomSnapshot?.players || []).some(
+                            (p) => !p.isLeft && (p.color || "").trim().toLowerCase() === ac.id
+                          )
                         ).map((ac) => ac.name).join(", ")
-                        setColorError(`Color '${c.name}' is already chosen by another player. Available colors: ${available || "None"}`)
+                        setColorError(`Color '${c.name}' is already chosen by ${occupyingPlayer?.name || "another player"}. Available colors: ${available || "None"}`)
                         return
                       }
                       setColorError(null)
@@ -1170,7 +1270,7 @@ function SetupScreen({
                       padding: "8px 6px",
                       borderRadius: "10px",
                       border: isSelected ? "1.5px solid var(--gold-bright)" : "1px solid var(--glass-border)",
-                      background: isSelected ? "rgba(217, 119, 6, 0.16)" : "rgba(14, 22, 42, 0.6)",
+                      background: isSelected ? "rgba(217, 119, 6, 0.16)" : isTaken ? "rgba(14, 22, 42, 0.3)" : "rgba(14, 22, 42, 0.6)",
                       boxShadow: isSelected ? "0 0 12px rgba(245, 158, 11, 0.3)" : "none",
                       cursor: isTaken ? "not-allowed" : "pointer",
                       opacity: isTaken ? 0.35 : 1,
@@ -1180,16 +1280,23 @@ function SetupScreen({
                       justifyContent: "center",
                       gap: "6px",
                       transition: "all 0.18s ease",
+                      position: "relative",
                     }}
+                    title={isTaken ? `${c.name} (Occupied by ${occupyingPlayer?.name || "player"})` : c.name}
                   >
                     <PlayerPuck
                       player={{ name: c.name, color: c.id, token: c.name.charAt(0) }}
                       size="sm"
                       active={isSelected}
                     />
-                    <span style={{ fontSize: "10px", fontWeight: 700, color: isSelected ? "var(--gold-bright)" : "var(--text-subtle)", letterSpacing: "0.04em" }}>
+                    <span style={{ fontSize: "10px", fontWeight: 700, color: isSelected ? "var(--gold-bright)" : isTaken ? "rgba(255,255,255,0.4)" : "var(--text-subtle)", letterSpacing: "0.04em" }}>
                       {c.name}
                     </span>
+                    {isTaken && (
+                      <span style={{ fontSize: "8px", fontWeight: 700, color: "var(--red-light)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        TAKEN
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -1672,12 +1779,12 @@ function LobbyScreen({
             navigator.clipboard.writeText(window.location.origin + "?join=" + roomCode)
           }
         }}>INVITE</Button>
-        {localPlayerId === 0 && onOpenHostSettings && (
+        {(localPlayerId === 0 || localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)) && onOpenHostSettings && (
           <Button variant="secondary" onClick={onOpenHostSettings}>
             ⚙️ HOST SETTINGS
           </Button>
         )}
-        {localPlayerId === 0 ? (
+        {(localPlayerId === 0 || localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)) ? (
           <Button onClick={onStartGame} icon="arrow">
             START GAME
           </Button>
@@ -7364,7 +7471,8 @@ export default function App() {
     if (settingsLocked || gamePhase === "IN_PROGRESS") {
       return { success: false, error: "Game settings are permanently locked for this match." }
     }
-    if (localPlayerId !== 0) {
+    const currentHostId = multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
+    if (localPlayerId !== 0 && localPlayerId !== currentHostId) {
       return { success: false, error: "Only the host can modify match settings." }
     }
 

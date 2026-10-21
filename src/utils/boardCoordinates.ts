@@ -103,6 +103,10 @@ export function getPlayerColorHex(color?: string): string {
       return "#059669"
     case "purple":
       return "#7c3aed"
+    case "coral":
+      return "#f97316"
+    case "bronze":
+      return "#b45309"
     default:
       if (c.startsWith("#") || c.startsWith("rgb")) {
         return c

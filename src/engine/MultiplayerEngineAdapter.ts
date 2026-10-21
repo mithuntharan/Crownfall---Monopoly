@@ -24,7 +24,15 @@ export class MultiplayerEngineAdapter implements IGameEngine {
 
   private getFallbackState(): GameState {
     const snap = multiplayerClient.getLatestSnapshot()
-    if (snap?.gameState) return snap.gameState
+    if (snap?.gameState) {
+      if (snap.rules) {
+        snap.gameState.rules = {
+          ...snap.gameState.rules,
+          ...snap.rules,
+        }
+      }
+      return snap.gameState
+    }
 
     return {
       roundNumber: 1,

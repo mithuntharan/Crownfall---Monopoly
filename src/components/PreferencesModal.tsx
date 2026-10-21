@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   type GamePreferences,
   DEFAULT_PREFERENCES,
@@ -40,17 +40,77 @@ export function PreferencesModal({
   const [saveStatus, setSaveStatus] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  const lastSyncedRulesRef = useRef<string>(
+    JSON.stringify({
+      defaultStartingMoney: rules?.defaultStartingMoney ?? 25000,
+      doublesRuleEnabled: rules?.doublesRuleEnabled ?? true,
+      maxPlayers: rules?.maxPlayers ?? 4,
+      timerEnabled: rules?.timerEnabled ?? false,
+      timerSeconds: rules?.timerSeconds ?? 60,
+    })
+  )
+  const isUserInteractingRef = useRef<boolean>(false)
+  const saveTimeoutRef = useRef<number | null>(null)
+
   useEffect(() => {
-    if (rules) {
-      setLocalRules({
-        defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
-        doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
-        maxPlayers: rules.maxPlayers ?? 4,
-        timerEnabled: rules.timerEnabled ?? false,
-        timerSeconds: rules.timerSeconds ?? 60,
-      })
+    if (!rules) return
+    const incomingNormalized = {
+      defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
+      doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
+      maxPlayers: rules.maxPlayers ?? 4,
+      timerEnabled: rules.timerEnabled ?? false,
+      timerSeconds: rules.timerSeconds ?? 60,
     }
-  }, [rules])
+    const incomingStr = JSON.stringify(incomingNormalized)
+
+    // Do NOT clobber active local changes if the host is interacting or saving,
+    // or if the incoming rules match what we already have.
+    if (incomingStr !== lastSyncedRulesRef.current && !isSaving && !isUserInteractingRef.current) {
+      lastSyncedRulesRef.current = incomingStr
+      setLocalRules(incomingNormalized)
+    }
+  }, [rules, isSaving])
+
+  const updateHostRule = <K extends keyof GameRules>(key: K, val: GameRules[K]) => {
+    if (isGameStarted || !isHost) return
+    isUserInteractingRef.current = true
+    const updated = { ...localRules, [key]: val }
+    setLocalRules(updated)
+    setSaveStatus(null)
+
+    // Debounced authoritative persistence & immediate sync
+    if (saveTimeoutRef.current !== null) {
+      window.clearTimeout(saveTimeoutRef.current)
+    }
+    saveTimeoutRef.current = window.setTimeout(async () => {
+      saveTimeoutRef.current = null
+      if (onUpdateRules) {
+        setIsSaving(true)
+        try {
+          const res = await onUpdateRules(updated)
+          if (res.success) {
+            lastSyncedRulesRef.current = JSON.stringify({
+              defaultStartingMoney: updated.defaultStartingMoney ?? 25000,
+              doublesRuleEnabled: updated.doublesRuleEnabled ?? true,
+              maxPlayers: updated.maxPlayers ?? 4,
+              timerEnabled: updated.timerEnabled ?? false,
+              timerSeconds: updated.timerSeconds ?? 60,
+            })
+            setSaveStatus("Rules synchronized with all players.")
+          } else {
+            setSaveStatus(res.error || "Failed to update rules.")
+          }
+        } catch (e: any) {
+          setSaveStatus(e?.message || "Failed to update rules.")
+        } finally {
+          setIsSaving(false)
+          isUserInteractingRef.current = false
+        }
+      } else {
+        isUserInteractingRef.current = false
+      }
+    }, 250)
+  }
 
   const updatePref = <K extends keyof GamePreferences>(key: K, val: GamePreferences[K]) => {
     const updated = { ...prefs, [key]: val, theme: "light" as const }
@@ -60,11 +120,22 @@ export function PreferencesModal({
 
   const handleApplyRules = async () => {
     if (isGameStarted || !isHost || !onUpdateRules) return
+    if (saveTimeoutRef.current !== null) {
+      window.clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
+    }
     setIsSaving(true)
     setSaveStatus(null)
     try {
       const res = await onUpdateRules(localRules)
       if (res.success) {
+        lastSyncedRulesRef.current = JSON.stringify({
+          defaultStartingMoney: localRules.defaultStartingMoney ?? 25000,
+          doublesRuleEnabled: localRules.doublesRuleEnabled ?? true,
+          maxPlayers: localRules.maxPlayers ?? 4,
+          timerEnabled: localRules.timerEnabled ?? false,
+          timerSeconds: localRules.timerSeconds ?? 60,
+        })
         setSaveStatus("Rules synchronized with all players.")
         audioSystem.playPurchase()
       } else {
@@ -76,6 +147,7 @@ export function PreferencesModal({
       audioSystem.playWarning()
     } finally {
       setIsSaving(false)
+      isUserInteractingRef.current = false
     }
   }
 
@@ -411,7 +483,7 @@ export function PreferencesModal({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <button
                       disabled={isGameStarted || !isHost || (localRules.maxPlayers ?? 4) <= 2}
-                      onClick={() => setLocalRules((prev) => ({ ...prev, maxPlayers: Math.max(2, (prev.maxPlayers ?? 4) - 1) }))}
+                      onClick={() => updateHostRule("maxPlayers", Math.max(2, (localRules.maxPlayers ?? 4) - 1))}
                       style={{
                         width: "28px",
                         height: "28px",
@@ -431,7 +503,7 @@ export function PreferencesModal({
                     </b>
                     <button
                       disabled={isGameStarted || !isHost || (localRules.maxPlayers ?? 4) >= 6}
-                      onClick={() => setLocalRules((prev) => ({ ...prev, maxPlayers: Math.min(6, (prev.maxPlayers ?? 4) + 1) }))}
+                      onClick={() => updateHostRule("maxPlayers", Math.min(6, (localRules.maxPlayers ?? 4) + 1))}
                       style={{
                         width: "28px",
                         height: "28px",
@@ -468,7 +540,7 @@ export function PreferencesModal({
                     <button
                       key={amount}
                       disabled={isGameStarted || !isHost}
-                      onClick={() => setLocalRules((prev) => ({ ...prev, defaultStartingMoney: amount }))}
+                      onClick={() => updateHostRule("defaultStartingMoney", amount)}
                       style={{
                         padding: "8px",
                         borderRadius: "6px",
@@ -508,7 +580,7 @@ export function PreferencesModal({
                     disabled={isGameStarted || !isHost}
                     className={`toggle ${localRules.doublesRuleEnabled ? "on" : ""}`}
                     onClick={() =>
-                      setLocalRules((prev) => ({ ...prev, doublesRuleEnabled: !prev.doublesRuleEnabled }))
+                      updateHostRule("doublesRuleEnabled", !localRules.doublesRuleEnabled)
                     }
                     aria-label="Toggle doubles rule"
                     style={{ opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
@@ -533,7 +605,7 @@ export function PreferencesModal({
                     disabled={isGameStarted || !isHost}
                     className={`toggle ${localRules.timerEnabled ? "on" : ""}`}
                     onClick={() =>
-                      setLocalRules((prev) => ({ ...prev, timerEnabled: !prev.timerEnabled }))
+                      updateHostRule("timerEnabled", !localRules.timerEnabled)
                     }
                     aria-label="Toggle turn timer"
                     style={{ opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
@@ -547,7 +619,7 @@ export function PreferencesModal({
                       <button
                         key={sec}
                         disabled={isGameStarted || !isHost}
-                        onClick={() => setLocalRules((prev) => ({ ...prev, timerSeconds: sec }))}
+                        onClick={() => updateHostRule("timerSeconds", sec)}
                         style={{
                           padding: "6px",
                           borderRadius: "4px",

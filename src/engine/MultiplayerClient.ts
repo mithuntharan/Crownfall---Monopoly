@@ -485,7 +485,13 @@ export class MultiplayerClient {
       })
       window.clearTimeout(wakingTimer)
       const data = await res.json()
-      if (!data.ok) throw new Error(data.error || "Failed to submit join request.")
+      if (!data.ok) {
+        if (data.snapshot) {
+          this.latestSnapshot = data.snapshot
+          this.snapshotListeners.forEach((l) => l(data.snapshot))
+        }
+        throw new Error(data.error || "Failed to submit join request.")
+      }
 
       if (data.status === "ACCEPTED") {
         this.latestSnapshot = data.snapshot
@@ -974,6 +980,18 @@ export class MultiplayerClient {
   }
 
   public updateRules(newRules: Partial<GameRules>) {
+    if (this.latestSnapshot) {
+      this.latestSnapshot.rules = {
+        ...this.latestSnapshot.rules,
+        ...newRules,
+      } as any
+      if (this.latestSnapshot.gameState) {
+        this.latestSnapshot.gameState.rules = {
+          ...this.latestSnapshot.gameState.rules,
+          ...newRules,
+        } as any
+      }
+    }
     return this.sendWsOrHttp("UPDATE_RULES", newRules)
   }
 

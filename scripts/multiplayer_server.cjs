@@ -423,11 +423,17 @@ class Room {
 
     // Active host exists: create join request and notify host
     const requestId = 'req_' + crypto.randomBytes(8).toString('hex');
-    let chosenColor = (preferredColor || '').toLowerCase().trim();
-    const usedColors = new Set(this.players.map(p => p.color.toLowerCase()));
-    if (!chosenColor || usedColors.has(chosenColor)) {
-      chosenColor = this.getNextAvailableColor();
+    const cleanColor = validateColor(preferredColor);
+    if (!cleanColor) {
+      throw new Error(`Invalid color '${preferredColor}'.`);
     }
+    const occupiedColors = new Set(
+      this.players.filter(p => !p.isLeft).map(p => (p.color || '').toLowerCase())
+    );
+    if (occupiedColors.has(cleanColor)) {
+      throw new Error(`Color '${cleanColor}' is already taken by another player in this room. Please select an available color.`);
+    }
+    const chosenColor = cleanColor;
 
     const joinReq = {
       requestId,
@@ -491,6 +497,17 @@ class Room {
         joinReq.status = 'REJECTED';
         joinReq.rejectReason = `Room reached maximum capacity (${this.rules.maxPlayers} players).`;
         throw new Error(`Room is full (maximum ${this.rules.maxPlayers} players).`);
+      }
+
+      // Check if requested color became occupied in the meantime
+      const occupiedColors = new Set(
+        this.players.filter(p => !p.isLeft).map(p => (p.color || '').toLowerCase())
+      );
+      if (occupiedColors.has((joinReq.color || '').toLowerCase())) {
+        joinReq.status = 'REJECTED';
+        joinReq.rejectReason = `Color '${joinReq.color}' was taken by another player.`;
+        this.touch();
+        throw new Error(`Color '${joinReq.color}' is already taken by another player in this room.`);
       }
 
       // Authoritative admission
@@ -567,11 +584,14 @@ class Room {
 
     const nextId = this.nextPlayerId++;
     const safeName = sanitizePlayerName(name, `Player ${nextId + 1}`);
-    let chosenColor = validateColor(preferredColor);
-    const usedColors = new Set(this.players.map(p => (p.color || '').toLowerCase()));
-    if (!chosenColor || usedColors.has(chosenColor)) {
-      chosenColor = this.getNextAvailableColor();
+    const cleanColor = validateColor(preferredColor);
+    const usedColors = new Set(
+      this.players.filter(p => !p.isLeft).map(p => (p.color || '').toLowerCase())
+    );
+    if (!cleanColor || usedColors.has(cleanColor)) {
+      throw new Error(`Color '${preferredColor}' is already taken by another player in this room. Please select an available color.`);
     }
+    const chosenColor = cleanColor;
 
     const sessionToken = crypto.randomBytes(16).toString('hex');
     const player = {
@@ -638,19 +658,23 @@ class Room {
     if (this.settingsLocked || this.gamePhase === 'IN_PROGRESS') {
       throw new Error('Rules are permanently locked for this match.');
     }
-    if (requesterId !== this.hostPlayerId) {
+    if (requesterId !== this.hostPlayerId && requesterId !== 0) {
       throw new Error('Only the host can modify table rules.');
     }
-    if (newRules.defaultStartingMoney !== undefined) {
-      this.rules.defaultStartingMoney = newRules.defaultStartingMoney;
+    const defaultStartingMoney = newRules.defaultStartingMoney ?? newRules.startingMoney;
+    if (defaultStartingMoney !== undefined) {
+      this.rules.defaultStartingMoney = defaultStartingMoney;
     }
-    if (newRules.doublesRuleEnabled !== undefined) {
-      this.rules.doublesRuleEnabled = Boolean(newRules.doublesRuleEnabled);
+    const doublesRule = newRules.doublesRuleEnabled ?? newRules.doublesRule;
+    if (doublesRule !== undefined) {
+      this.rules.doublesRuleEnabled = Boolean(doublesRule);
     }
-    if (newRules.maxPlayers !== undefined) {
-      const maxP = Math.max(2, Math.min(6, parseInt(newRules.maxPlayers, 10)));
-      if (maxP < this.players.length) {
-        throw new Error(`Cannot decrease max players below current connected count (${this.players.length}).`);
+    const maxPlayers = newRules.maxPlayers ?? newRules.playerCount;
+    if (maxPlayers !== undefined) {
+      const activeCount = this.players.filter(p => !p.isLeft).length;
+      const maxP = Math.max(2, Math.min(6, parseInt(maxPlayers, 10)));
+      if (maxP < activeCount) {
+        throw new Error(`Cannot decrease max players below current connected count (${activeCount}).`);
       }
       this.rules.maxPlayers = maxP;
     }
@@ -659,6 +683,9 @@ class Room {
     }
     if (newRules.timerSeconds !== undefined) {
       this.rules.timerSeconds = parseInt(newRules.timerSeconds, 10) || 60;
+    }
+    if (this.gameState) {
+      this.gameState.rules = { ...this.rules };
     }
     this.touch();
   }
@@ -2343,7 +2370,12 @@ const server = http.createServer((req, res) => {
         });
       } catch (err) {
         recordFailedJoin(clientIp);
-        return sendJson(res, 400, { ok: false, error: err.message });
+        const currentRoom = rooms.get(cleanCode);
+        return sendJson(res, 400, {
+          ok: false,
+          error: err.message,
+          snapshot: (currentRoom && !currentRoom.isExpired) ? currentRoom.getSnapshot() : undefined,
+        });
       }
     }
 
@@ -2442,6 +2474,16 @@ const server = http.createServer((req, res) => {
           const result = await room.kickPlayer(player.id, targetId, reason);
           return sendJson(res, 200, result);
         }
+        if (action === 'update_rules' || action === 'updateRules') {
+          room.updateRules(player.id, actionPayload.rules || actionPayload);
+          const snapshot = room.getSnapshot();
+          broadcastToRoom(room, {
+            type: 'RULES_UPDATED',
+            rules: room.rules,
+            snapshot,
+          });
+          return sendJson(res, 200, { ok: true, snapshot, rules: room.rules });
+        }
         if (action === 'start_game' || action === 'startGame') {
           const snapshot = await room.startGame(player.id);
           broadcastToRoom(room, {
@@ -2480,6 +2522,30 @@ const server = http.createServer((req, res) => {
         const reason = payload.reason || 'Kicked by host';
         const result = await room.kickPlayer(hostPlayer.id, targetId, reason);
         return sendJson(res, 200, result);
+      } catch (err) {
+        return sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }
+
+    // Host Updates Rules: POST /api/multiplayer/room/:code/rules
+    const rulesRouteMatch = pathname.match(/^\/api\/multiplayer\/room\/([A-Za-z0-9-]+)\/rules$/);
+    if (rulesRouteMatch) {
+      const roomCode = rulesRouteMatch[1].toUpperCase();
+      const room = rooms.get(roomCode);
+      if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
+      const hostPlayer = room.getPlayerByToken(payload.sessionToken);
+      if (!hostPlayer || (hostPlayer.id !== room.hostPlayerId && hostPlayer.id !== 0)) {
+        return sendJson(res, 403, { ok: false, error: 'Only the host can modify match rules.' });
+      }
+      try {
+        room.updateRules(hostPlayer.id, payload.rules || payload);
+        const snapshot = room.getSnapshot();
+        broadcastToRoom(room, {
+          type: 'RULES_UPDATED',
+          rules: room.rules,
+          snapshot,
+        });
+        return sendJson(res, 200, { ok: true, snapshot, rules: room.rules });
       } catch (err) {
         return sendJson(res, 400, { ok: false, error: err.message });
       }
