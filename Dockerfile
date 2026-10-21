@@ -38,8 +38,8 @@ ENV NODE_ENV=production \
 COPY --from=builder /build/bin/monopoly_engine ./bin/monopoly_engine
 RUN chmod +x ./bin/monopoly_engine
 
-# Copy multiplayer server script and package configuration
-COPY scripts/multiplayer_server.cjs ./scripts/
+# Copy multiplayer server script, abuse protection, and package configuration
+COPY scripts/ ./scripts/
 COPY package.json ./
 
 # Render dynamically binds the external port via $PORT

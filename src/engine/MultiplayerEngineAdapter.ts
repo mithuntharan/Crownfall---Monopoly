@@ -262,6 +262,16 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       return { success: false, state: this.getFallbackState(), error: e?.message }
     }
   }
+
+  async handleTimeout(playerId?: number): Promise<{ success: boolean; state: GameState }> {
+    try {
+      const res = await (multiplayerClient as any).handleTimeout(playerId)
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success: true, state }
+    } catch (_) {
+      return { success: false, state: this.getFallbackState() }
+    }
+  }
 }
 
 export const multiplayerEngineAdapter = new MultiplayerEngineAdapter()

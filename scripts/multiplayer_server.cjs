@@ -11,6 +11,22 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const {
+  getMonotonicTimeMs,
+  resolveClientIp,
+  globalRateLimiter,
+  RATE_LIMIT_CONFIGS,
+  verifyCaptchaToken,
+  recordFailedJoin,
+  clearSuspiciousJoin,
+  isIpSuspicious,
+  validateRoomCode,
+  sanitizePlayerName,
+  validateColor,
+  VALID_COLORS,
+  logSecurityEvent,
+  securityEventLog,
+} = require('./abuse_protection.cjs');
 
 const PORT = parseInt(process.env.PORT || process.env.MULTIPLAYER_PORT || '10000', 10);
 const HOST = process.env.MULTIPLAYER_HOST || process.env.HOST || '0.0.0.0';
@@ -180,6 +196,15 @@ class Room {
     this.eventLog = [];
     this.transactionLedger = [];
     this.actionSequence = 0;
+    this.nextPlayerId = 1;
+    this.actionQueue = Promise.resolve();
+  }
+
+  enqueueAction(taskFn) {
+    const run = () => taskFn();
+    const next = this.actionQueue.then(run, run);
+    this.actionQueue = next.catch(() => {});
+    return next;
   }
 
   touch() {
@@ -250,7 +275,7 @@ class Room {
     // If host disconnected, assign next connected confirmed human player as host
     if (player.id === this.hostPlayerId) {
       player.isHost = false;
-      const nextHost = this.players.find(p => p.connected && p.id !== player.id);
+      const nextHost = this.players.find(p => p.connected && !p.isLeft && p.id !== player.id);
       if (nextHost) {
         nextHost.isHost = true;
         this.hostPlayerId = nextHost.id;
@@ -266,14 +291,17 @@ class Room {
     }
 
     // If zero connected confirmed players remain, begin 10-minute empty room countdown
-    const connectedCount = this.players.filter(p => p.connected).length;
+    const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
     if (connectedCount === 0) {
       this.startEmptyExpiration();
     }
   }
 
   getNextAvailableColor() {
-    const used = new Set(this.players.filter(p => p.connected && !p.isLeft).map(p => p.color.toLowerCase()));
+    const used = new Set([
+      ...this.players.filter(p => p.connected && !p.isLeft).map(p => (p.color || '').toLowerCase()),
+      ...Array.from(this.joinRequests.values()).filter(r => r.status === 'PENDING').map(r => (r.color || '').toLowerCase()),
+    ]);
     for (const c of AVAILABLE_COLORS) {
       if (!used.has(c)) return c;
     }
@@ -299,21 +327,22 @@ class Room {
     if (existingPlayer) {
       console.log(`[MULTIPLAYER SERVER] Existing player '${existingPlayer.name}' (id: ${existingPlayer.id}) re-joining room ${this.roomCode}. Reclaiming instance.`);
 
-      // Disconnect previous socket if any with notification
-      if (existingPlayer.socket && existingPlayer.socket !== requesterSocket && !existingPlayer.socket.destroyed) {
+      // Disconnect previous socket if any with notification, clearing reference first to avoid disconnect race
+      const oldSocket = existingPlayer.socket;
+      existingPlayer.socket = requesterSocket || null;
+      if (oldSocket && oldSocket !== requesterSocket && !oldSocket.destroyed) {
         try {
-          existingPlayer.socket.write(encodeWsTextFrame(JSON.stringify({
+          oldSocket.write(encodeWsTextFrame(JSON.stringify({
             type: 'SUPERSEDED',
             message: 'Connected from another session or tab.',
           })));
-          existingPlayer.socket.destroy();
+          oldSocket.destroy();
         } catch (_) {}
       }
 
       existingPlayer.connected = true;
       existingPlayer.isLeft = false;
       existingPlayer.lastSeen = Date.now();
-      if (requesterSocket) existingPlayer.socket = requesterSocket;
       if (clientId) existingPlayer.clientId = clientId;
 
       // Clean up any pending join requests for this player name or clientId
@@ -352,7 +381,8 @@ class Room {
     if (this.gamePhase !== 'LOBBY') {
       throw new Error('Game already in progress in this room.');
     }
-    if (this.players.length >= this.rules.maxPlayers) {
+    const activePlayerCount = this.players.filter(p => !p.isLeft).length;
+    if (activePlayerCount >= this.rules.maxPlayers) {
       throw new Error(`Room is full (maximum ${this.rules.maxPlayers} players).`);
     }
 
@@ -456,7 +486,8 @@ class Room {
         joinReq.rejectReason = 'Game already started in this room.';
         throw new Error('Cannot accept player: game has already started.');
       }
-      if (this.players.length >= this.rules.maxPlayers) {
+      const activePlayerCount = this.players.filter(p => !p.isLeft).length;
+      if (activePlayerCount >= this.rules.maxPlayers) {
         joinReq.status = 'REJECTED';
         joinReq.rejectReason = `Room reached maximum capacity (${this.rules.maxPlayers} players).`;
         throw new Error(`Room is full (maximum ${this.rules.maxPlayers} players).`);
@@ -529,13 +560,15 @@ class Room {
     if (this.gamePhase !== 'LOBBY') {
       throw new Error('Game already in progress in this room.');
     }
-    if (this.players.length >= this.rules.maxPlayers) {
+    const activePlayerCount = this.players.filter(p => !p.isLeft).length;
+    if (activePlayerCount >= this.rules.maxPlayers) {
       throw new Error(`Room is full (maximum ${this.rules.maxPlayers} players).`);
     }
 
-    const nextId = this.players.length;
-    let chosenColor = (preferredColor || '').toLowerCase().trim();
-    const usedColors = new Set(this.players.map(p => p.color.toLowerCase()));
+    const nextId = this.nextPlayerId++;
+    const safeName = sanitizePlayerName(name, `Player ${nextId + 1}`);
+    let chosenColor = validateColor(preferredColor);
+    const usedColors = new Set(this.players.map(p => (p.color || '').toLowerCase()));
     if (!chosenColor || usedColors.has(chosenColor)) {
       chosenColor = this.getNextAvailableColor();
     }
@@ -543,7 +576,7 @@ class Room {
     const sessionToken = crypto.randomBytes(16).toString('hex');
     const player = {
       id: nextId,
-      name: (name && name.trim()) ? name.trim() : `Player ${nextId + 1}`,
+      name: safeName,
       color: chosenColor,
       token: String(nextId + 1),
       isHuman: true,
@@ -570,32 +603,35 @@ class Room {
     return this.players.find(p => p.id === id) || null;
   }
 
-  updatePlayer(playerId, { name, color }) {
-    if (this.settingsLocked && this.gamePhase === 'IN_PROGRESS') {
-      throw new Error('Player settings locked while game is in progress.');
-    }
-    const player = this.getPlayerById(playerId);
-    if (!player) throw new Error('Player not found.');
+  async updatePlayer(playerId, { name, color }) {
+    return this.enqueueAction(async () => {
+      if (this.settingsLocked && this.gamePhase === 'IN_PROGRESS') {
+        throw new Error('Player settings locked while game is in progress.');
+      }
+      const player = this.getPlayerById(playerId);
+      if (!player) throw new Error('Player not found.');
 
-    if (name && name.trim()) {
-      player.name = name.trim().slice(0, 20);
-    }
-    if (color && color.trim()) {
-      const cleanColor = color.trim().toLowerCase();
-      const validColors = ['saffron', 'teal', 'plum', 'blue', 'gold', 'purple', 'emerald', 'burgundy'];
-      if (!validColors.includes(cleanColor)) {
-        throw new Error(`Invalid color '${color}'. Allowed colors: ${validColors.join(', ')}.`);
+      if (name && name.trim()) {
+        player.name = name.trim().slice(0, 20);
       }
-      const taken = this.players.some(p => p.id !== playerId && p.connected && !p.isLeft && p.color.toLowerCase() === cleanColor);
-      if (taken) {
-        throw new Error(`Color '${color}' is already selected by another player.`);
+      if (color && color.trim()) {
+        const cleanColor = color.trim().toLowerCase();
+        const validColors = ['saffron', 'teal', 'plum', 'blue', 'gold', 'purple', 'emerald', 'burgundy'];
+        if (!validColors.includes(cleanColor)) {
+          throw new Error(`Invalid color '${color}'. Allowed colors: ${validColors.join(', ')}.`);
+        }
+        const taken = this.players.some(p => p.id !== playerId && p.connected && !p.isLeft && p.color.toLowerCase() === cleanColor);
+        if (taken) {
+          throw new Error(`Color '${color}' is already selected by another player.`);
+        }
+        player.color = cleanColor;
+        if (this.engine) {
+          await this.engine.sendCommand({ action: 'updatePlayerColor', playerId, newColor: cleanColor }).catch(() => {});
+        }
       }
-      player.color = cleanColor;
-      if (this.engine) {
-        this.engine.sendCommand({ action: 'updatePlayerColor', playerId, newColor: cleanColor }).catch(() => {});
-      }
-    }
-    this.touch();
+      this.touch();
+      return { ok: true, snapshot: this.getSnapshot() };
+    });
   }
 
   updateRules(requesterId, newRules) {
@@ -628,199 +664,212 @@ class Room {
   }
 
   async startGame(requesterId) {
-    if (requesterId !== this.hostPlayerId) {
-      throw new Error('Only the host can start the game.');
-    }
-    if (this.gamePhase === 'IN_PROGRESS') {
-      throw new Error('Game has already started.');
-    }
-
-    // Filter to confirmed, connected human players who have not left
-    const confirmed = this.players.filter(p => p.connected && !p.isLeft && p.isHuman !== false);
-    const minRequired = this.rules.minPlayers || 2;
-    if (confirmed.length < minRequired) {
-      throw new Error(`Cannot start game: at least ${minRequired} confirmed human players are required (currently ${confirmed.length}).`);
-    }
-
-    // Authoritative check: validate distinct colors among all confirmed participating players
-    const seenColors = new Set();
-    for (const p of confirmed) {
-      const c = (p.color || '').trim().toLowerCase();
-      if (!c) {
-        throw new Error(`Cannot start game: Player '${p.name}' does not have a color selected.`);
+    return this.enqueueAction(async () => {
+      if (requesterId !== this.hostPlayerId) {
+        throw new Error('Only the host can start the game.');
       }
-      if (seenColors.has(c)) {
-        throw new Error(`Cannot start game: Duplicate color '${c}' detected. All players must have distinct colors before starting.`);
+      if (this.gamePhase === 'IN_PROGRESS') {
+        throw new Error('Game has already started.');
       }
-      seenColors.add(c);
-    }
 
-    // Set effective player list with deterministic IDs, maintaining host at ID 0
-    this.players = confirmed.map((p, idx) => ({
-      ...p,
-      id: idx,
-      token: p.token || String(idx + 1),
-      isHuman: true,
-      isHost: idx === 0,
-    }));
-    this.hostPlayerId = 0;
+      // Filter to confirmed, connected human players who have not left
+      const confirmed = this.players.filter(p => p.connected && !p.isLeft && p.isHuman !== false);
+      const minRequired = this.rules.minPlayers || 2;
+      if (confirmed.length < minRequired) {
+        throw new Error(`Cannot start game: at least ${minRequired} confirmed human players are required (currently ${confirmed.length}).`);
+      }
 
-    // Adjust effective player count while preserving configured maxPlayers capacity limit
-    this.rules.playerCount = this.players.length;
+      // Authoritative check & auto-resolution: guarantee distinct valid colors among confirmed players
+      const seenColors = new Set();
+      for (const p of confirmed) {
+        let c = validateColor(p.color);
+        if (!c || seenColors.has(c)) {
+          c = AVAILABLE_COLORS.find(col => !seenColors.has(col)) || 'saffron';
+          p.color = c;
+        }
+        seenColors.add(c);
+      }
 
-    // Configure engine with confirmed human players and rules
-    const playerConfigs = this.players.map(p => ({
-      name: p.name,
-      color: p.color,
-      token: p.token,
-      isHuman: true,
-    }));
+      // Set effective player list with deterministic IDs, maintaining host at ID 0 and preserving object references
+      this.players = confirmed;
+      this.players.forEach((p, idx) => {
+        p.id = idx;
+        p.token = p.token || String(idx + 1);
+        p.isHuman = true;
+        p.isHost = (idx === 0);
+        p.isLeft = false;
+      });
+      this.hostPlayerId = 0;
 
-    // Send init command to authoritative C++ engine with exact player count and configs
-    const initCmd = {
-      action: 'init',
-      playerCount: this.players.length,
-      isMultiplayer: true,
-      multiplayer: true,
-      p1Name: this.players[0]?.name || 'Player 1',
-      p1Color: this.players[0]?.color || 'saffron',
-      p1IsHuman: true,
-      p2Name: this.players[1]?.name || 'Player 2',
-      p2Color: this.players[1]?.color || 'teal',
-      p2IsHuman: true,
-      p3Name: this.players[2]?.name || 'Player 3',
-      p3Color: this.players[2]?.color || 'plum',
-      p3IsHuman: true,
-      p4Name: this.players[3]?.name || 'Player 4',
-      p4Color: this.players[3]?.color || 'blue',
-      p4IsHuman: true,
-      p5Name: this.players[4]?.name || 'Player 5',
-      p5Color: this.players[4]?.color || 'gold',
-      p5IsHuman: true,
-      p6Name: this.players[5]?.name || 'Player 6',
-      p6Color: this.players[5]?.color || 'purple',
-      p6IsHuman: true,
-      defaultStartingMoney: this.rules.defaultStartingMoney ?? 25000,
-      startingMoney: this.rules.defaultStartingMoney ?? 25000,
-      doublesRuleEnabled: this.rules.doublesRuleEnabled ?? true,
-      timerEnabled: this.rules.timerEnabled ?? false,
-      timerSeconds: this.rules.timerSeconds ?? 60,
-      devMode: false,
-      inLobby: false,
-      startGame: true,
-      rules: this.rules,
-      players: playerConfigs,
-    };
+      // Adjust effective player count while preserving configured maxPlayers capacity limit
+      this.rules.playerCount = this.players.length;
 
-    const res = await this.engine.sendCommand(initCmd);
-    if (!res || !res.ok || !res.state) {
-      throw new Error(res?.error || 'Authoritative engine failed to initialize match.');
-    }
+      // Configure engine with confirmed human players and rules
+      const playerConfigs = this.players.map(p => ({
+        name: p.name,
+        color: p.color,
+        token: p.token,
+        isHuman: true,
+      }));
 
-    this.setGameState(res.state);
+      // Send init command to authoritative C++ engine with exact player count and configs
+      const initCmd = {
+        action: 'init',
+        playerCount: this.players.length,
+        isMultiplayer: true,
+        multiplayer: true,
+        p1Name: this.players[0]?.name || 'Player 1',
+        p1Color: this.players[0]?.color || 'saffron',
+        p1IsHuman: true,
+        p2Name: this.players[1]?.name || 'Player 2',
+        p2Color: this.players[1]?.color || 'teal',
+        p2IsHuman: true,
+        p3Name: this.players[2]?.name || 'Player 3',
+        p3Color: this.players[2]?.color || 'plum',
+        p3IsHuman: true,
+        p4Name: this.players[3]?.name || 'Player 4',
+        p4Color: this.players[3]?.color || 'blue',
+        p4IsHuman: true,
+        p5Name: this.players[4]?.name || 'Player 5',
+        p5Color: this.players[4]?.color || 'gold',
+        p5IsHuman: true,
+        p6Name: this.players[5]?.name || 'Player 6',
+        p6Color: this.players[5]?.color || 'purple',
+        p6IsHuman: true,
+        defaultStartingMoney: this.rules.defaultStartingMoney ?? 25000,
+        startingMoney: this.rules.defaultStartingMoney ?? 25000,
+        doublesRuleEnabled: this.rules.doublesRuleEnabled ?? true,
+        timerEnabled: this.rules.timerEnabled ?? false,
+        timerSeconds: this.rules.timerSeconds ?? 60,
+        devMode: false,
+        inLobby: false,
+        startGame: true,
+        rules: this.rules,
+        players: playerConfigs,
+      };
 
-    this.gamePhase = 'IN_PROGRESS';
-    this.settingsLocked = true;
-    this.actionSequence = 1;
-    this.eventLog = [];
-    this.transactionLedger = res.state.transactionLedger || [];
-    this.addEvent({
-      id: `ev_start_${Date.now()}`,
-      type: 'TURN_CHANGE',
-      category: 'TURNS_DICE',
-      timestamp: Date.now(),
-      playerId: 0,
-      playerName: this.players[0].name,
-      description: `Match started by Host ${this.players[0].name} with ${this.players.length} confirmed players. Round 01 began.`,
+      const res = await this.engine.sendCommand(initCmd);
+      if (!res || !res.ok || !res.state) {
+        throw new Error(res?.error || 'Authoritative engine failed to initialize match.');
+      }
+
+      this.setGameState(res.state);
+
+      this.gamePhase = 'IN_PROGRESS';
+      this.settingsLocked = true;
+      this.actionSequence = 1;
+      this.eventLog = [];
+      this.transactionLedger = res.state.transactionLedger || [];
+      this.addEvent({
+        id: `ev_start_${Date.now()}`,
+        type: 'TURN_CHANGE',
+        category: 'TURNS_DICE',
+        timestamp: Date.now(),
+        playerId: 0,
+        playerName: this.players[0].name,
+        description: `Match started by Host ${this.players[0].name} with ${this.players.length} confirmed players. Round 01 began.`,
+      });
+      this.touch();
+      return this.getSnapshot();
     });
-    this.touch();
-    return this.getSnapshot();
   }
 
   async processAction(playerId, action, payload = {}) {
-    if (this.gamePhase !== 'IN_PROGRESS') {
-      throw new Error('Game is not currently active.');
-    }
-    const player = this.getPlayerById(playerId);
-    if (!player) throw new Error('Player not in this room.');
-    if (player.isLeft || !player.connected) {
-      throw new Error('Player is not active in this room.');
-    }
-
-    // Authoritative turn validation for turn-restricted actions
-    const turnRestricted = ['roll', 'buy', 'decline', 'endTurn'];
-    if (turnRestricted.includes(action)) {
-      if (!this.gameState || this.gameState.activePlayerIndex !== playerId) {
-        const activeName = this.players[this.gameState?.activePlayerIndex]?.name || `Player ${(this.gameState?.activePlayerIndex ?? 0) + 1}`;
-        throw new Error(`Not your turn. It is currently ${activeName}'s turn.`);
+    return this.enqueueAction(async () => {
+      if (this.gamePhase !== 'IN_PROGRESS') {
+        throw new Error('Game is not currently active.');
       }
-      if (action === 'roll') {
-        const curTurnState = this.gameState.turnState;
-        if (curTurnState !== 'WAITING_FOR_ROLL' && curTurnState !== 'EXTRA_TURN') {
-          throw new Error(`Cannot roll at this time (current turn state: ${curTurnState}).`);
+      const player = this.getPlayerById(playerId);
+      if (!player) throw new Error('Player not in this room.');
+      if (player.isLeft || !player.connected) {
+        throw new Error('Player is not active in this room.');
+      }
+
+      // Authoritative turn validation for turn-restricted actions
+      const turnRestricted = ['roll', 'buy', 'decline', 'endTurn'];
+      if (turnRestricted.includes(action)) {
+        if (!this.gameState || this.gameState.activePlayerIndex !== playerId) {
+          const activeName = this.players[this.gameState?.activePlayerIndex]?.name || `Player ${(this.gameState?.activePlayerIndex ?? 0) + 1}`;
+          throw new Error(`Not your turn. It is currently ${activeName}'s turn.`);
+        }
+        if (action === 'roll') {
+          const curTurnState = this.gameState.turnState;
+          if (curTurnState !== 'WAITING_FOR_ROLL' && curTurnState !== 'EXTRA_TURN') {
+            throw new Error(`Cannot roll at this time (current turn state: ${curTurnState}).`);
+          }
+          // Atomic optimistic guard: prevent race condition of multiple simultaneous roll commands
+          this.gameState.turnState = 'RESOLVING_LANDING';
         }
       }
-    }
 
-    this.actionSequence++;
-    const cmd = {
-      action,
-      playerId,
-      ...payload,
-    };
-
-    const res = await this.engine.sendCommand(cmd);
-    if (!res || !res.ok) {
-      const errMsg = res?.error || `Action '${action}' rejected by engine rules.`;
-      this.addEvent({
-        id: `ev_err_${Date.now()}_${playerId}`,
-        type: 'ERROR',
-        category: 'SYSTEM_ERRORS',
-        timestamp: Date.now(),
+      this.actionSequence++;
+      const cmd = {
+        action,
         playerId,
-        playerName: player.name,
-        description: `Action rejected: ${errMsg}`,
-      });
-      throw new Error(errMsg);
-    }
-
-    this.setGameState(res.state);
-    if (action === 'roll' && res.result && res.result.dice1 !== undefined && res.result.dice2 !== undefined) {
-      const rollId = `roll_${this.roomCode}_${this.actionSequence}_${player.id}`;
-      res.result.rollId = rollId;
-      res.result.sequence = this.actionSequence;
-      this.gameState.lastDice = [res.result.dice1, res.result.dice2];
-      this.gameState.lastRoll = {
-        rollId,
-        sequence: this.actionSequence,
-        playerId: player.id,
-        dice1: res.result.dice1,
-        dice2: res.result.dice2,
-        diceTotal: res.result.diceTotal,
-        isDouble: res.result.isDouble,
-        previousPosition: res.result.previousPosition,
-        newPosition: res.result.newPosition,
-        spaceName: res.result.spaceName,
+        ...payload,
       };
-    }
-    if (res.state?.transactionLedger) {
-      this.transactionLedger = res.state.transactionLedger;
-    }
 
-    // Generate structured event log entry based on action result
-    this.recordActionEvents(player, action, res, payload);
+      if (action.startsWith('trade') && cmd.senderId === undefined) {
+        cmd.senderId = playerId;
+      }
 
-    if (res.state && res.state.turnState === 'GAME_OVER') {
-      this.gamePhase = 'GAME_OVER';
-    }
+      const res = await this.engine.sendCommand(cmd);
+      if (!res || !res.ok) {
+        // Rollback turn state if roll rejected
+        if (action === 'roll' && this.gameState) {
+          this.gameState.turnState = 'WAITING_FOR_ROLL';
+        }
+        const errMsg = res?.error || `Action '${action}' rejected by engine rules.`;
+        this.addEvent({
+          id: `ev_err_${Date.now()}_${playerId}`,
+          type: 'ERROR',
+          category: 'SYSTEM_ERRORS',
+          timestamp: Date.now(),
+          playerId,
+          playerName: player.name,
+          description: `Action rejected: ${errMsg}`,
+        });
+        throw new Error(errMsg);
+      }
 
-    this.touch();
-    return {
-      actionResult: res.result,
-      sequence: this.actionSequence,
-      snapshot: this.getSnapshot(),
-      sellPrice: res?.sellPrice,
-    };
+      this.setGameState(res.state);
+      if (action === 'roll' && res.result && res.result.dice1 !== undefined && res.result.dice2 !== undefined) {
+        const rollId = `roll_${this.roomCode}_${this.actionSequence}_${player.id}`;
+        res.result.rollId = rollId;
+        res.result.sequence = this.actionSequence;
+        this.gameState.lastDice = [res.result.dice1, res.result.dice2];
+        this.gameState.lastRoll = {
+          rollId,
+          sequence: this.actionSequence,
+          playerId: player.id,
+          dice1: res.result.dice1,
+          dice2: res.result.dice2,
+          diceTotal: res.result.diceTotal,
+          isDouble: res.result.isDouble,
+          previousPosition: res.result.previousPosition,
+          newPosition: res.result.newPosition,
+          spaceName: res.result.spaceName,
+        };
+      }
+      if (res.state?.transactionLedger) {
+        this.transactionLedger = res.state.transactionLedger;
+      }
+
+      // Generate structured event log entry based on action result
+      this.recordActionEvents(player, action, res, payload);
+
+      if (res.state && res.state.turnState === 'GAME_OVER') {
+        this.gamePhase = 'GAME_OVER';
+      }
+
+      this.touch();
+      return {
+        actionResult: res.result,
+        sequence: this.actionSequence,
+        snapshot: this.getSnapshot(),
+        sellPrice: res?.sellPrice,
+      };
+    });
   }
 
   recordActionEvents(player, action, engineRes, payload) {
@@ -1176,6 +1225,20 @@ class Room {
         sequenceNumber: seq,
         description: `${player.name} ended turn. It is now ${nextPlayer.name}'s turn.`,
       });
+    } else if (action === 'timeout') {
+      const nextIdx = engineRes?.state?.activePlayerIndex ?? (this.gameState?.activePlayerIndex ?? 0);
+      const nextPlayer = this.getPlayerById(nextIdx) || { name: `Player ${nextIdx + 1}` };
+      this.addEvent({
+        id: `ev_timeout_${now}_${player.id}_${seq}`,
+        type: 'TURN_CHANGE',
+        category: 'TURNS_DICE',
+        timestamp: now,
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        sequenceNumber: seq,
+        description: `${player.name}'s turn timed out. Automatically passed to ${nextPlayer.name}.`,
+      });
     }
 
     // Check for player bankruptcy
@@ -1249,86 +1312,136 @@ class Room {
   }
 
   async rematch(requesterId) {
-    if (requesterId !== this.hostPlayerId) {
-      throw new Error('Only the host can initiate a rematch.');
-    }
-    if (this.isRematching) {
-      throw new Error('A rematch is already in progress.');
-    }
+    return this.enqueueAction(async () => {
+      if (requesterId !== this.hostPlayerId) {
+        throw new Error('Only the host can initiate a rematch.');
+      }
+      if (this.isRematching) {
+        throw new Error('A rematch is already in progress.');
+      }
 
-    const eligible = this.players.filter(p => p.connected && !p.isLeft);
-    if (eligible.length < this.rules.minPlayers) {
-      throw new Error(`Cannot start rematch: at least ${this.rules.minPlayers} connected players required (currently ${eligible.length}).`);
-    }
+      const eligible = this.players.filter(p => p.connected && !p.isLeft);
+      if (eligible.length < this.rules.minPlayers) {
+        throw new Error(`Cannot start rematch: at least ${this.rules.minPlayers} connected players required (currently ${eligible.length}).`);
+      }
 
-    this.isRematching = true;
-    try {
-      this.gamePhase = 'LOBBY';
-      this.settingsLocked = false;
-      this.engine.kill();
-      this.engine = new CppEngineProcess();
-      this.gameState = null;
-      this.eventLog = [];
-      this.transactionLedger = [];
-      this.actionSequence = 0;
-      this.rematchState.readyPlayers.clear();
+      this.isRematching = true;
+      try {
+        this.gamePhase = 'LOBBY';
+        this.settingsLocked = false;
+        this.engine.kill();
+        this.engine = new CppEngineProcess();
+        this.gameState = null;
+        this.eventLog = [];
+        this.transactionLedger = [];
+        this.actionSequence = 0;
+        this.rematchState.readyPlayers.clear();
 
-      // Only retain eligible connected players for the new match
-      this.players = eligible.map((p, idx) => ({
-        ...p,
-        id: idx,
-        isHost: idx === 0,
-      }));
-      this.hostPlayerId = 0;
+        // Only retain eligible connected players for the new match, mutating in-place to preserve socket references
+        this.players = eligible;
+        this.players.forEach((p, idx) => {
+          p.id = idx;
+          p.isHost = (idx === 0);
+          p.isLeft = false;
+        });
+        this.hostPlayerId = 0;
 
-      const snapshot = await this.startGame(this.hostPlayerId);
-      return snapshot;
-    } finally {
-      this.isRematching = false;
-    }
+        const snapshot = await this.startGame(this.hostPlayerId);
+        return snapshot;
+      } finally {
+        this.isRematching = false;
+      }
+    });
   }
 
   async leaveRoom(playerId) {
-    const player = this.getPlayerById(playerId);
-    if (!player) return { ok: true, message: 'Player not found in room.' };
+    return this.enqueueAction(async () => {
+      const player = this.getPlayerById(playerId);
+      if (!player) return { ok: true, message: 'Player not found in room.' };
 
-    if (player.socket && !player.socket.destroyed) {
-      try {
-        player.socket.write(encodeWsTextFrame(JSON.stringify({
-          type: 'LEFT_ROOM',
-          ok: true,
-          roomCode: this.roomCode,
-        })));
-      } catch (_) {}
-    }
-    player.connected = false;
-    player.isLeft = true;
-    this.touch();
+      if (player.socket && !player.socket.destroyed) {
+        try {
+          player.socket.write(encodeWsTextFrame(JSON.stringify({
+            type: 'LEFT_ROOM',
+            ok: true,
+            roomCode: this.roomCode,
+          })));
+        } catch (_) {}
+      }
+      player.connected = false;
+      player.isLeft = true;
+      this.touch();
 
-    // If host left, transfer host authority to next eligible remaining player
-    if (player.id === this.hostPlayerId) {
-      player.isHost = false;
-      const nextHost = this.players.find(p => p.connected && !p.isLeft && p.id !== player.id);
-      if (nextHost) {
-        nextHost.isHost = true;
-        this.hostPlayerId = nextHost.id;
+      // If host left, transfer host authority to next eligible remaining player
+      if (player.id === this.hostPlayerId) {
+        player.isHost = false;
+        const nextHost = this.players.find(p => p.connected && !p.isLeft && p.id !== player.id);
+        if (nextHost) {
+          nextHost.isHost = true;
+          this.hostPlayerId = nextHost.id;
+          broadcastToRoom(this, {
+            type: 'HOST_CHANGED',
+            newHostId: nextHost.id,
+            newHostName: nextHost.name,
+            snapshot: this.getSnapshot(),
+          });
+        } else {
+          this.hostPlayerId = null;
+        }
+      }
+
+      if (this.gamePhase === 'LOBBY') {
+        this.players = this.players.filter(p => p.id !== player.id);
+        const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
+        if (connectedCount === 0) {
+          this.startEmptyExpiration();
+        }
         broadcastToRoom(this, {
-          type: 'HOST_CHANGED',
-          newHostId: nextHost.id,
-          newHostName: nextHost.name,
+          type: 'PLAYER_LEFT',
+          playerId,
+          playerName: player.name,
+          newHostPlayerId: this.hostPlayerId,
           snapshot: this.getSnapshot(),
         });
-      } else {
-        this.hostPlayerId = null;
+        return { ok: true, message: 'Successfully left room lobby.' };
       }
-    }
 
-    if (this.gamePhase === 'LOBBY') {
-      this.players = this.players.filter(p => p.id !== player.id);
-      const connectedCount = this.players.filter(p => p.connected).length;
+      // In-progress match: record event and handle turn advancement
+      this.addEvent({
+        id: `ev_leave_${Date.now()}_${player.id}`,
+        type: 'PLAYER_LEFT',
+        category: 'SYSTEM_ERRORS',
+        timestamp: Date.now(),
+        playerId,
+        playerName: player.name,
+        description: `${player.name} left the match.`,
+      });
+
+      // If it was this player's active turn, advance turn so match is not blocked
+      if (this.gameState && this.gameState.activePlayerIndex === playerId) {
+        try {
+          const res = await this.engine.sendCommand({ action: 'endTurn', playerId });
+          if (res && res.ok && res.state) {
+            this.setGameState(res.state);
+          }
+        } catch (_) {}
+      }
+
+      // Check remaining active non-bankrupt players
+      const activeRemaining = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
+      if (activeRemaining.length <= 1) {
+        this.gamePhase = 'GAME_OVER';
+        if (this.gameState) {
+          this.gameState.turnState = 'GAME_OVER';
+          this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+        }
+      }
+
+      const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
       if (connectedCount === 0) {
         this.startEmptyExpiration();
       }
+
       broadcastToRoom(this, {
         type: 'PLAYER_LEFT',
         playerId,
@@ -1336,108 +1449,112 @@ class Room {
         newHostPlayerId: this.hostPlayerId,
         snapshot: this.getSnapshot(),
       });
-      return { ok: true, message: 'Successfully left room lobby.' };
-    }
 
-    // In-progress match: record event and handle turn advancement
-    this.addEvent({
-      id: `ev_leave_${Date.now()}_${player.id}`,
-      type: 'PLAYER_LEFT',
-      category: 'SYSTEM_ERRORS',
-      timestamp: Date.now(),
-      playerId,
-      playerName: player.name,
-      description: `${player.name} left the match.`,
+      return { ok: true, message: 'Successfully left active match.' };
     });
-
-    // If it was this player's active turn, advance turn so match is not blocked
-    if (this.gameState && this.gameState.activePlayerIndex === playerId) {
-      try {
-        const res = await this.engine.sendCommand({ action: 'endTurn', playerId });
-        if (res && res.ok && res.state) {
-          this.setGameState(res.state);
-        }
-      } catch (_) {}
-    }
-
-    // Check remaining active non-bankrupt players
-    const activeRemaining = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
-    if (activeRemaining.length <= 1) {
-      this.gamePhase = 'GAME_OVER';
-      if (this.gameState) {
-        this.gameState.turnState = 'GAME_OVER';
-        this.gameState.winnerId = activeRemaining[0]?.id ?? null;
-      }
-    }
-
-    const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
-    if (connectedCount === 0) {
-      this.startEmptyExpiration();
-    }
-
-    broadcastToRoom(this, {
-      type: 'PLAYER_LEFT',
-      playerId,
-      playerName: player.name,
-      newHostPlayerId: this.hostPlayerId,
-      snapshot: this.getSnapshot(),
-    });
-
-    return { ok: true, message: 'Successfully left active match.' };
   }
 
   async kickPlayer(requesterPlayerId, targetPlayerId, reason = 'Kicked by host') {
-    if (requesterPlayerId !== null && requesterPlayerId !== undefined) {
-      if (requesterPlayerId !== this.hostPlayerId) {
-        throw new Error('Only the room host can kick players.');
-      }
-    }
-
-    const targetId = parseInt(targetPlayerId, 10);
-    const player = this.getPlayerById(targetId);
-    if (!player) {
-      throw new Error(`Player with ID ${targetPlayerId} not found in room.`);
-    }
-
-    if (requesterPlayerId !== null && player.id === this.hostPlayerId) {
-      throw new Error('Host cannot kick themselves.');
-    }
-
-    console.log(`[MULTIPLAYER SERVER] Kicking player ${player.name} (id: ${player.id}) from room ${this.roomCode}. Reason: ${reason}`);
-
-    // If player has an open socket, send KICKED frame and destroy socket
-    if (player.socket && !player.socket.destroyed) {
-      try {
-        player.socket.write(encodeWsTextFrame(JSON.stringify({
-          type: 'KICKED',
-          reason: reason || 'You were kicked from the room.',
-          roomCode: this.roomCode,
-        })));
-        player.socket.destroy();
-      } catch (_) {}
-    }
-    player.socket = null;
-    player.connected = false;
-    player.isLeft = true;
-    this.touch();
-
-    // If in lobby, remove player from list entirely
-    if (this.gamePhase === 'LOBBY') {
-      this.players = this.players.filter(p => p.id !== player.id);
-
-      // If host was removed (e.g. server auto-kick from another room)
-      if (player.id === this.hostPlayerId) {
-        player.isHost = false;
-        const nextHost = this.players.find(p => p.connected && !p.isLeft);
-        if (nextHost) {
-          nextHost.isHost = true;
-          this.hostPlayerId = nextHost.id;
-        } else {
-          this.hostPlayerId = null;
+    return this.enqueueAction(async () => {
+      if (requesterPlayerId !== null && requesterPlayerId !== undefined) {
+        if (requesterPlayerId !== this.hostPlayerId) {
+          throw new Error('Only the room host can kick players.');
         }
       }
 
-      const connectedCount = this.players.filter(p => p.connected).length;
+      const targetId = parseInt(targetPlayerId, 10);
+      const player = this.getPlayerById(targetId);
+      if (!player) {
+        throw new Error(`Player with ID ${targetPlayerId} not found in room.`);
+      }
+
+      if (requesterPlayerId !== null && player.id === this.hostPlayerId) {
+        throw new Error('Host cannot kick themselves.');
+      }
+
+      console.log(`[MULTIPLAYER SERVER] Kicking player ${player.name} (id: ${player.id}) from room ${this.roomCode}. Reason: ${reason}`);
+
+      // If player has an open socket, send KICKED frame and destroy socket
+      if (player.socket && !player.socket.destroyed) {
+        try {
+          player.socket.write(encodeWsTextFrame(JSON.stringify({
+            type: 'KICKED',
+            reason: reason || 'You were kicked from the room.',
+            roomCode: this.roomCode,
+          })));
+          player.socket.destroy();
+        } catch (_) {}
+      }
+      player.socket = null;
+      player.connected = false;
+      player.isLeft = true;
+      this.touch();
+
+      // If in lobby, remove player from list entirely
+      if (this.gamePhase === 'LOBBY') {
+        this.players = this.players.filter(p => p.id !== player.id);
+
+        // If host was removed (e.g. server auto-kick from another room)
+        if (player.id === this.hostPlayerId) {
+          player.isHost = false;
+          const nextHost = this.players.find(p => p.connected && !p.isLeft);
+          if (nextHost) {
+            nextHost.isHost = true;
+            this.hostPlayerId = nextHost.id;
+          } else {
+            this.hostPlayerId = null;
+          }
+        }
+
+        const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
+        if (connectedCount === 0) {
+          this.startEmptyExpiration();
+        }
+
+        broadcastToRoom(this, {
+          type: 'PLAYER_KICKED',
+          kickedPlayerId: targetId,
+          kickedPlayerName: player.name,
+          reason,
+          newHostPlayerId: this.hostPlayerId,
+          snapshot: this.getSnapshot(),
+        });
+
+        return { ok: true, message: `Player ${player.name} removed from lobby.`, snapshot: this.getSnapshot() };
+      }
+
+      // If game IN_PROGRESS:
+      this.addEvent({
+        id: `ev_kick_${Date.now()}_${player.id}`,
+        type: 'PLAYER_LEFT',
+        category: 'SYSTEM_ERRORS',
+        timestamp: Date.now(),
+        playerId: targetId,
+        playerName: player.name,
+        description: `${player.name} was kicked from the match (${reason}).`,
+      });
+
+      // Advance turn if it was their active turn
+      if (this.gameState && this.gameState.activePlayerIndex === targetId) {
+        try {
+          const res = await this.engine.sendCommand({ action: 'endTurn', playerId: targetId });
+          if (res && res.ok && res.state) {
+            this.setGameState(res.state);
+          }
+        } catch (_) {}
+      }
+
+      // Check remaining active non-bankrupt players
+      const activeRemaining = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
+      if (activeRemaining.length <= 1) {
+        this.gamePhase = 'GAME_OVER';
+        if (this.gameState) {
+          this.gameState.turnState = 'GAME_OVER';
+          this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+        }
+      }
+
+      const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
       if (connectedCount === 0) {
         this.startEmptyExpiration();
       }
@@ -1451,55 +1568,8 @@ class Room {
         snapshot: this.getSnapshot(),
       });
 
-      return { ok: true, message: `Player ${player.name} removed from lobby.`, snapshot: this.getSnapshot() };
-    }
-
-    // If game IN_PROGRESS:
-    this.addEvent({
-      id: `ev_kick_${Date.now()}_${player.id}`,
-      type: 'PLAYER_LEFT',
-      category: 'SYSTEM_ERRORS',
-      timestamp: Date.now(),
-      playerId: targetId,
-      playerName: player.name,
-      description: `${player.name} was kicked from the match (${reason}).`,
+      return { ok: true, message: `Player ${player.name} kicked from match.`, snapshot: this.getSnapshot() };
     });
-
-    // Advance turn if it was their active turn
-    if (this.gameState && this.gameState.activePlayerIndex === targetId) {
-      try {
-        const res = await this.engine.sendCommand({ action: 'endTurn', playerId: targetId });
-        if (res && res.ok && res.state) {
-          this.setGameState(res.state);
-        }
-      } catch (_) {}
-    }
-
-    // Check remaining active non-bankrupt players
-    const activeRemaining = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
-    if (activeRemaining.length <= 1) {
-      this.gamePhase = 'GAME_OVER';
-      if (this.gameState) {
-        this.gameState.turnState = 'GAME_OVER';
-        this.gameState.winnerId = activeRemaining[0]?.id ?? null;
-      }
-    }
-
-    const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
-    if (connectedCount === 0) {
-      this.startEmptyExpiration();
-    }
-
-    broadcastToRoom(this, {
-      type: 'PLAYER_KICKED',
-      kickedPlayerId: targetId,
-      kickedPlayerName: player.name,
-      reason,
-      newHostPlayerId: this.hostPlayerId,
-      snapshot: this.getSnapshot(),
-    });
-
-    return { ok: true, message: `Player ${player.name} kicked from match.`, snapshot: this.getSnapshot() };
   }
 
   getSnapshot() {
@@ -1704,10 +1774,13 @@ function encodeWsTextFrame(dataStr) {
 }
 
 function broadcastToRoom(room, messageObj, excludeSocket = null) {
-  const frame = encodeWsTextFrame(JSON.stringify(messageObj));
   for (const p of room.players) {
     if (p.connected && p.socket && p.socket !== excludeSocket && !p.socket.destroyed) {
       try {
+        const frame = encodeWsTextFrame(JSON.stringify({
+          ...messageObj,
+          yourPlayerId: p.id,
+        }));
         p.socket.write(frame);
       } catch (err) {
         p.connected = false;
@@ -1720,6 +1793,7 @@ function handleWsConnection(socket, req, head = null) {
   let buffer = head && head.length > 0 ? Buffer.from(head) : Buffer.alloc(0);
   let currentRoom = null;
   let currentPlayer = null;
+  const clientIp = resolveClientIp(req);
 
   socket.on('data', async (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
@@ -1740,6 +1814,12 @@ function handleWsConnection(socket, req, head = null) {
         if (buffer.length < 10) break;
         payloadLength = Number(buffer.readBigUInt64BE(2));
         offset = 10;
+      }
+
+      if (payloadLength > MAX_MESSAGE_SIZE) {
+        logSecurityEvent('PAYLOAD_LIMIT_EXCEEDED', { ip: clientIp, payloadLength, maxAllowed: MAX_MESSAGE_SIZE });
+        socket.destroy();
+        return;
       }
 
       const maskLength = isMasked ? 4 : 0;
@@ -1767,14 +1847,19 @@ function handleWsConnection(socket, req, head = null) {
         pong[0] = 0x8a;
         pong[1] = 0;
         socket.write(pong);
+        if (currentPlayer) currentPlayer.lastSeen = Date.now();
+        continue;
+      } else if (opcode === 0xa) { // PONG
+        if (currentPlayer) currentPlayer.lastSeen = Date.now();
         continue;
       } else if (opcode === 0x1) { // TEXT FRAME
         try {
           const msg = JSON.parse(payload.toString('utf8'));
+          if (currentPlayer) currentPlayer.lastSeen = Date.now();
           await handleClientMessage(msg, socket, (rm, pl) => {
             currentRoom = rm;
             currentPlayer = pl;
-          });
+          }, clientIp);
         } catch (e) {
           console.error('[WS PARSE ERROR]:', e);
         }
@@ -1783,7 +1868,9 @@ function handleWsConnection(socket, req, head = null) {
   });
 
   socket.on('close', () => {
-    if (currentRoom && currentPlayer) {
+    // CRITICAL: Only mark disconnected if this socket is STILL the player's active socket!
+    // If player reconnected or bound a new socket, do NOT drop the new active session.
+    if (currentRoom && currentPlayer && currentPlayer.socket === socket) {
       currentRoom.handlePlayerDisconnect(currentPlayer);
       broadcastToRoom(currentRoom, {
         type: 'PLAYER_STATUS',
@@ -1800,8 +1887,16 @@ function handleWsConnection(socket, req, head = null) {
   });
 }
 
-async function handleClientMessage(msg, socket, bindContext) {
+async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0.1') {
   const { type, roomCode, sessionToken, payload, requestId, clientId } = msg;
+
+  if (type === 'PING') {
+    socket.write(encodeWsTextFrame(JSON.stringify({ type: 'PONG', timestamp: Date.now() })));
+    return;
+  }
+  if (type === 'PONG') {
+    return;
+  }
 
   if (type === 'LISTEN_JOIN_REQUEST') {
     const room = rooms.get(roomCode);
@@ -1855,19 +1950,20 @@ async function handleClientMessage(msg, socket, bindContext) {
       return;
     }
 
-    // Disconnect old socket if any
-    if (player.socket && player.socket !== socket && !player.socket.destroyed) {
+    // Disconnect old socket if any, clearing reference first to avoid disconnect race
+    const oldSocket = player.socket;
+    player.socket = socket;
+    if (oldSocket && oldSocket !== socket && !oldSocket.destroyed) {
       try {
-        player.socket.write(encodeWsTextFrame(JSON.stringify({
+        oldSocket.write(encodeWsTextFrame(JSON.stringify({
           type: 'SUPERSEDED',
           message: 'Connected from another session or tab.',
         })));
-        player.socket.destroy();
+        oldSocket.destroy();
       } catch (_) {}
     }
 
     player.connected = true;
-    player.socket = socket;
     if (cId) player.clientId = cId;
     player.lastSeen = Date.now();
     room.cancelEmptyExpiration();
@@ -1946,6 +2042,18 @@ async function handleClientMessage(msg, socket, bindContext) {
         requestId,
       });
     } else if (type === 'ACTION') {
+      const actionRateKey = `player_${player.sessionToken || player.id}`;
+      const rateCheck = globalRateLimiter.consume('GAMEPLAY_ACTION', actionRateKey);
+      if (!rateCheck.allowed) {
+        logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIp, category: 'GAMEPLAY_ACTION', playerId: player.id });
+        socket.write(encodeWsTextFrame(JSON.stringify({
+          type: 'ACTION_ERROR',
+          message: 'Rate limit exceeded for actions. Please wait a moment.',
+          retryAfter: rateCheck.retryAfter,
+          requestId,
+        })));
+        return;
+      }
       const { action, ...actionPayload } = payload || {};
       const result = await room.processAction(player.id, action, actionPayload);
       broadcastToRoom(room, {
@@ -2045,6 +2153,19 @@ function serveStaticFile(res, filePath) {
   });
 }
 
+function rejectRateLimit(res, category, clientIp, rateResult) {
+  logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip: clientIp, category, retryAfter: rateResult.retryAfter });
+  res.statusCode = 429;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Retry-After', String(rateResult.retryAfter || 5));
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.end(JSON.stringify({
+    ok: false,
+    error: `Rate limit exceeded for ${RATE_LIMIT_CONFIGS[category]?.description || category}. Please wait ${rateResult.retryAfter}s and retry.`,
+    retryAfter: rateResult.retryAfter,
+  }));
+}
+
 function sendJson(res, statusCode, data) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json');
@@ -2064,6 +2185,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const clientIp = resolveClientIp(req);
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
@@ -2072,6 +2194,7 @@ const server = http.createServer((req, res) => {
   req.on('data', chunk => {
     bodyLength += chunk.length;
     if (bodyLength > MAX_MESSAGE_SIZE) {
+      logSecurityEvent('PAYLOAD_LIMIT_EXCEEDED', { ip: clientIp, bodyLength, maxAllowed: MAX_MESSAGE_SIZE });
       res.statusCode = 413;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ ok: false, error: 'Payload too large (maximum 64KB).' }));
@@ -2084,6 +2207,14 @@ const server = http.createServer((req, res) => {
     let payload = {};
     if (body) {
       try { payload = JSON.parse(body); } catch (_) {}
+    }
+
+    // General rate limiter on all HTTP requests
+    if (pathname.startsWith('/api/') && pathname !== '/api/health') {
+      const genCheck = globalRateLimiter.consume('GENERAL_API', clientIp);
+      if (!genCheck.allowed) {
+        return rejectRateLimit(res, 'GENERAL_API', clientIp, genCheck);
+      }
     }
 
     // Static asset & SPA fallback serving in production (serves dist/)
@@ -2127,14 +2258,32 @@ const server = http.createServer((req, res) => {
     // Create Room: POST /api/multiplayer/room/create
     if (pathname === '/api/multiplayer/room/create') {
       try {
-        const roomCode = payload.roomCode || `CRN-${Math.floor(1000 + Math.random() * 9000)}`;
+        const rateCheck = globalRateLimiter.consume('ROOM_CREATE', clientIp);
+        if (!rateCheck.allowed) {
+          return rejectRateLimit(res, 'ROOM_CREATE', clientIp, rateCheck);
+        }
+
+        // CAPTCHA verification (Cloudflare Turnstile with fail-closed semantics)
+        const captchaRes = await verifyCaptchaToken(payload.captchaToken, clientIp);
+        if (!captchaRes.valid && !captchaRes.ok) {
+          logSecurityEvent('CAPTCHA_VERIFICATION_FAILED', { ip: clientIp, reason: captchaRes.error });
+          return sendJson(res, 403, { ok: false, error: captchaRes.error || 'Human verification failed.', captchaRequired: true });
+        }
+
+        const rawCode = payload.roomCode;
+        if (rawCode && !validateRoomCode(rawCode)) {
+          return sendJson(res, 400, { ok: false, error: 'Invalid room code format. Must be 3-16 alphanumeric characters.' });
+        }
+        const roomCode = rawCode ? rawCode.trim().toUpperCase() : `CRN-${Math.floor(1000 + Math.random() * 9000)}`;
         if (rooms.has(roomCode)) {
           return sendJson(res, 400, { ok: false, error: 'Room code already exists. Please retry.' });
         }
         if (payload.clientId) {
           await kickClientFromOtherRooms(payload.clientId, roomCode);
         }
-        const room = new Room(roomCode, payload.hostName, payload.hostColor, payload.rules, payload.clientId);
+        const safeHostName = sanitizePlayerName(payload.hostName, 'Host');
+        const safeHostColor = validateColor(payload.hostColor) || 'saffron';
+        const room = new Room(roomCode, safeHostName, safeHostColor, payload.rules, payload.clientId);
         rooms.set(roomCode, room);
         const host = room.players[0];
         return sendJson(res, 200, {
@@ -2152,24 +2301,48 @@ const server = http.createServer((req, res) => {
     // Join Room: POST /api/multiplayer/room/join
     if (pathname === '/api/multiplayer/room/join') {
       try {
+        const rateCheck = globalRateLimiter.consume('ROOM_JOIN', clientIp);
+        if (!rateCheck.allowed) {
+          return rejectRateLimit(res, 'ROOM_JOIN', clientIp, rateCheck);
+        }
+
+        // Enforce CAPTCHA if suspicious repeated failed joins or CAPTCHA_ENFORCEMENT=always
+        if (isIpSuspicious(clientIp) || process.env.CAPTCHA_ENFORCEMENT === 'always') {
+          const captchaRes = await verifyCaptchaToken(payload.captchaToken, clientIp);
+          if (!captchaRes.valid && !captchaRes.ok) {
+            logSecurityEvent('CAPTCHA_VERIFICATION_FAILED', { ip: clientIp, reason: captchaRes.error });
+            return sendJson(res, 403, { ok: false, error: captchaRes.error || 'Human verification required due to suspicious activity.', captchaRequired: true });
+          }
+        }
+
         const { roomCode, playerName, playerColor, clientId, sessionToken } = payload;
         const cleanCode = (roomCode || '').trim().toUpperCase();
+        if (!validateRoomCode(cleanCode)) {
+          recordFailedJoin(clientIp);
+          return sendJson(res, 400, { ok: false, error: 'Invalid room code format.' });
+        }
         if (closedRooms.has(cleanCode)) {
+          recordFailedJoin(clientIp);
           return sendJson(res, 410, { ok: false, error: 'Room has been closed by the server administrator.' });
         }
         const room = rooms.get(cleanCode);
         if (!room || room.isExpired) {
+          recordFailedJoin(clientIp);
           return sendJson(res, 404, { ok: false, error: 'Room not found or has expired. Check the code and try again.' });
         }
         if (clientId) {
           await kickClientFromOtherRooms(clientId, cleanCode, sessionToken);
         }
-        const joinResult = room.requestJoin(playerName, playerColor, null, clientId, sessionToken);
+        const safeName = sanitizePlayerName(playerName, 'Guest Player');
+        const safeColor = validateColor(playerColor);
+        const joinResult = room.requestJoin(safeName, safeColor, null, clientId, sessionToken);
+        clearSuspiciousJoin(clientIp);
         return sendJson(res, 200, {
           ok: true,
           ...joinResult,
         });
       } catch (err) {
+        recordFailedJoin(clientIp);
         return sendJson(res, 400, { ok: false, error: err.message });
       }
     }
@@ -2200,6 +2373,10 @@ const server = http.createServer((req, res) => {
     // Host Responds to Join Request: POST /api/multiplayer/room/:code/join-request/respond
     const joinRespondMatch = pathname.match(/^\/api\/multiplayer\/room\/([A-Za-z0-9-]+)\/join-request\/respond$/);
     if (joinRespondMatch) {
+      const rateCheck = globalRateLimiter.consume('JOIN_REQUEST_RESPOND', clientIp);
+      if (!rateCheck.allowed) {
+        return rejectRateLimit(res, 'JOIN_REQUEST_RESPOND', clientIp, rateCheck);
+      }
       const roomCode = joinRespondMatch[1].toUpperCase();
       const room = rooms.get(roomCode);
       if (!room || room.isExpired) {
@@ -2216,6 +2393,10 @@ const server = http.createServer((req, res) => {
 
     // Reconnect Room: POST /api/multiplayer/room/reconnect
     if (pathname === '/api/multiplayer/room/reconnect') {
+      const rateCheck = globalRateLimiter.consume('RECONNECT', clientIp);
+      if (!rateCheck.allowed) {
+        return rejectRateLimit(res, 'RECONNECT', clientIp, rateCheck);
+      }
       const { roomCode, sessionToken } = payload;
       const room = rooms.get((roomCode || '').trim().toUpperCase());
       if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
@@ -2247,6 +2428,12 @@ const server = http.createServer((req, res) => {
       if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
       const player = room.getPlayerByToken(payload.sessionToken);
       if (!player) return sendJson(res, 401, { ok: false, error: 'Unauthorized.' });
+
+      const actionRateKey = `player_${player.sessionToken || player.id}`;
+      const rateCheck = globalRateLimiter.consume('GAMEPLAY_ACTION', actionRateKey);
+      if (!rateCheck.allowed) {
+        return rejectRateLimit(res, 'GAMEPLAY_ACTION', clientIp, rateCheck);
+      }
       try {
         const { action, ...actionPayload } = payload;
         if (action === 'kick' || action === 'remove_player' || action === 'removePlayer') {
@@ -2296,6 +2483,23 @@ const server = http.createServer((req, res) => {
       } catch (err) {
         return sendJson(res, 400, { ok: false, error: err.message });
       }
+    }
+
+    // Admin Security Events: GET /api/admin/security/events
+    if (pathname === '/api/admin/security/events') {
+      const authHeader = req.headers['authorization'] || '';
+      const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const adminKeyHeader = (req.headers['x-admin-key'] || '').trim();
+      const expectedKey = process.env.ADMIN_API_KEY || process.env.ADMIN_SECRET || 'crownfall-admin-secret';
+
+      if (bearerToken !== expectedKey && adminKeyHeader !== expectedKey) {
+        return sendJson(res, 401, { ok: false, error: 'Unauthorized: Invalid administrative credentials.' });
+      }
+      return sendJson(res, 200, {
+        ok: true,
+        eventsCount: securityEventLog.length,
+        events: securityEventLog,
+      });
     }
 
     // Admin Close Room: POST /api/admin/room/:code/close
@@ -2432,6 +2636,30 @@ const cleanupInterval = setInterval(() => {
   }
 }, 5 * 60 * 1000);
 cleanupInterval.unref();
+
+// 25-second server ping heartbeat to prevent Render reverse-proxy timeout (which kills idle connections at ~55s)
+const heartbeatInterval = setInterval(() => {
+  const pingFrame = Buffer.from([0x89, 0x00]); // RFC 6455 PING opcode with 0 length
+  for (const room of rooms.values()) {
+    for (const p of room.players) {
+      if (p.connected && p.socket && !p.socket.destroyed) {
+        try {
+          p.socket.write(pingFrame);
+        } catch (_) {
+          p.connected = false;
+        }
+      }
+    }
+    for (const req of room.joinRequests.values()) {
+      if (req.socket && !req.socket.destroyed) {
+        try {
+          req.socket.write(pingFrame);
+        } catch (_) {}
+      }
+    }
+  }
+}, 25 * 1000);
+heartbeatInterval.unref();
 
 // Graceful process shutdown handler (for Render deploys and free-tier spin-down)
 function gracefulShutdown(signal) {

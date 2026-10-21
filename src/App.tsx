@@ -838,6 +838,32 @@ function SetupScreen({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isPendingApproval, setIsPendingApproval] = useState(false)
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string>("")
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null)
+  const turnstileSiteKey = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY) || ""
+
+  // Initialize Cloudflare Turnstile if site key is configured
+  useEffect(() => {
+    if (!turnstileSiteKey || typeof window === "undefined") return
+    const turnstileObj = (window as any).turnstile
+    if (turnstileObj && turnstileContainerRef.current) {
+      try {
+        turnstileObj.render(turnstileContainerRef.current, {
+          sitekey: turnstileSiteKey,
+          callback: (token: string) => {
+            setCaptchaToken(token)
+            setCodeError(null)
+          },
+          "error-callback": () => {
+            setCaptchaToken("")
+          },
+          "expired-callback": () => {
+            setCaptchaToken("")
+          },
+        })
+      } catch (_) {}
+    }
+  }, [turnstileSiteKey])
 
   // Polling & WebSocket listening effect for join approval
   useEffect(() => {
@@ -911,7 +937,7 @@ function SetupScreen({
       setIsSubmitting(true)
       setCodeError(null)
       try {
-        const res = await multiplayerClient.createRoom(trimmedName, enteredColor)
+        const res = await multiplayerClient.createRoom(trimmedName, enteredColor, undefined, captchaToken)
         setRoomCode(res.roomCode)
         setLocalPlayerId(0)
         navigate("game")
@@ -929,7 +955,7 @@ function SetupScreen({
       setIsSubmitting(true)
       setCodeError(null)
       try {
-        const res = await multiplayerClient.requestJoinRoom(normalized, trimmedName, enteredColor)
+        const res = await multiplayerClient.requestJoinRoom(normalized, trimmedName, enteredColor, captchaToken)
         if (res.status === "ACCEPTED") {
           const assignedId = res.playerId ?? multiplayerClient.getPlayerId() ?? 1
           setStoredPlayerName(assignedId, trimmedName)
@@ -1187,6 +1213,14 @@ function SetupScreen({
             </span>
           </div>
         </div>
+
+        {turnstileSiteKey && (
+          <div
+            ref={turnstileContainerRef}
+            className="turnstile-wrapper"
+            style={{ margin: "14px auto", minHeight: "65px", display: "flex", justifyContent: "center" }}
+          />
+        )}
       </div>
       <div className="sticky-action">
         <Button onClick={handleContinue} icon="arrow" disabled={isSubmitting}>
@@ -5321,10 +5355,10 @@ function GameScreen({
             }),
           )
         }
-        window.setTimeout(() => {
+        if (evt.sequence >= lastProcessedRollSeqRef.current) {
           setActivePlayerIndex(gs.activePlayerIndex)
           setTurnState(gs.turnState)
-        }, 300)
+        }
       }
     })
 
@@ -7587,6 +7621,9 @@ export default function App() {
               color: mp.color as PlayerColor,
               token: mp.token || String(idx + 1),
               isHuman: mp.isHuman,
+              connected: mp.connected !== false,
+              isHost: mp.isHost !== undefined ? mp.isHost : existing?.isHost,
+              isLeft: Boolean(mp.isLeft),
               money: mp.money ?? existing?.money ?? 0,
               position: isMovementInProgressRef.current ? (existing?.position ?? mp.position ?? 0) : (mp.position ?? existing?.position ?? 0),
               rotationsCompleted: mp.rotationsCompleted ?? existing?.rotationsCompleted ?? 0,
@@ -7853,10 +7890,6 @@ export default function App() {
       setActivityLog(gameState.activityLog ?? [])
       setTransactionLedger(gameState.transactionLedger ?? [])
       setEventLogList([])
-
-      if (multiplayerClient.getRoomCode()) {
-        multiplayerClient.startGame().catch(() => {})
-      }
 
       if (gameState.turnTimer) {
         setTurnTimer(gameState.turnTimer)

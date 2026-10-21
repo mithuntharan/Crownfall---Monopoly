@@ -152,15 +152,87 @@ When accessing the static website after the server has slept:
 |---|---|---|---|
 | `VITE_WS_URL` | Frontend (Build-time) | Direct Secure WebSocket endpoint | `wss://crownfall-server.onrender.com` |
 | `VITE_MULTIPLAYER_SERVER_URL` | Frontend (Build-time) | Server base URL (supports `https://` or `wss://`) | `https://crownfall-server.onrender.com` |
+| `VITE_TURNSTILE_SITE_KEY` | Frontend (Build-time) | Optional Cloudflare Turnstile site key for client challenge | `0x4AAAAAA...` |
 | `PORT` | Backend (Runtime) | Port injected automatically by Render | `10000` |
 | `HOST` | Backend (Runtime) | Network interface (must be `0.0.0.0` on Render) | `0.0.0.0` |
 | `NODE_ENV` | Backend (Runtime) | Node environment | `production` |
+| `TRUST_PROXY` | Backend (Runtime) | Trust proxy headers (`x-forwarded-for`) from Render reverse proxy | `true` |
 | `MAX_CONNECTIONS` | Backend (Runtime) | Connection limit to safeguard 512MB RAM | `500` |
 | `ENGINE_BIN_PATH` | Backend (Runtime) | Optional C++ binary location override | `/app/bin/monopoly_engine` |
+| `CAPTCHA_ENFORCEMENT` | Backend (Runtime) | Enforcement mode: `auto` (enforces when secret set), `strict`, or `off` | `auto` |
+| `TURNSTILE_SECRET_KEY` | Backend (Runtime) | Cloudflare Turnstile secret key for server-side verification | `0x4AAAAAA...` |
+| `ADMIN_API_KEY` | Backend (Runtime) | Secret key to access `/api/admin/security/events` audit logs | `super-secret-admin-key` |
+| `RL_ROOM_CREATE_BURST` | Backend (Runtime) | Max burst tokens for room creation | `5` |
+| `RL_ROOM_CREATE_REFILL` | Backend (Runtime) | Token refill rate per second for room creation | `0.2` |
+| `RL_ROOM_JOIN_BURST` | Backend (Runtime) | Max burst tokens for room join attempts | `15` |
+| `RL_ROOM_JOIN_REFILL` | Backend (Runtime) | Token refill rate per second for room join attempts | `1.0` |
+| `RL_JOIN_REQUEST_BURST` | Backend (Runtime) | Max burst tokens for host join responses | `30` |
+| `RL_JOIN_REQUEST_REFILL` | Backend (Runtime) | Token refill rate per second for host join responses | `5.0` |
+| `RL_RECONNECT_BURST` | Backend (Runtime) | Max burst tokens for reconnection attempts | `10` |
+| `RL_RECONNECT_REFILL` | Backend (Runtime) | Token refill rate per second for reconnection attempts | `0.5` |
+| `RL_GAMEPLAY_BURST` | Backend (Runtime) | Max burst tokens for gameplay actions per player | `40` |
+| `RL_GAMEPLAY_REFILL` | Backend (Runtime) | Token refill rate per second for gameplay actions | `8.0` |
+| `RL_API_BURST` | Backend (Runtime) | Max burst tokens for general API requests | `60` |
+| `RL_API_REFILL` | Backend (Runtime) | Token refill rate per second for general API requests | `10.0` |
 
 ---
 
-## 7. Troubleshooting
+## 7. Security Hardening & Abuse Protection Layer
+
+The backend includes a dedicated server-side security layer (`scripts/abuse_protection.cjs`) providing protection against automated spam, credential stuffing, denial-of-service floods, and state corruption:
+
+### 1. In-Memory Monotonic Token-Bucket Rate Limiter
+- **Clock**: Driven by high-precision monotonic clock (`process.hrtime.bigint()`), immune to system clock shifts or NTP jumps.
+- **Categorized Buckets**:
+  - `ROOM_CREATE`: 5 burst, 0.2/sec refill (prevents room creation spam).
+  - `ROOM_JOIN`: 15 burst, 1.0/sec refill (prevents brute forcing room codes).
+  - `JOIN_REQUEST_RESPOND`: 30 burst, 5.0/sec refill (prevents host response flooding).
+  - `RECONNECT`: 10 burst, 0.5/sec refill (prevents reconnection spam).
+  - `GAMEPLAY_ACTION`: 40 burst, 8.0/sec refill (protects C++ engine IPC while preserving smooth gameplay).
+  - `GENERAL_API`: 60 burst, 10.0/sec refill.
+- **Memory Bounded**: Tracks up to 5,000 active keys with a periodic 60-second cleanup sweeper to prevent memory exhaustion in 512MB RAM containers.
+- **Scope**: In-memory rate limits reset when the Render container restarts and are local to the instance.
+- **IP Extraction**: Controlled by `TRUST_PROXY=true` on Render. When true, safely extracts the first client IP from `X-Forwarded-For`.
+
+### 2. Cloudflare Turnstile Human Verification (CAPTCHA)
+- **Zero Third-Party Bundles**: Verified using Node.js built-in `https` module (`https://challenges.cloudflare.com/turnstile/v0/siteverify`).
+- **Fail-Closed Semantics**: If CAPTCHA is enforced (`CAPTCHA_ENFORCEMENT=strict` or `auto` with `TURNSTILE_SECRET_KEY` configured), missing or invalid tokens return HTTP 403 `CAPTCHA_FAILED`.
+- **Client Fallback**: If Turnstile keys are not configured, `CAPTCHA_ENFORCEMENT=auto` gracefully allows legitimate players to proceed without breaking the game flow.
+- **Frontend Integration**: Seamless Turnstile challenge widget rendered during room creation or join request in `SetupScreen`.
+
+### 3. Payload Validation and Connection Limits
+- **Max Payload Size**: HTTP request bodies exceeding 64KB are rejected immediately with HTTP 413 `PAYLOAD_TOO_LARGE`.
+- **Input Sanitization**: Room codes strictly validated (`^[A-Za-z0-9_-]{3,16}$`), player names sanitized (1–20 characters, control characters stripped), and player colors validated against the authoritative palette.
+- **Max Global Connections**: Capped at 500 connections (`MAX_CONNECTIONS`).
+
+### 4. Bounded Security Auditing
+- **Event Logger**: In-memory ring buffer storing the latest 200 security events (rate-limit rejections, suspicious IPs, CAPTCHA failures).
+- **Log Throttling**: Console output throttled to at most 1 log line every 2 seconds per event category to protect the Node event loop from I/O flooding.
+- **Admin Endpoint**: `GET /api/admin/security/events` protected by `ADMIN_API_KEY` (`x-admin-key` header or `?key=` query param) for live security monitoring.
+
+---
+
+## 8. Four-Player Reliability & Synchronization Architecture
+
+Key architectural adjustments made to guarantee stable 4-player multiplayer without bots:
+
+1. **Old Socket Disconnection Drop (The Stale-Socket Close Bug)**:
+   - When a player reconnected, the old socket was closed. Node's asynchronous `close` event previously nullified `player.socket = null` even if a new valid socket had already been attached.
+   - Fixed by validating `currentPlayer.socket === socket` before triggering disconnect handling.
+2. **Authoritative Player ID Realignment**:
+   - The authoritative C++ engine indexes players as `0..N-1`. When starting the game, confirmed players receive contiguous engine player IDs.
+   - Server room broadcasts now inject each recipient's specific `yourPlayerId: p.id`, ensuring the 4th player and all clients match the engine's active player index and can roll dice without permission errors.
+3. **Monotonic Lobby Player IDs**:
+   - Player IDs in rooms now use an incrementing counter (`nextPlayerId++`) rather than array indices, preventing ID collisions when players join and leave.
+4. **Sequential Room Action Queue**:
+   - All state-mutating actions (dice rolls, purchases, mortgages, end turns) are serialized through `room.enqueueAction(taskFn)` to prevent race conditions during asynchronous IPC with the C++ engine.
+5. **Reverse Proxy Keep-Alive (Heartbeat)**:
+   - Render's edge proxy terminates WebSocket connections after ~55 seconds of inactivity.
+   - Added a 25-second server RFC 6455 PING heartbeat and a 25-second client keepalive loop to keep long turns and trade negotiations alive indefinitely.
+
+---
+
+## 9. Troubleshooting
 
 ### Issue: "Server Waking Up (~50s)" persists
 - **Cause**: Render free tier services take ~45–60 seconds to spin up on cold start.
@@ -173,3 +245,11 @@ When accessing the static website after the server has slept:
 ### Issue: Room disappeared after closing tab for 20 minutes
 - **Cause**: Under Render Free Tier, the backend service sleeps after 15 minutes of inactivity. Rooms are held in memory.
 - **Fix**: This is expected behavior under free-tier constraints. Create a new room code to start a new match.
+
+### Issue: HTTP 429 Too Many Requests
+- **Cause**: Rate limit threshold reached for room creation, joining, or action spam.
+- **Fix**: Respect the `Retry-After` header sent in the response before retrying.
+
+### Issue: HTTP 403 CAPTCHA_FAILED
+- **Cause**: Turnstile human verification failed or was missing when `CAPTCHA_ENFORCEMENT=strict` or `TURNSTILE_SECRET_KEY` is set.
+- **Fix**: Complete the Turnstile challenge widget on the lobby setup screen. Ensure both `VITE_TURNSTILE_SITE_KEY` (frontend) and `TURNSTILE_SECRET_KEY` (backend) come from the same Cloudflare Turnstile widget.

@@ -19,6 +19,14 @@ services:
         value: production
       - key: MAX_CONNECTIONS
         value: 500
+      - key: TRUST_PROXY
+        value: "true"
+      - key: CAPTCHA_ENFORCEMENT
+        value: auto
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: ADMIN_API_KEY
+        generateValue: true
 
   # Crownfall Browser Client (Render Static Site)
   - type: web
@@ -37,3 +45,5 @@ services:
         value: wss://crownfall-server.onrender.com
       - key: VITE_MULTIPLAYER_SERVER_URL
         value: https://crownfall-server.onrender.com
+      - key: VITE_TURNSTILE_SITE_KEY
+        sync: false

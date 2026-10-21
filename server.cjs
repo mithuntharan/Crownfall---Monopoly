@@ -5,7 +5,7 @@
  * It serves:
  *   1. The compiled React frontend (from dist/)
  *   2. The authoritative REST API (/api/multiplayer/...)
- *   3. Realtime WebSocket connections for live multiplayer gameplay (ws:// / wss://)
+ *   3. Realtime WebSocket connections for live multiplayer ga  meplay (ws:// / wss://)
  *   4. Spawns the authoritative C++ native engine backend
  *
  * Deploy Commands:

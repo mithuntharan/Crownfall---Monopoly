@@ -167,6 +167,7 @@ export class MultiplayerClient {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 6
   private reconnectTimer: number | null = null
+  private pingInterval: number | null = null
   private latestSnapshot: MultiplayerRoomSnapshot | null = null
 
   // Event listeners
@@ -412,6 +413,7 @@ export class MultiplayerClient {
     hostName: string,
     hostColor: string,
     rules: Partial<GameRules> = {},
+    captchaToken?: string,
   ): Promise<{ roomCode: string; playerId: number; snapshot: MultiplayerRoomSnapshot }> {
     const wakingTimer = window.setTimeout(() => {
       this.setStatus(
@@ -424,7 +426,7 @@ export class MultiplayerClient {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostName, hostColor, rules, clientId: this.clientId }),
+        body: JSON.stringify({ hostName, hostColor, rules, clientId: this.clientId, captchaToken }),
       })
       window.clearTimeout(wakingTimer)
       const data = await res.json()
@@ -452,6 +454,7 @@ export class MultiplayerClient {
     roomCode: string,
     playerName: string,
     playerColor?: string,
+    captchaToken?: string,
   ): Promise<{
     status: "ACCEPTED" | "PENDING"
     roomCode: string
@@ -477,6 +480,7 @@ export class MultiplayerClient {
           playerColor,
           clientId: this.clientId,
           sessionToken: this.sessionToken,
+          captchaToken,
         }),
       })
       window.clearTimeout(wakingTimer)
@@ -603,8 +607,9 @@ export class MultiplayerClient {
     roomCode: string,
     playerName: string,
     playerColor?: string,
+    captchaToken?: string,
   ): Promise<{ roomCode: string; playerId: number; snapshot: MultiplayerRoomSnapshot }> {
-    const res = await this.requestJoinRoom(roomCode, playerName, playerColor)
+    const res = await this.requestJoinRoom(roomCode, playerName, playerColor, captchaToken)
     if (res.status === "ACCEPTED") {
       return { roomCode: res.roomCode, playerId: res.playerId!, snapshot: res.snapshot! }
     }
@@ -663,11 +668,45 @@ export class MultiplayerClient {
             clientId: this.clientId,
           }),
         )
+
+        // 25-second client keepalive ping to prevent proxy/firewall timeouts
+        if (this.pingInterval !== null) {
+          window.clearInterval(this.pingInterval)
+        }
+        this.pingInterval = window.setInterval(() => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ type: "PING" }))
+          }
+        }, 25000)
       }
 
       this.ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
+
+          // Respond to server ping frames
+          if (msg.type === "PING") {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+              this.ws.send(JSON.stringify({ type: "PONG" }))
+            }
+            return
+          }
+          if (msg.type === "PONG") {
+            return
+          }
+
+          // Authoritative player identity synchronization
+          if (typeof msg.yourPlayerId === "number") {
+            this.playerId = msg.yourPlayerId
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("crownfall_mp_pid", String(msg.yourPlayerId))
+            }
+          } else if (msg.type === "INIT_SNAPSHOT" && msg.player?.id !== undefined) {
+            this.playerId = msg.player.id
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("crownfall_mp_pid", String(msg.player.id))
+            }
+          }
 
           // Correlate with pending request
           if (msg.requestId && this.pendingRequests.has(msg.requestId)) {
@@ -794,6 +833,10 @@ export class MultiplayerClient {
       }
 
       this.ws.onclose = () => {
+        if (this.pingInterval !== null) {
+          window.clearInterval(this.pingInterval)
+          this.pingInterval = null
+        }
         for (const [id, req] of this.pendingRequests.entries()) {
           window.clearTimeout(req.timer)
           req.reject(new Error("WebSocket disconnected during request."))
@@ -804,6 +847,10 @@ export class MultiplayerClient {
       }
 
       this.ws.onerror = () => {
+        if (this.pingInterval !== null) {
+          window.clearInterval(this.pingInterval)
+          this.pingInterval = null
+        }
         this.setStatus("error", "WebSocket error encountered")
         this.ws?.close()
       }
@@ -833,6 +880,10 @@ export class MultiplayerClient {
   }
 
   public disconnect() {
+    if (this.pingInterval !== null) {
+      window.clearInterval(this.pingInterval)
+      this.pingInterval = null
+    }
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
@@ -985,6 +1036,10 @@ export class MultiplayerClient {
 
   public rematch() {
     return this.sendWsOrHttp("REMATCH", {})
+  }
+
+  public handleTimeout(playerId?: number) {
+    return this.sendWsOrHttp("ACTION", { action: "timeout", playerId })
   }
 
   public async leaveRoom(): Promise<{ ok: boolean; message?: string }> {
