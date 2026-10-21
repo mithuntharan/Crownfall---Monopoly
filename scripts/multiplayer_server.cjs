@@ -829,6 +829,14 @@ class Room {
         }
       }
 
+      // Authoritative validation for resignation: only the player themselves can resign
+      if (action === 'resign') {
+        const targetId = payload.playerId !== undefined ? payload.playerId : playerId;
+        if (targetId !== playerId) {
+          throw new Error('You are not authorized to resign on behalf of another player.');
+        }
+      }
+
       this.actionSequence++;
       const cmd = {
         action,
@@ -1048,7 +1056,7 @@ class Room {
           playerName: player.name,
           playerColor: player.color,
           sequenceNumber: seq,
-          description: res.eventDescription || `${player.name} stopped at the Rest House (misses next turn).`,
+          description: res.eventDescription || `${player.name} stopped at the Rest House (must skip next turn).`,
         });
       }
 

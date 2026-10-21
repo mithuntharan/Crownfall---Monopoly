@@ -49,7 +49,14 @@ import { FinancialInsightsModal } from "./components/FinancialInsightsModal"
 import { PreferencesModal } from "./components/PreferencesModal"
 import { GameplayEventLog, type GameplayEventEntry } from "./components/GameplayEventLog"
 import { DiceRollHistory, type DiceRollRecord } from "./components/DiceRollHistory"
-import { multiplayerClient, type ConnectionStatus, type RollEvent, type PendingJoinRequest } from "./engine/MultiplayerClient"
+import {
+  multiplayerClient,
+  type ConnectionStatus,
+  type RollEvent,
+  type PendingJoinRequest,
+  type MultiplayerRoomSnapshot,
+  type MultiplayerPlayerSnapshot,
+} from "./engine/MultiplayerClient"
 import {
   BoardCenterNotification,
   type BoardCenterNotificationItem,
@@ -924,8 +931,8 @@ function SetupScreen({
     if (create || !targetRoomSnapshot) return
     const occupied = new Set(
       (targetRoomSnapshot.players || [])
-        .filter((p) => !p.isLeft)
-        .map((p) => (p.color || "").trim().toLowerCase())
+        .filter((p: MultiplayerPlayerSnapshot) => !p.isLeft)
+        .map((p: MultiplayerPlayerSnapshot) => (p.color || "").trim().toLowerCase())
     )
     if (occupied.has(enteredColor.toLowerCase())) {
       const firstFree = AVAILABLE_PLAYER_COLORS.find(
@@ -1028,14 +1035,14 @@ function SetupScreen({
 
       // Check current room occupancy and capacity if room snapshot is available
       if (targetRoomSnapshot) {
-        const activePlayers = (targetRoomSnapshot.players || []).filter((p) => !p.isLeft)
+        const activePlayers = (targetRoomSnapshot.players || []).filter((p: MultiplayerPlayerSnapshot) => !p.isLeft)
         const maxCapacity = targetRoomSnapshot.rules?.maxPlayers ?? 4
         if (activePlayers.length >= maxCapacity) {
           setCodeError(`Room ${normalized} is currently full (${activePlayers.length}/${maxCapacity} players).`)
           return
         }
         const isColorOccupied = activePlayers.some(
-          (p) => (p.color || "").trim().toLowerCase() === enteredColor.toLowerCase()
+          (p: MultiplayerPlayerSnapshot) => (p.color || "").trim().toLowerCase() === enteredColor.toLowerCase()
         )
         if (isColorOccupied) {
           setColorError(`Color '${enteredColor}' is already taken in this room. Please select an available color.`)
@@ -1242,7 +1249,7 @@ function SetupScreen({
                 const isSelected = enteredColor.toLowerCase() === c.id
                 const occupyingPlayer = !create && targetRoomSnapshot
                   ? (targetRoomSnapshot.players || []).find(
-                      (p) => !p.isLeft && (p.color || "").trim().toLowerCase() === c.id
+                      (p: MultiplayerPlayerSnapshot) => !p.isLeft && (p.color || "").trim().toLowerCase() === c.id
                     )
                   : null
                 const isTaken = Boolean(occupyingPlayer)
@@ -1257,7 +1264,7 @@ function SetupScreen({
                       if (isTaken) {
                         const available = AVAILABLE_PLAYER_COLORS.filter(
                           (ac) => !(targetRoomSnapshot?.players || []).some(
-                            (p) => !p.isLeft && (p.color || "").trim().toLowerCase() === ac.id
+                            (p: MultiplayerPlayerSnapshot) => !p.isLeft && (p.color || "").trim().toLowerCase() === ac.id
                           )
                         ).map((ac) => ac.name).join(", ")
                         setColorError(`Color '${c.name}' is already chosen by ${occupyingPlayer?.name || "another player"}. Available colors: ${available || "None"}`)
@@ -2256,22 +2263,14 @@ function Board({
               />
               {isMortgaged && (
                 <span
-                  className="tile-mortgage-badge"
-                  style={{
-                    backgroundColor: propertyOwner ? getPlayerColorHex(propertyOwner.color) : "var(--burgundy)",
-                    color: "#ffffff",
-                    borderColor: "var(--gold)",
-                  }}
+                  className={`tile-mortgage-indicator side-${space.side}`}
                   title={propertyOwner ? `Mortgaged by ${propertyOwner.name}` : "Mortgaged"}
                   aria-label="Mortgaged"
                 >
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="9" height="9">
-                    <path d="M12 1L2 6v2h20V6L12 1zm0 2.2L18.4 6H5.6L12 3.2zM4 10v8h3v-8H4zm6 0v8h4v-8h-4zm7 0v8h3v-8h-3zM2 20v2h20v-2H2z" />
-                  </svg>
-                  <span className="mortgage-letter">M</span>
+                  MORTGAGED
                 </span>
               )}
-              {buildingCount > 0 && propertyOwner && (
+              {buildingCount > 0 && propertyOwner && !isMortgaged && (
                 <div
                   className={`tile-buildings-container side-${space.side} ${buildingCount >= 4 ? "has-hotel" : "has-houses"}`}
                   title={buildingCount >= 4 ? `Hotel constructed by ${propertyOwner.name}` : `${buildingCount} House${buildingCount > 1 ? "s" : ""} built by ${propertyOwner.name}`}
@@ -4794,7 +4793,11 @@ function GameScreen({
           const snap = pendingSnapshotRef.current
           pendingSnapshotRef.current = null
           if (snap.gameState) {
-            applyGameStateSnapshot(snap.gameState)
+            if (snap.gameState.activePlayerIndex === movingPlayerId && snap.gameState.turnState === "WAITING_FOR_ACTION") {
+              applyGameStateSnapshot(snap.gameState)
+            } else if (snap.gameState.activePlayerIndex !== movingPlayerId) {
+              applyGameStateSnapshot(snap.gameState)
+            }
           }
         }
         return
@@ -4835,7 +4838,12 @@ function GameScreen({
                 const snap = pendingSnapshotRef.current
                 pendingSnapshotRef.current = null
                 if (snap.gameState) {
-                  applyGameStateSnapshot(snap.gameState)
+                  // If current player is active and awaiting an action/purchase, preserve activePlayerIndex and turnState
+                  if (snap.gameState.activePlayerIndex === movingPlayerId && snap.gameState.turnState === "WAITING_FOR_ACTION") {
+                    applyGameStateSnapshot(snap.gameState)
+                  } else if (snap.gameState.activePlayerIndex !== movingPlayerId) {
+                    applyGameStateSnapshot(snap.gameState)
+                  }
                 }
               }
               resolve()
@@ -6585,7 +6593,7 @@ function GameScreen({
             </div>
           )}
 
-          {activePlayer.money < 0 && (
+          {activePlayer.money < 0 && activePlayerIndex === localPlayerId && (
             <div
               className="debt-settlement-banner"
               style={{
@@ -6601,15 +6609,12 @@ function GameScreen({
                 gap: "8px",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "20px" }}>🚨</span>
-                <div>
-                  <div style={{ fontFamily: '"Oswald", sans-serif', fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: "#fca5a5" }}>
-                    MANDATORY DEBT SETTLEMENT
-                  </div>
-                  <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.9)" }}>
-                    Outstanding Obligation: <strong style={{ color: "#f87171" }}>₹{Math.abs(activePlayer.money).toLocaleString()}</strong>
-                  </div>
+              <div>
+                <div style={{ fontFamily: '"Oswald", sans-serif', fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: "#fca5a5" }}>
+                  MANDATORY DEBT SETTLEMENT
+                </div>
+                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.9)", marginTop: "2px" }}>
+                  Outstanding Obligation: <strong style={{ color: "#f87171" }}>₹{Math.abs(activePlayer.money).toLocaleString()}</strong>
                 </div>
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>

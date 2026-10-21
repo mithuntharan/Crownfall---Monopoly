@@ -1,7 +1,6 @@
 #include "../include/GameEngine.h"
 #include <algorithm>
 #include <sstream>
-#include <iomanip>
 #include <chrono>
 #include <optional>
 #include <utility>
@@ -677,7 +676,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 result.eventDescription = player.name + " entered the Royal Club.";
             } else if (nextPos == 27) {
                 player.inRestHouse = true;
-                result.eventDescription = player.name + " stopped at the Rest House (misses next turn).";
+                result.eventDescription = player.name + " stopped at the Rest House (must skip next turn).";
             }
         } else if (space.type == SpaceType::Tax) {
             int tax = 500;

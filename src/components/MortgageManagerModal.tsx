@@ -196,7 +196,7 @@ export function MortgageManagerModal({
                       <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
                         {prop.name}
                         {prop.isMortgaged && (
-                          <span style={{ fontSize: "9px", background: "rgba(200, 50, 50, 0.3)", color: "#ff8b8b", padding: "1px 5px", borderRadius: "3px" }}>
+                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", color: "#fca5a5", padding: "1px 5px", borderRadius: "3px" }}>
                             MORTGAGED
                           </span>
                         )}

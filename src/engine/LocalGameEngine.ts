@@ -802,7 +802,7 @@ export class LocalGameEngine implements IGameEngine {
           res.eventDescription = `${player.name} entered the Royal Club.`
         } else if (nextPos === 27) {
           player.inRestHouse = true
-          res.eventDescription = `${player.name} stopped at the Rest House (misses next turn).`
+          res.eventDescription = `${player.name} stopped at the Rest House (must skip next turn).`
         }
       } else if (space.type === "tax") {
         const tax = 500

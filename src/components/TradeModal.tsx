@@ -497,10 +497,10 @@ export function TradeModal({
                                     const senderPlayer = players.find((pl) => pl.id === offer.senderId)
                                     const isMortgaged = Boolean(senderPlayer?.mortgages?.[p])
                                     return (
-                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                         <span>{getPropName(p)}</span>
                                         {isMortgaged && (
-                                          <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
+                                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", color: "#fca5a5", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", padding: "1px 5px", borderRadius: "3px" }}>
                                             MORTGAGED
                                           </span>
                                         )}
@@ -522,10 +522,10 @@ export function TradeModal({
                                     const receiverPlayer = players.find((pl) => pl.id === offer.receiverId)
                                     const isMortgaged = Boolean(receiverPlayer?.mortgages?.[p])
                                     return (
-                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                      <div key={p} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                         <span>{getPropName(p)}</span>
                                         {isMortgaged && (
-                                          <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
+                                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", color: "#fca5a5", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", padding: "1px 5px", borderRadius: "3px" }}>
                                             MORTGAGED
                                           </span>
                                         )}
