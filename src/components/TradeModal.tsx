@@ -555,20 +555,27 @@ export function TradeModal({
                           >
                             Reject
                           </button>
+                          {offer.receiverCash > localPlayer.money && (
+                            <span style={{ fontSize: "11px", color: "#fca5a5", alignSelf: "center", fontWeight: 600 }}>
+                              Need ₹{(offer.receiverCash - localPlayer.money).toLocaleString()} more
+                            </span>
+                          )}
                           <button
                             onClick={() => onAcceptOffer(offer.id)}
+                            disabled={offer.receiverCash > localPlayer.money}
+                            title={offer.receiverCash > localPlayer.money ? `Cannot afford: requires ₹${offer.receiverCash.toLocaleString()} but have ₹${localPlayer.money.toLocaleString()}` : "Accept trade deal"}
                             style={{
                               padding: "6px 18px",
                               borderRadius: "6px",
-                              border: "none",
-                              background: "linear-gradient(135deg, #10b981, #059669)",
-                              color: "#fff",
-                              cursor: "pointer",
+                              border: offer.receiverCash > localPlayer.money ? "1px solid rgba(239, 68, 68, 0.6)" : "none",
+                              background: offer.receiverCash > localPlayer.money ? "rgba(239, 68, 68, 0.2)" : "linear-gradient(135deg, #10b981, #059669)",
+                              color: offer.receiverCash > localPlayer.money ? "#fca5a5" : "#fff",
+                              cursor: offer.receiverCash > localPlayer.money ? "not-allowed" : "pointer",
                               fontSize: "12px",
                               fontWeight: 700,
                             }}
                           >
-                            Accept Deal
+                            {offer.receiverCash > localPlayer.money ? "Cannot Afford" : "Accept Deal"}
                           </button>
                         </div>
                       </div>

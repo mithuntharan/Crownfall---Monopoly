@@ -217,20 +217,20 @@ export function MortgageManagerModal({
                         </div>
                         <button
                           onClick={() => handleRedeem(prop.propId, prop.redemptionCost)}
-                          disabled={isBusy || !canAffordRedeem}
+                          title={!canAffordRedeem ? `Cannot afford: requires ₹${prop.redemptionCost.toLocaleString()} but available balance is ₹${player.money.toLocaleString()}` : `Redeem ${prop.name} for ₹${prop.redemptionCost.toLocaleString()}`}
                           style={{
                             padding: "8px 14px",
                             minHeight: "36px",
                             borderRadius: "6px",
-                            border: "none",
-                            background: canAffordRedeem ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(255,255,255,0.1)",
-                            color: canAffordRedeem ? "#fff" : "var(--text-muted)",
+                            border: canAffordRedeem ? "none" : "1px solid rgba(239, 68, 68, 0.5)",
+                            background: canAffordRedeem ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(239, 68, 68, 0.18)",
+                            color: canAffordRedeem ? "#fff" : "#fca5a5",
                             cursor: canAffordRedeem && !isBusy ? "pointer" : "not-allowed",
                             fontSize: "11px",
                             fontWeight: 700,
                           }}
                         >
-                          {isBusy ? "Redeeming..." : canAffordRedeem ? "Redeem (+10%)" : "Can't Afford"}
+                          {isBusy ? "Redeeming..." : canAffordRedeem ? "Redeem (+10%)" : "Cannot Afford"}
                         </button>
                       </div>
                     ) : (

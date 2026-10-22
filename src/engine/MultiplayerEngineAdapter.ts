@@ -164,8 +164,16 @@ export class MultiplayerEngineAdapter implements IGameEngine {
         propertyId,
         playerId,
       })
+      if (!res || res.ok === false || res.type === "ACTION_ERROR" || res.type === "ERROR") {
+        return {
+          success: false,
+          state: await this.getState(),
+          error: res?.message || res?.error || "Failed to sell property.",
+        }
+      }
       const state = res?.snapshot?.gameState || (await this.getState())
-      return { success: true, state, sellPrice: (res as any)?.sellPrice }
+      const sellPrice = typeof res?.sellPrice === "number" ? res.sellPrice : undefined
+      return { success: true, state, sellPrice }
     } catch (e: any) {
       return { success: false, state: await this.getState(), error: e?.message }
     }

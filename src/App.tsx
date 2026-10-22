@@ -55,6 +55,7 @@ import {
   type RollEvent,
   type PendingJoinRequest,
   type MultiplayerRoomSnapshot,
+  type MultiplayerPlayer,
   type MultiplayerPlayerSnapshot,
 } from "./engine/MultiplayerClient"
 import {
@@ -3570,7 +3571,7 @@ function GameModal({
               : !ownsCompleteGroup
                 ? "OWN COMPLETE GROUP FIRST"
                 : userMoney < buildCost
-                  ? "INSUFFICIENT FUNDS"
+                  ? `CANNOT AFFORD · NEED ₹${buildCost.toLocaleString()}`
                   : `CONFIRM BUILD · Rs${buildCost.toLocaleString()}`}
         </Button>
         <Button variant="ghost" onClick={close}>
@@ -3793,7 +3794,7 @@ function GameModal({
         <Button onClick={handleConfirmUnmortgage} disabled={!canAfford}>
           {canAfford
             ? `CONFIRM UNMORTGAGE · Rs${totalRepayment.toLocaleString()}`
-            : "INSUFFICIENT FUNDS"}
+            : `CANNOT AFFORD · NEED ₹${totalRepayment.toLocaleString()}`}
         </Button>
         <Button variant="ghost" onClick={close}>
           CANCEL
@@ -3839,14 +3840,14 @@ function GameModal({
             setPlayers(res.state.players)
           }
           audioSystem.playPurchase()
-          const proceeds = res.sellPrice !== undefined ? res.sellPrice : netProceeds
+          const proceeds = typeof res.sellPrice === "number" ? res.sellPrice : netProceeds
           const msg = isMortgaged
             ? `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} net (₹${depreciatedValue.toLocaleString()} depreciated minus ₹${mortgageDeduction.toLocaleString()} mortgage payoff).`
             : `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} (${depreciationPercent}% depreciation).`
           onShowToast?.(msg)
           onAddGameplayEvent?.({
             id: `sell_${Date.now()}_${selectedProperty.id}`,
-            type: "SELL_HOUSE" as any,
+            type: "SELL_PROPERTY" as any,
             timestamp: Date.now(),
             playerId: owner.id,
             playerName: owner.name,
@@ -3857,51 +3858,12 @@ function GameModal({
           })
           try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
         } else {
-          if (setPlayers) {
-            setPlayers((prev) =>
-              prev.map((p) => {
-                if (p.id !== owner.id) return p
-                const nextOwned = (p.ownedProperties || []).filter((id) => id !== selectedProperty.id)
-                const nextMortgages = { ...p.mortgages }
-                delete nextMortgages[selectedProperty.id]
-                const nextBuildings = { ...p.buildings }
-                delete nextBuildings[selectedProperty.id]
-                return {
-                  ...p,
-                  money: p.money + netProceeds,
-                  ownedProperties: nextOwned,
-                  mortgages: nextMortgages,
-                  buildings: nextBuildings,
-                }
-              })
-            )
-            audioSystem.playPurchase()
-            onShowToast?.(`Sold ${selectedProperty.name} for ₹${netProceeds.toLocaleString()}.`)
-          }
+          audioSystem.playWarning()
+          onShowToast?.(res?.error || `Could not sell ${selectedProperty.name}.`)
         }
-      } catch (err) {
-        console.error("Sell property error:", err)
-        if (setPlayers) {
-          setPlayers((prev) =>
-            prev.map((p) => {
-              if (p.id !== owner.id) return p
-              const nextOwned = (p.ownedProperties || []).filter((id) => id !== selectedProperty.id)
-              const nextMortgages = { ...p.mortgages }
-              delete nextMortgages[selectedProperty.id]
-              const nextBuildings = { ...p.buildings }
-              delete nextBuildings[selectedProperty.id]
-              return {
-                ...p,
-                money: p.money + netProceeds,
-                ownedProperties: nextOwned,
-                mortgages: nextMortgages,
-                buildings: nextBuildings,
-              }
-            })
-          )
-          audioSystem.playPurchase()
-          onShowToast?.(`Sold ${selectedProperty.name} for ₹${netProceeds.toLocaleString()}.`)
-        }
+      } catch (err: any) {
+        audioSystem.playWarning()
+        onShowToast?.(err?.message || `Could not sell ${selectedProperty.name}.`)
       }
       close()
     }
@@ -4212,7 +4174,7 @@ function GameModal({
                 disabled={activePlayer.money < propPrice || isSubmitting}
               >
                 {activePlayer.money < propPrice
-                  ? "INSUFFICIENT FUNDS"
+                  ? `CANNOT AFFORD · ₹${propPrice.toLocaleString()} (HAVE ₹${activePlayer.money.toLocaleString()})`
                   : isSubmitting
                   ? "BUYING..."
                   : `BUY PROPERTY · ₹${propPrice.toLocaleString()}`}
@@ -4271,7 +4233,7 @@ function GameModal({
                       : isMortgaged
                       ? "PROPERTY MORTGAGED (CANNOT BUILD)"
                       : propOwner.money < buildCost
-                      ? "INSUFFICIENT CASH"
+                      ? `CANNOT AFFORD · NEED ₹${buildCost.toLocaleString()}`
                       : `BUILD ${buildings >= 3 ? "HOTEL" : "HOUSE"} · -₹${buildCost.toLocaleString()}`}
                   </Button>
 
@@ -4309,7 +4271,7 @@ function GameModal({
                   {isSubmitting
                     ? "PROCESSING..."
                     : propOwner.money < redemptionCost
-                    ? `NEED ₹${redemptionCost.toLocaleString()} TO REDEEM`
+                    ? `CANNOT AFFORD · NEED ₹${redemptionCost.toLocaleString()}`
                     : `REDEEM / UNMORTGAGE · -₹${redemptionCost.toLocaleString()}`}
                 </Button>
               )}
@@ -6614,33 +6576,13 @@ function GameScreen({
                   MANDATORY DEBT SETTLEMENT
                 </div>
                 <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.9)", marginTop: "2px" }}>
-                  Outstanding Obligation: <strong style={{ color: "#f87171" }}>₹{Math.abs(activePlayer.money).toLocaleString()}</strong>
+                  Current Balance: <strong style={{ color: "#fca5a5" }}>₹{activePlayer.money.toLocaleString()}</strong> &nbsp;|&nbsp; Outstanding Debt: <strong style={{ color: "#f87171" }}>₹{Math.abs(activePlayer.money).toLocaleString()}</strong>
                 </div>
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>
-                You cannot finish your turn or advance while your balance is negative. Mortgage eligible properties to raise cash or resign from the match.
+                You cannot finish your turn or advance while your balance is negative. Resign from the match to settle your obligations and conclude your session.
               </div>
-              <div style={{ display: "flex", gap: "8px", marginTop: "2px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  className="btn-mortgage-settle"
-                  onClick={() => setModal("mortgage")}
-                  style={{
-                    flex: 1,
-                    minHeight: "38px",
-                    padding: "8px 12px",
-                    background: "rgba(200, 155, 69, 0.25)",
-                    border: "1px solid var(--gold)",
-                    borderRadius: "6px",
-                    color: "var(--gold-light)",
-                    fontFamily: '"Oswald", sans-serif',
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  🏛️ MORTGAGE
-                </button>
+              <div style={{ display: "flex", gap: "8px", marginTop: "2px" }}>
                 <button
                   type="button"
                   className="btn-resign-settle"

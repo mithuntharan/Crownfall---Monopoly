@@ -1162,6 +1162,7 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     bool success = engine->sellProperty(playerId, propId, sellPrice);
     std::cout << "{\"ok\":" << (success ? "true" : "false")
               << ",\"sellPrice\":" << sellPrice
+              << (success ? "" : ",\"error\":\"Transaction rejected: property not owned, invalid property ID, or sale conditions unmet.\"")
               << ",\"state\":" << toCompactJson(engine->exportStateJson())
               << "}\n"
               << std::flush;

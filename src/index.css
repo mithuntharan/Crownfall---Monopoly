@@ -1418,6 +1418,21 @@ button:focus-visible, input:focus-visible {
   left: 0; top: 0; bottom: 0; width: 18%; height: 100%;
 }
 
+/* Consistent Content Layout & Inset System Across All 4 Board Edges */
+.side-bottom:not(.space-corner) .board-space-content {
+  padding-top: calc(18% + 2px);
+  padding-bottom: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.side-top:not(.space-corner) .board-space-content {
+  padding-bottom: calc(18% + 2px);
+  padding-top: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
 /* Side Rotations for Lateral Tiles */
 .side-right:not(.space-corner) .board-space-content {
   position: absolute;
@@ -1427,6 +1442,10 @@ button:focus-visible, input:focus-visible {
   height: calc(100% * 1.7);
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
+  padding-bottom: calc(18% + 2px);
+  padding-top: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 .side-left:not(.space-corner) .board-space-content {
@@ -1437,6 +1456,10 @@ button:focus-visible, input:focus-visible {
   height: calc(100% * 1.7);
   transform: translate(-50%, -50%) rotate(-90deg);
   transform-origin: center center;
+  padding-bottom: calc(18% + 2px);
+  padding-top: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 /* Corner Spaces */
@@ -1537,7 +1560,7 @@ button:focus-visible, input:focus-visible {
   width: 5px;
 }
 
-/* Polished Compact Tile Mortgage Indicator */
+/* Polished Compact Tile Mortgage Indicator (Positioned inside edge band) */
 .tile-mortgage-indicator {
   position: absolute;
   z-index: 14;
@@ -1547,7 +1570,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 3px;
   color: #fecaca;
   font-family: "Oswald", sans-serif;
-  font-size: 7.5px;
+  font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.05em;
   line-height: 1.1;
@@ -1558,73 +1581,85 @@ button:focus-visible, input:focus-visible {
 }
 
 .tile-mortgage-indicator.side-bottom {
-  top: 19%;
+  top: 2px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .tile-mortgage-indicator.side-top {
-  bottom: 19%;
+  bottom: 2px;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .tile-mortgage-indicator.side-left {
-  right: 19%;
+  right: 2px;
   top: 50%;
   transform: translateY(-50%) rotate(90deg);
 }
 
 .tile-mortgage-indicator.side-right {
-  left: 19%;
+  left: 2px;
   top: 50%;
   transform: translateY(-50%) rotate(-90deg);
 }
 
-/* Dedicated Non-Overlapping Building Zone (Adjacent to color band) */
+/* Dedicated Non-Overlapping Building Zone (Centered inside the 18% color band) */
 .tile-buildings-container {
   position: absolute;
   z-index: 12;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2.5px;
   pointer-events: none;
 }
 
 .tile-buildings-container.side-bottom {
-  top: 19%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
+  flex-direction: row;
+  gap: 2px;
 }
 
 .tile-buildings-container.side-top {
-  bottom: 19%;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
+  flex-direction: row;
+  gap: 2px;
 }
 
 .tile-buildings-container.side-left {
-  right: 19%;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .tile-buildings-container.side-right {
-  left: 19%;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .building-marker-house {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
   border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
   animation: building-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -1632,11 +1667,12 @@ button:focus-visible, input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
-  border-radius: 3px;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border-radius: 2px;
   border: 1.5px solid #fbbf24;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), 0 0 8px rgba(251, 191, 36, 0.5);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7), 0 0 6px rgba(251, 191, 36, 0.5);
   animation: building-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -1717,10 +1753,57 @@ button:focus-visible, input:focus-visible {
   animation: diceRollSpin 0.24s infinite linear;
 }
 
+.die.die-1.rolling {
+  animation: diceTumble1 0.26s infinite linear;
+}
+
+.die.die-2.rolling {
+  animation: diceTumble2 0.22s infinite linear;
+}
+
 @keyframes diceRollSpin {
   0% { transform: rotateX(0deg) rotateY(0deg); }
   50% { transform: rotateX(180deg) rotateY(90deg) scale(1.1); }
   100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+@keyframes diceTumble1 {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0px); }
+  25% { transform: rotateX(95deg) rotateY(180deg) rotateZ(45deg) translateZ(6px); }
+  50% { transform: rotateX(210deg) rotateY(270deg) rotateZ(90deg) translateZ(10px) scale(1.08); }
+  75% { transform: rotateX(300deg) rotateY(360deg) rotateZ(180deg) translateZ(4px); }
+  100% { transform: rotateX(360deg) rotateY(540deg) rotateZ(360deg) translateZ(0px); }
+}
+
+@keyframes diceTumble2 {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(0px); }
+  25% { transform: rotateX(-110deg) rotateY(-90deg) rotateZ(-30deg) translateZ(8px); }
+  50% { transform: rotateX(-220deg) rotateY(-200deg) rotateZ(-120deg) translateZ(12px) scale(1.1); }
+  75% { transform: rotateX(-315deg) rotateY(-290deg) rotateZ(-240deg) translateZ(5px); }
+  100% { transform: rotateX(-360deg) rotateY(-360deg) rotateZ(-360deg) translateZ(0px); }
+}
+
+.die.settling {
+  animation: diceSettleLanding 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes diceSettleLanding {
+  0% {
+    transform: scale(1.18) translateY(-10px) rotateX(18deg) rotateY(-8deg);
+    box-shadow: 0 10px 18px rgba(0, 0, 0, 0.35);
+  }
+  50% {
+    transform: scale(0.92) translateY(2px) rotateX(-6deg) rotateY(3deg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  75% {
+    transform: scale(1.05) translateY(-2px) rotateX(2deg) rotateY(-1deg);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.25);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotateX(0deg) rotateY(0deg);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  }
 }
 
 .controls-action-row {

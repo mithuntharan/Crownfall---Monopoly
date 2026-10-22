@@ -28,6 +28,8 @@ export interface MultiplayerPlayer {
   isLeft?: boolean
 }
 
+export type MultiplayerPlayerSnapshot = MultiplayerPlayer
+
 export interface PendingJoinRequest {
   requestId: string
   name: string

@@ -1148,15 +1148,21 @@ export class LocalGameEngine implements IGameEngine {
     if (!player.ownedProperties.includes(propertyId)) {
       return { success: false, state: await this.getState(), error: "Player does not own property" }
     }
-    const currentBuildings = player.buildings[propertyId] || 0
-    if (currentBuildings > 0) {
-      return { success: false, state: await this.getState(), error: "Must sell all buildings first" }
-    }
-
     const city = CITY_PROPERTIES[propertyId]
     const sp = SPECIAL_PROPERTIES[propertyId]
     const basePrice = city?.purchasePrice || sp?.purchasePrice || 0
     const propName = city?.name || sp?.name || propertyId
+    if (basePrice <= 0) {
+      return { success: false, state: await this.getState(), error: "Invalid property" }
+    }
+
+    const currentBuildings = player.buildings[propertyId] || 0
+    let buildingRefund = 0
+    if (currentBuildings > 0 && city) {
+      const rawRefund = Math.floor((city.buildingCost * currentBuildings * 50) / 100)
+      buildingRefund = Math.ceil(rawRefund / 100) * 100
+      player.destructionCount = (player.destructionCount || 0) + currentBuildings
+    }
 
     const purchaseTx = this.transactionLedger.find(
       (tx) => tx.propertyId === propertyId && tx.type === "PURCHASE",
@@ -1164,14 +1170,19 @@ export class LocalGameEngine implements IGameEngine {
     const boughtRound = purchaseTx ? purchaseTx.turnNumber : 1
     const roundsElapsed = Math.max(0, this.roundNumber - boughtRound)
     const depreciationPercent = Math.min(90, roundsElapsed * 5)
-    const depreciatedValue = Math.max(
+    let depreciatedValue = Math.max(
       Math.round(basePrice * 0.1),
       Math.round(basePrice * (1 - depreciationPercent / 100)),
     )
+    depreciatedValue = Math.floor(depreciatedValue / 100) * 100
+
     const isMortgaged = !!player.mortgages[propertyId]
     const mortgageValue = city?.mortgageValue || sp?.mortgageValue || Math.round(basePrice * 0.5)
-    const mortgageDeduction = isMortgaged ? mortgageValue : 0
-    const netSellProceeds = Math.max(0, depreciatedValue - mortgageDeduction)
+    let mortgageDeduction = isMortgaged ? mortgageValue : 0
+    mortgageDeduction = Math.floor(mortgageDeduction / 100) * 100
+
+    const totalProceedsBeforeMortgage = depreciatedValue + buildingRefund
+    const netSellProceeds = Math.max(0, totalProceedsBeforeMortgage - mortgageDeduction)
 
     player.ownedProperties = player.ownedProperties.filter((id) => id !== propertyId)
     delete player.mortgages[propertyId]
@@ -1179,8 +1190,8 @@ export class LocalGameEngine implements IGameEngine {
     player.money += netSellProceeds
 
     const desc = isMortgaged
-      ? `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (depreciated ₹${depreciatedValue.toLocaleString()} minus mortgage payoff ₹${mortgageDeduction.toLocaleString()}).`
-      : `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (${depreciationPercent}% depreciation over ${roundsElapsed} round(s)).`
+      ? `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (depreciated ₹${depreciatedValue.toLocaleString()}${buildingRefund > 0 ? ` + building refund ₹${buildingRefund.toLocaleString()}` : ""} minus mortgage payoff ₹${mortgageDeduction.toLocaleString()}).`
+      : `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (${depreciationPercent}% depreciation over ${roundsElapsed} round(s)${buildingRefund > 0 ? `, building refund ₹${buildingRefund.toLocaleString()}` : ""}).`
 
     this.recordTransaction(
       "PROPERTY_SALE",

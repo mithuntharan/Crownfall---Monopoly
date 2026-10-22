@@ -835,6 +835,9 @@ class Room {
         if (targetId !== playerId) {
           throw new Error('You are not authorized to resign on behalf of another player.');
         }
+        if (player.isBankrupt) {
+          throw new Error('Player has already resigned or been eliminated.');
+        }
       }
 
       this.actionSequence++;
@@ -915,13 +918,14 @@ class Room {
     const formatPropName = (propId) => {
       if (!propId) return 'Property';
       const map = {
-        bombay: 'Bombay', delhi: 'Delhi', calcutta: 'Calcutta', madras: 'Madras',
-        bangalore: 'Bangalore', hyderabad: 'Hyderabad', ahmedabad: 'Ahmedabad', pune: 'Pune',
-        jaipur: 'Jaipur', surat: 'Surat', lucknow: 'Lucknow', kanpur: 'Kanpur',
-        nagpur: 'Nagpur', indore: 'Indore', bhopal: 'Bhopal', patna: 'Patna',
-        vadodara: 'Vadodara', ludhiana: 'Ludhiana', agra: 'Agra', margoa: 'Margoa',
-        railway: 'Railway', electric_company: 'Electric Company', water_works: 'Water Works',
-        motor_railway: 'Motor Transport', airways: 'Airways', shipping: 'Shipping Co.',
+        bombay: 'Bombay', delhi: 'Delhi', kolkatta: 'Kolkatta', madras: 'Madras',
+        bangalore: 'Bangalore', hyderabad: 'Hyderabad', ahmedabad: 'Ahmedabad',
+        jaipur: 'Jaipur', indore: 'Indore', patna: 'Patna', agra: 'Agra', margoa: 'Margoa',
+        cochin: 'Cochin', ootacamund: 'Ootacamund', chandigadh: 'Chandigadh', simla: 'Simla',
+        amritsar: 'Amritsar', srinagar: 'Srinagar', darjeeling: 'Darjeeling', kanpur: 'Kanpur',
+        railway: 'Railway', electrical_company: 'Electrical Company', electric_company: 'Electrical Company',
+        water_works: 'Water Works', roadways: 'Roadways', motor_boat: 'Motor Boat',
+        air_india: 'Air India',
       };
       return map[propId.toLowerCase()] || (propId.charAt(0).toUpperCase() + propId.slice(1));
     };
@@ -2508,6 +2512,7 @@ const server = http.createServer((req, res) => {
           actionResult: result.actionResult,
           snapshot: result.snapshot,
           sequence: result.sequence,
+          sellPrice: result.sellPrice,
         });
         return sendJson(res, 200, { ok: true, ...result });
       } catch (err) {

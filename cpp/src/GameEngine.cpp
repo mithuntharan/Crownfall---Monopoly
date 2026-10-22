@@ -938,9 +938,6 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
     }
     if (!ownsProperty) return false;
 
-    // Must sell buildings first
-    if (player.buildings[propertyId] > 0) return false;
-
     int basePrice = 0;
     int mortgageVal = 0;
     std::string propName = propertyId;
@@ -959,6 +956,19 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
     }
     if (basePrice <= 0) return false;
 
+    // Calculate building refund separately if any buildings exist
+    int buildingRefund = 0;
+    int currentBuildings = 0;
+    auto bIt = player.buildings.find(propertyId);
+    if (bIt != player.buildings.end()) {
+        currentBuildings = bIt->second;
+    }
+    if (currentBuildings > 0 && city) {
+        int rawRefund = (city->buildingCost * currentBuildings * m_rules.buildingRefundPercentage) / 100;
+        buildingRefund = ((rawRefund + 99) / 100) * 100;
+        player.destructionCount += currentBuildings;
+    }
+
     int boughtRound = 1;
     for (const auto& tx : m_transactionLedger) {
         if (tx.propertyId == propertyId && tx.type == "PURCHASE") {
@@ -973,12 +983,17 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
         static_cast<int>(std::round(basePrice * 0.1)),
         static_cast<int>(std::round(basePrice * (1.0 - depreciationPercent / 100.0)))
     );
+    // Currency multiple of 100 rounding
+    depreciatedValue = (depreciatedValue / 100) * 100;
 
-    bool isMortgaged = player.mortgages[propertyId];
+    bool isMortgaged = (player.mortgages.find(propertyId) != player.mortgages.end() && player.mortgages[propertyId]);
     int mortgageDeduction = isMortgaged ? (mortgageVal > 0 ? mortgageVal : static_cast<int>(std::round(basePrice * 0.5))) : 0;
-    int netCashProceeds = std::max(0, depreciatedValue - mortgageDeduction);
+    mortgageDeduction = (mortgageDeduction / 100) * 100;
 
-    // Remove from owned
+    int totalProceedsBeforeMortgage = depreciatedValue + buildingRefund;
+    int netCashProceeds = std::max(0, totalProceedsBeforeMortgage - mortgageDeduction);
+
+    // Atomically update state
     player.ownedProperties.erase(
         std::remove(player.ownedProperties.begin(), player.ownedProperties.end(), propertyId),
         player.ownedProperties.end()
@@ -990,9 +1005,9 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
 
     std::string desc = player.name + " sold " + propName + " back to the bank for ₹" + std::to_string(netCashProceeds);
     if (isMortgaged) {
-        desc += " (depreciated ₹" + std::to_string(depreciatedValue) + " minus mortgage payoff ₹" + std::to_string(mortgageDeduction) + ").";
+        desc += " (depreciated ₹" + std::to_string(depreciatedValue) + (buildingRefund > 0 ? (" + building refund ₹" + std::to_string(buildingRefund)) : "") + " minus mortgage payoff ₹" + std::to_string(mortgageDeduction) + ").";
     } else {
-        desc += " (" + std::to_string(depreciationPercent) + "% depreciation over " + std::to_string(roundsElapsed) + " round(s)).";
+        desc += " (" + std::to_string(depreciationPercent) + "% depreciation over " + std::to_string(roundsElapsed) + " round(s)" + (buildingRefund > 0 ? (", building refund ₹" + std::to_string(buildingRefund)) : "") + ").";
     }
 
     addLogEntry(playerId, "sell_property", desc, netCashProceeds);
