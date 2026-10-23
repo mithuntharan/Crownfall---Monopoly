@@ -181,8 +181,9 @@ export class MultiplayerEngineAdapter implements IGameEngine {
 
   async endSession(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
     try {
-      await multiplayerClient.resign()
-      return { success: true, state: this.getFallbackState() }
+      const res = await multiplayerClient.resign()
+      const state = res?.snapshot?.gameState || multiplayerClient.getLatestSnapshot()?.gameState || this.getFallbackState()
+      return { success: true, state }
     } catch (e: any) {
       return { success: false, state: this.getFallbackState(), error: e?.message }
     }
@@ -190,8 +191,9 @@ export class MultiplayerEngineAdapter implements IGameEngine {
 
   async resignPlayer(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
     try {
-      await multiplayerClient.resign()
-      return { success: true, state: this.getFallbackState() }
+      const res = await multiplayerClient.resign()
+      const state = res?.snapshot?.gameState || multiplayerClient.getLatestSnapshot()?.gameState || this.getFallbackState()
+      return { success: true, state }
     } catch (e: any) {
       return { success: false, state: this.getFallbackState(), error: e?.message }
     }

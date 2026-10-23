@@ -816,7 +816,8 @@ export class MultiplayerClient {
             msg.type === "RULES_UPDATED" ||
             msg.type === "PLAYER_UPDATED" ||
             msg.type === "PLAYER_JOINED" ||
-            msg.type === "REMATCH_STARTED"
+            msg.type === "REMATCH_STARTED" ||
+            msg.type === "PLAYER_LEFT"
           ) {
             if (msg.snapshot) {
               this.latestSnapshot = msg.snapshot

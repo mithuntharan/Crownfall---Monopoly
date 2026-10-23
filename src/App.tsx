@@ -3358,30 +3358,34 @@ function GameModal({
             Surrender & Resign from the Match?
           </p>
           <p style={{ color: "var(--ink-soft)", fontSize: "12px", marginBottom: "20px", lineHeight: 1.5 }}>
-            Resigning as <strong>{resignPlayerObj?.name}</strong> will liquidate your properties to the Bank, surrender your position, and immediately exit the match session back to the Main Menu.
+            Resigning as <strong>{resignPlayerObj?.name}</strong> will liquidate your properties to the Bank, surrender your position, and settle all debts. The match will continue for the remaining players.
           </p>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
             <Button variant="ghost" onClick={close}>Cancel</Button>
             <Button
               variant="danger"
               onClick={async () => {
-                try {
-                  const res = await defaultEngine.resignPlayer?.(localPlayerId)
-                  if (res && res.success && setPlayers) {
-                    setPlayers(res.state.players)
-                  }
-                  try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
-                } catch (_) {}
-                onShowToast?.("You have resigned and left the match.")
                 close()
                 if (onResign) {
                   onResign()
-                } else if (onQuitGame) {
-                  onQuitGame()
+                } else {
+                  try {
+                    const res = await defaultEngine.resignPlayer?.(localPlayerId)
+                    if (res && res.success && res.state) {
+                      if (setPlayers && res.state.players) {
+                        setPlayers(res.state.players)
+                      }
+                      if (res.state.turnState === "GAME_OVER") {
+                        _navigate?.("gameover")
+                      }
+                    }
+                    try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+                  } catch (_) {}
+                  onShowToast?.("You have surrendered and resigned from the match.")
                 }
               }}
             >
-              Confirm Resignation & Quit
+              Confirm Resignation
             </Button>
           </div>
         </div>
@@ -4589,6 +4593,37 @@ function GameScreen({
   onRejectJoinRequest?: (requestId: string) => void
 }) {
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
+  const [isResigning, setIsResigning] = useState(false)
+
+  const handleResign = async () => {
+    if (isResigning) return
+    setIsResigning(true)
+    try {
+      const res = await defaultEngine.resignPlayer?.(localPlayerId)
+      if (res && res.success && res.state) {
+        if (applyGameStateSnapshot) {
+          applyGameStateSnapshot(res.state)
+        }
+        if (res.state.players && setPlayers) {
+          setPlayers(res.state.players)
+        }
+        if (res.state.turnState === "GAME_OVER") {
+          setTurnState("GAME_OVER")
+          navigate("gameover")
+        }
+      }
+      try {
+        new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" })
+      } catch (_) {}
+      showToast("You have surrendered and resigned from the match.")
+      setModal(null)
+    } catch (err: any) {
+      showToast(`⚠️ Resignation failed: ${err?.message || "Communication error"}`)
+    } finally {
+      setIsResigning(false)
+    }
+  }
+
   const handleConfirmQuit = async () => {
     if (isLeavingRoom) return
     setIsLeavingRoom(true)
@@ -6740,9 +6775,29 @@ function GameScreen({
                 </div>
               </div>
               <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>
-                You cannot finish your turn or advance while your balance is negative. Resign from the match to settle your obligations and conclude your session.
+                You cannot finish your turn or advance while your balance is negative. Settle your debt through incoming money transfers or property trading, or resign to surrender your position.
               </div>
               <div style={{ display: "flex", gap: "8px", marginTop: "2px" }}>
+                <button
+                  type="button"
+                  className="btn-trade-settle"
+                  onClick={() => setModal("trade")}
+                  style={{
+                    flex: 1,
+                    minHeight: "38px",
+                    padding: "8px 12px",
+                    background: "rgba(200, 155, 69, 0.25)",
+                    border: "1px solid var(--gold)",
+                    borderRadius: "6px",
+                    color: "var(--gold-300)",
+                    fontFamily: '"Oswald", sans-serif',
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  🤝 TRADE / REQUEST ASSISTANCE
+                </button>
                 <button
                   type="button"
                   className="btn-resign-settle"
@@ -7123,7 +7178,7 @@ function GameScreen({
             setTurnState("GAME_OVER")
             navigate("gameover")
           }}
-          onResign={handleConfirmQuit}
+          onResign={handleResign}
           onAddGameplayEvent={addGameplayEvent}
           unmortgageInterestRatePercent={engineRules?.unmortgageInterestRatePercent ?? 10.0}
           rules={rules}

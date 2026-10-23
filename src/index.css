@@ -1569,138 +1569,129 @@ button:focus-visible, input:focus-visible {
   font-family: "Oswald", sans-serif;
   text-transform: uppercase;
   user-select: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  transition: all 0.15s ease-in-out;
 }
 
-.crownfall-mortgage-indicator svg {
+.crownfall-mortgage-indicator svg,
+.crownfall-mortgage-indicator .mortgage-symbol-icon {
   flex-shrink: 0;
+  width: 11px;
+  height: 11px;
+  color: #881337;
 }
 
-/* Tile Variant — Compact, edge-aware, non-overlapping badge */
-.crownfall-mortgage-indicator--tile {
-  position: absolute;
-  z-index: 14;
-  padding: 1.5px 4.5px;
-  background: rgba(136, 19, 55, 0.94);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(244, 63, 94, 0.85);
-  border-radius: 3.5px;
-  color: #fff1f2;
-  font-size: 7px;
+/* Badge Variant — Compact pill for property card status area and detail sheets */
+.crownfall-mortgage-indicator.badge-variant,
+.crownfall-mortgage-indicator--badge {
+  padding: 3px 7px;
+  background: #faf6ee;
+  border: 1px solid rgba(136, 19, 55, 0.45);
+  border-radius: 4.5px;
+  color: #881337;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  line-height: 1;
-  pointer-events: none;
-  box-shadow: 0 1.5px 5px rgba(0, 0, 0, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 3px rgba(60, 40, 40, 0.08);
   white-space: nowrap;
 }
 
-.crownfall-mortgage-indicator--tile.side-bottom {
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.crownfall-mortgage-indicator--tile.side-top {
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.crownfall-mortgage-indicator--tile.side-left {
-  right: 3px;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-}
-
-.crownfall-mortgage-indicator--tile.side-right {
-  left: 3px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-}
-
-/* Badge Variant — For property card headers and detail modals */
-.crownfall-mortgage-indicator--badge {
-  padding: 3.5px 8px;
-  background: rgba(136, 19, 55, 0.92);
-  border: 1px solid rgba(244, 63, 94, 0.7);
-  border-radius: 5px;
-  color: #ffe4e6;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  box-shadow: 0 2px 6px rgba(136, 19, 55, 0.3);
-}
-
-/* Row & Banner Variants */
-.crownfall-mortgage-indicator--row {
-  padding: 4px 10px;
-  background: rgba(136, 19, 55, 0.85);
-  border: 1px solid rgba(244, 63, 94, 0.6);
-  border-radius: 6px;
-  color: #ffe4e6;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  width: 100%;
-  justify-content: center;
-}
-
-.crownfall-mortgage-indicator--banner {
-  padding: 6px 14px;
-  background: linear-gradient(135deg, rgba(136, 19, 55, 0.95), rgba(76, 5, 25, 0.95));
-  border: 1px solid rgba(244, 63, 94, 0.8);
-  border-radius: 8px;
-  color: #fff1f2;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  box-shadow: 0 4px 12px rgba(136, 19, 55, 0.35);
-}
-
-/* Backward compatibility for any remaining legacy tile-mortgage-indicator classes */
+/* Tile Variant — Ultra-compact, non-overlapping badge on board tiles */
+.crownfall-mortgage-indicator.tile-variant,
+.crownfall-mortgage-indicator--tile,
 .tile-mortgage-indicator {
   position: absolute;
   z-index: 14;
-  padding: 1.5px 4.5px;
-  background: rgba(136, 19, 55, 0.94);
-  border: 1px solid rgba(244, 63, 94, 0.85);
-  border-radius: 3.5px;
-  color: #fff1f2;
+  padding: 1.5px 4px;
+  background: #faf6ee;
+  border: 1px solid rgba(136, 19, 55, 0.55);
+  border-radius: 3px;
+  color: #881337;
   font-family: "Oswald", sans-serif;
   font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1;
-  text-transform: uppercase;
   pointer-events: none;
-  box-shadow: 0 1.5px 5px rgba(0, 0, 0, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
   white-space: nowrap;
 }
 
+.crownfall-mortgage-indicator.tile-variant svg,
+.crownfall-mortgage-indicator--tile svg,
+.tile-mortgage-indicator svg {
+  width: 9px;
+  height: 9px;
+}
+
+.crownfall-mortgage-indicator.tile-variant.side-bottom,
+.crownfall-mortgage-indicator--tile.side-bottom,
 .tile-mortgage-indicator.side-bottom {
   top: 3px;
   left: 50%;
   transform: translateX(-50%);
 }
 
+.crownfall-mortgage-indicator.tile-variant.side-top,
+.crownfall-mortgage-indicator--tile.side-top,
 .tile-mortgage-indicator.side-top {
   bottom: 3px;
   left: 50%;
   transform: translateX(-50%);
 }
 
+.crownfall-mortgage-indicator.tile-variant.side-left,
+.crownfall-mortgage-indicator--tile.side-left,
 .tile-mortgage-indicator.side-left {
   right: 3px;
   top: 50%;
   transform: translateY(-50%) rotate(90deg);
 }
 
+.crownfall-mortgage-indicator.tile-variant.side-right,
+.crownfall-mortgage-indicator--tile.side-right,
 .tile-mortgage-indicator.side-right {
   left: 3px;
   top: 50%;
   transform: translateY(-50%) rotate(-90deg);
+}
+
+/* Row Variant — For modal rows and property lists */
+.crownfall-mortgage-indicator.row-variant,
+.crownfall-mortgage-indicator--row {
+  padding: 3px 8px;
+  background: #faf6ee;
+  border: 1px solid rgba(136, 19, 55, 0.4);
+  border-radius: 4px;
+  color: #881337;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.crownfall-mortgage-indicator.row-variant.is-active,
+.crownfall-mortgage-indicator--row.is-active {
+  background: #f4fbf7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #047857;
+}
+
+.crownfall-mortgage-indicator.row-variant.is-active svg {
+  color: #047857;
+}
+
+/* Banner Variant — For property detail card headers */
+.crownfall-mortgage-indicator.banner-variant,
+.crownfall-mortgage-indicator--banner {
+  padding: 6px 12px;
+  background: #faf6ee;
+  border: 1px solid rgba(136, 19, 55, 0.45);
+  border-radius: 6px;
+  color: #881337;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 0 1px 4px rgba(60, 40, 40, 0.08);
 }
 
 /* ─── PROPERTY LANDMARK TRAVEL-POSTER ARTWORK STYLING ───────────────────── */
@@ -2534,55 +2525,58 @@ button:focus-visible, input:focus-visible {
   margin-top: 24px;
 }
 
-/* ─── BOARD CENTER RECENT EVENTS OVERLAY (WARM PARCHMENT) ───────────────── */
+/* ─── BOARD CENTER RECENT EVENTS OVERLAY (TRANSLUCENT WARM PARCHMENT) ───────────────── */
 .board-center-recent-events {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
-  max-width: 380px;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  max-width: min(340px, 90%);
   margin: 0 auto;
-  background: rgba(254, 252, 247, 0.95);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1.5px solid rgba(180, 130, 40, 0.45);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: rgba(254, 252, 247, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(180, 130, 40, 0.22);
+  border-radius: var(--radius-sm, 6px);
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   z-index: 10;
+  pointer-events: auto;
 }
 .board-center-recent-events-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(180, 130, 40, 0.22);
+  margin-bottom: 3px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(180, 130, 40, 0.16);
 }
 .board-center-recent-events-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font: 800 9.5px "Oswald", sans-serif;
-  letter-spacing: 0.12em;
+  gap: 5px;
+  font: 600 8.5px "Oswald", sans-serif;
+  letter-spacing: 0.1em;
   color: #78350f;
+  line-height: 1;
 }
 .board-center-recent-events-dot {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #b45309;
-  box-shadow: 0 0 6px rgba(180, 83, 9, 0.5);
+  box-shadow: 0 0 4px rgba(180, 83, 9, 0.4);
 }
 .board-center-recent-events-log-link {
-  font: 700 9px "Oswald", sans-serif;
-  letter-spacing: 0.08em;
+  font: 600 8px "Oswald", sans-serif;
+  letter-spacing: 0.06em;
   color: #92400e;
   cursor: pointer;
-  background: rgba(180, 130, 40, 0.12);
-  border: 1px solid rgba(180, 130, 40, 0.3);
-  border-radius: 4px;
-  padding: 1.5px 6px;
+  background: rgba(180, 130, 40, 0.1);
+  border: 1px solid rgba(180, 130, 40, 0.2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  line-height: 1.1;
   transition: all 0.15s ease;
 }
 .board-center-recent-events-log-link:hover {
@@ -2596,29 +2590,33 @@ button:focus-visible, input:focus-visible {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  max-height: 90px;
-  overflow-y: hidden;
+  gap: 1.5px;
+  max-height: 80px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .board-center-recent-event-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  color: #334155;
-  padding: 2px 0;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.22);
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 450;
+  line-height: 1.25;
+  color: #1e293b;
+  padding: 1px 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.18);
 }
 .board-center-recent-event-item:last-child {
   border-bottom: none;
 }
 .board-center-recent-event-item.is-newest {
   color: #0f172a;
-  font-weight: 700;
+  font-weight: 600;
 }
 .board-center-recent-event-icon {
-  font-size: 11px;
+  font-size: 9.5px;
   flex-shrink: 0;
+  line-height: 1;
 }
 .board-center-recent-event-desc {
   white-space: nowrap;
@@ -2627,12 +2625,34 @@ button:focus-visible, input:focus-visible {
   flex: 1;
 }
 .board-center-recent-event-time {
-  font-size: 9px;
-  color: #64748b;
+  font-size: 8px;
+  color: #475569;
   font-family: "DM Sans", monospace;
-  font-weight: 600;
+  font-weight: 500;
   flex-shrink: 0;
 }
+
+@media (max-width: 640px) {
+  .board-center-recent-events {
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    max-width: 94%;
+    padding: 3px 6px;
+  }
+  .board-center-recent-events-list {
+    max-height: 66px;
+    gap: 1px;
+  }
+  .board-center-recent-event-item {
+    font-size: 8px;
+    gap: 4px;
+  }
+  .board-center-recent-event-time {
+    font-size: 7.5px;
+  }
+}
+
 
 /* ─── HUMAN TURN TIMER BADGE ────────────────────────────────────────────── */
 .human-turn-timer-badge {

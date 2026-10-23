@@ -535,33 +535,37 @@ export function PreferencesModal({
                     ₹{(localRules.defaultStartingMoney ?? 25000).toLocaleString()}
                   </strong>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                  {[20000, 25000, 30000].map((amount) => (
-                    <button
-                      key={amount}
-                      disabled={isGameStarted || !isHost}
-                      onClick={() => updateHostRule("defaultStartingMoney", amount)}
-                      style={{
-                        padding: "8px",
-                        borderRadius: "6px",
-                        border:
-                          localRules.defaultStartingMoney === amount
-                            ? "1px solid var(--gold)"
-                            : "1px solid var(--border-subtle)",
-                        background:
-                          localRules.defaultStartingMoney === amount
-                            ? "rgba(200,155,69,0.25)"
-                            : "rgba(0,0,0,0.2)",
-                        color: localRules.defaultStartingMoney === amount ? "var(--gold-300)" : "var(--text-muted)",
-                        fontWeight: 700,
-                        fontSize: "12px",
-                        cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
-                        opacity: isGameStarted || !isHost ? 0.5 : 1,
-                      }}
-                    >
-                      ₹{amount.toLocaleString()}
-                    </button>
-                  ))}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(78px, 1fr))", gap: "6px" }}>
+                  {[25000, 30000, 35000, 40000, 45000, 50000, 55000].map((amount) => {
+                    const isSelected = (localRules.defaultStartingMoney ?? 25000) === amount
+                    return (
+                      <button
+                        key={amount}
+                        disabled={isGameStarted || !isHost}
+                        onClick={() => updateHostRule("defaultStartingMoney", amount)}
+                        style={{
+                          padding: "7px 4px",
+                          borderRadius: "6px",
+                          border: isSelected
+                            ? "1.5px solid var(--gold, #c89b45)"
+                            : "1px solid var(--border-subtle, rgba(200, 155, 69, 0.25))",
+                          background: isSelected
+                            ? "linear-gradient(135deg, rgba(200, 155, 69, 0.28) 0%, rgba(200, 155, 69, 0.16) 100%)"
+                            : "rgba(250, 246, 238, 0.6)",
+                          color: isSelected ? "var(--gold-300, #92400e)" : "var(--text-muted, #57534e)",
+                          fontWeight: 700,
+                          fontFamily: '"Oswald", sans-serif',
+                          fontSize: "11.5px",
+                          cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
+                          opacity: isGameStarted || !isHost ? 0.5 : 1,
+                          transition: "all 0.15s ease",
+                          boxShadow: isSelected ? "0 1px 4px rgba(200, 155, 69, 0.18)" : "none",
+                        }}
+                      >
+                        ₹{amount.toLocaleString()}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 

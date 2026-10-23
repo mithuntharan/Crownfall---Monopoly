@@ -102,7 +102,7 @@ export interface GameRules {
   minPlayers?: number
   maxPlayers?: number
   playerCount?: number
-  defaultStartingMoney?: number // 20000, 25000, 30000
+  defaultStartingMoney?: number // 25000, 30000, 35000, 40000, 45000, 50000, 55000
   startingMoneyOptions?: number[]
   doublesRuleEnabled?: boolean
   passStartBonus?: number // 1500

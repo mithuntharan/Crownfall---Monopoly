@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import type { EnginePlayer, TradeOffer } from "../engine/GameEngineInterface"
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES } from "../theme/colors"
+import MortgageStatusIndicator from "./MortgageStatusIndicator"
 
 interface TradeModalProps {
   players: EnginePlayer[]
@@ -46,7 +47,22 @@ export function TradeModal({
   const [requestedProps, setRequestedProps] = useState<string[]>([])
   const [requestedCash, setRequestedCash] = useState<number>(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [acceptingTradeId, setAcceptingTradeId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const handleAcceptOffer = async (tradeId: string) => {
+    if (acceptingTradeId) return
+    setAcceptingTradeId(tradeId)
+    setErrorMsg(null)
+    try {
+      const success = await onAcceptOffer(tradeId)
+      if (!success) {
+        setErrorMsg("Failed to complete trade acceptance.")
+      }
+    } finally {
+      setAcceptingTradeId(null)
+    }
+  }
 
   // Properties eligible for trade (must have 0 houses/hotels)
   const eligibleLocalProps = useMemo(() => {
@@ -112,11 +128,11 @@ export function TradeModal({
       setErrorMsg("Trade cannot be completely empty.")
       return
     }
-    if (offeredCash > localPlayer.money) {
+    if (offeredCash > 0 && offeredCash > localPlayer.money) {
       setErrorMsg("You cannot offer more cash than you have.")
       return
     }
-    if (partner && requestedCash > partner.money) {
+    if (partner && requestedCash > 0 && requestedCash > partner.money) {
       setErrorMsg(`${partner.name} does not have ₹${requestedCash.toLocaleString()}.`)
       return
     }
@@ -261,7 +277,9 @@ export function TradeModal({
                       >
                         <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: p.color }} />
                         <strong>{p.name}</strong>
-                        <span style={{ color: "var(--gold-300)", fontSize: "11px" }}>₹{p.money.toLocaleString()}</span>
+                        <span style={{ color: p.money < 0 ? "#fca5a5" : "var(--gold-300)", fontSize: "11px" }}>
+                          ₹{p.money.toLocaleString()}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -274,7 +292,9 @@ export function TradeModal({
                   <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                     <div style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px", marginBottom: "10px" }}>
                       <strong style={{ color: "var(--gold-300)", fontSize: "13px" }}>YOU GIVE ({localPlayer.name})</strong>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Cash: ₹{localPlayer.money.toLocaleString()}</div>
+                      <div style={{ fontSize: "11px", color: localPlayer.money < 0 ? "#fca5a5" : "var(--text-muted)" }}>
+                        Cash: {localPlayer.money < 0 ? `-₹${Math.abs(localPlayer.money).toLocaleString()} (In Debt)` : `₹${localPlayer.money.toLocaleString()}`}
+                      </div>
                     </div>
 
                     <div style={{ marginBottom: "10px" }}>
@@ -282,21 +302,31 @@ export function TradeModal({
                       <input
                         type="number"
                         min="0"
-                        max={localPlayer.money}
+                        max={Math.max(0, localPlayer.money)}
                         step="100"
                         value={offeredCash}
-                        onChange={(e) => setOfferedCash(Math.max(0, Math.min(localPlayer.money, Number(e.target.value) || 0)))}
+                        disabled={localPlayer.money <= 0}
+                        onChange={(e) => {
+                          const maxCash = Math.max(0, localPlayer.money)
+                          const rawVal = Number(e.target.value) || 0
+                          setOfferedCash(Math.max(0, Math.min(maxCash, rawVal)))
+                        }}
                         style={{
                           width: "100%",
-                          background: "#ffffff",
+                          background: localPlayer.money <= 0 ? "rgba(255,255,255,0.05)" : "#ffffff",
                           border: "1px solid rgba(148, 163, 184, 0.4)",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: "#0f172a",
+                          color: localPlayer.money <= 0 ? "var(--text-muted)" : "#0f172a",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
                       />
+                      {localPlayer.money < 0 && (
+                        <div style={{ fontSize: "10px", color: "#fca5a5", marginTop: "4px" }}>
+                          Account balance is negative (₹{localPlayer.money.toLocaleString()}). Cash offers disabled; you may offer properties or request cash.
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -329,9 +359,7 @@ export function TradeModal({
                                   {getPropName(propId)}
                                 </span>
                                 {localPlayer.mortgages[propId] && (
-                                  <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
-                                    MORTGAGED
-                                  </span>
+                                  <MortgageStatusIndicator isMortgaged={true} variant="badge" />
                                 )}
                               </button>
                             )
@@ -345,7 +373,9 @@ export function TradeModal({
                   <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                     <div style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px", marginBottom: "10px" }}>
                       <strong style={{ color: "var(--gold-300)", fontSize: "13px" }}>YOU RECEIVE ({partner.name})</strong>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Cash: ₹{partner.money.toLocaleString()}</div>
+                      <div style={{ fontSize: "11px", color: partner.money < 0 ? "#fca5a5" : "var(--text-muted)" }}>
+                        Cash: {partner.money < 0 ? `-₹${Math.abs(partner.money).toLocaleString()} (In Debt)` : `₹${partner.money.toLocaleString()}`}
+                      </div>
                     </div>
 
                     <div style={{ marginBottom: "10px" }}>
@@ -353,21 +383,31 @@ export function TradeModal({
                       <input
                         type="number"
                         min="0"
-                        max={partner.money}
+                        max={Math.max(0, partner.money)}
                         step="100"
                         value={requestedCash}
-                        onChange={(e) => setRequestedCash(Math.max(0, Math.min(partner.money, Number(e.target.value) || 0)))}
+                        disabled={partner.money <= 0}
+                        onChange={(e) => {
+                          const maxCash = Math.max(0, partner.money)
+                          const rawVal = Number(e.target.value) || 0
+                          setRequestedCash(Math.max(0, Math.min(maxCash, rawVal)))
+                        }}
                         style={{
                           width: "100%",
-                          background: "#ffffff",
+                          background: partner.money <= 0 ? "rgba(255,255,255,0.05)" : "#ffffff",
                           border: "1px solid rgba(148, 163, 184, 0.4)",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: "#0f172a",
+                          color: partner.money <= 0 ? "var(--text-muted)" : "#0f172a",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
                       />
+                      {partner.money < 0 && (
+                        <div style={{ fontSize: "10px", color: "#fca5a5", marginTop: "4px" }}>
+                          {partner.name} has a negative balance (₹{partner.money.toLocaleString()}) and cannot provide cash. You may send money to assist them.
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -400,9 +440,7 @@ export function TradeModal({
                                   {getPropName(propId)}
                                 </span>
                                 {partner.mortgages[propId] && (
-                                  <span style={{ fontSize: "9px", color: "var(--crimson)", background: "rgba(200,50,50,0.2)", padding: "1px 4px", borderRadius: "3px" }}>
-                                    MORTGAGED
-                                  </span>
+                                  <MortgageStatusIndicator isMortgaged={true} variant="badge" />
                                 )}
                               </button>
                             )
@@ -500,9 +538,7 @@ export function TradeModal({
                                       <div key={p} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                         <span>{getPropName(p)}</span>
                                         {isMortgaged && (
-                                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", color: "#fca5a5", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", padding: "1px 5px", borderRadius: "3px" }}>
-                                            MORTGAGED
-                                          </span>
+                                          <MortgageStatusIndicator isMortgaged={true} variant="badge" />
                                         )}
                                       </div>
                                     )
@@ -525,9 +561,7 @@ export function TradeModal({
                                       <div key={p} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                         <span>{getPropName(p)}</span>
                                         {isMortgaged && (
-                                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", color: "#fca5a5", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", padding: "1px 5px", borderRadius: "3px" }}>
-                                            MORTGAGED
-                                          </span>
+                                          <MortgageStatusIndicator isMortgaged={true} variant="badge" />
                                         )}
                                       </div>
                                     )
@@ -555,27 +589,27 @@ export function TradeModal({
                           >
                             Reject
                           </button>
-                          {offer.receiverCash > localPlayer.money && (
+                          {offer.receiverCash > 0 && offer.receiverCash > localPlayer.money && (
                             <span style={{ fontSize: "11px", color: "#fca5a5", alignSelf: "center", fontWeight: 600 }}>
                               Need ₹{(offer.receiverCash - localPlayer.money).toLocaleString()} more
                             </span>
                           )}
                           <button
-                            onClick={() => onAcceptOffer(offer.id)}
-                            disabled={offer.receiverCash > localPlayer.money}
-                            title={offer.receiverCash > localPlayer.money ? `Cannot afford: requires ₹${offer.receiverCash.toLocaleString()} but have ₹${localPlayer.money.toLocaleString()}` : "Accept trade deal"}
+                            onClick={() => handleAcceptOffer(offer.id)}
+                            disabled={acceptingTradeId === offer.id || (offer.receiverCash > 0 && offer.receiverCash > localPlayer.money)}
+                            title={offer.receiverCash > 0 && offer.receiverCash > localPlayer.money ? `Cannot afford: requires ₹${offer.receiverCash.toLocaleString()} but have ₹${localPlayer.money.toLocaleString()}` : "Accept trade deal"}
                             style={{
                               padding: "6px 18px",
                               borderRadius: "6px",
-                              border: offer.receiverCash > localPlayer.money ? "1px solid rgba(239, 68, 68, 0.6)" : "none",
-                              background: offer.receiverCash > localPlayer.money ? "rgba(239, 68, 68, 0.2)" : "linear-gradient(135deg, #10b981, #059669)",
-                              color: offer.receiverCash > localPlayer.money ? "#fca5a5" : "#fff",
-                              cursor: offer.receiverCash > localPlayer.money ? "not-allowed" : "pointer",
+                              border: offer.receiverCash > 0 && offer.receiverCash > localPlayer.money ? "1px solid rgba(239, 68, 68, 0.6)" : "none",
+                              background: offer.receiverCash > 0 && offer.receiverCash > localPlayer.money ? "rgba(239, 68, 68, 0.2)" : "linear-gradient(135deg, #10b981, #059669)",
+                              color: offer.receiverCash > 0 && offer.receiverCash > localPlayer.money ? "#fca5a5" : "#fff",
+                              cursor: acceptingTradeId === offer.id || (offer.receiverCash > 0 && offer.receiverCash > localPlayer.money) ? "not-allowed" : "pointer",
                               fontSize: "12px",
                               fontWeight: 700,
                             }}
                           >
-                            {offer.receiverCash > localPlayer.money ? "Cannot Afford" : "Accept Deal"}
+                            {acceptingTradeId === offer.id ? "Accepting..." : offer.receiverCash > 0 && offer.receiverCash > localPlayer.money ? "Cannot Afford" : "Accept Deal"}
                           </button>
                         </div>
                       </div>

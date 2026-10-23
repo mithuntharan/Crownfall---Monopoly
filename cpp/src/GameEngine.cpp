@@ -737,6 +737,11 @@ bool GameEngine::updateRules(const GameRules& newRules, int requesterId, std::st
         outError = "Player limit must be between 2 and 6.";
         return false;
     }
+    const std::vector<int> validStartingOptions = { 25000, 30000, 35000, 40000, 45000, 50000, 55000 };
+    if (std::find(validStartingOptions.begin(), validStartingOptions.end(), newRules.defaultStartingMoney) == validStartingOptions.end()) {
+        outError = "Starting money must be one of: ₹25,000, ₹30,000, ₹35,000, ₹40,000, ₹45,000, ₹50,000, ₹55,000.";
+        return false;
+    }
     m_rules = newRules;
     return true;
 }
@@ -1130,11 +1135,11 @@ std::string GameEngine::createTradeOffer(int senderId, int receiverId,
         outError = "Trade cash amounts cannot be negative.";
         return "";
     }
-    if (sender.money < senderCash) {
+    if (senderCash > 0 && sender.money < senderCash) {
         outError = "Sender has insufficient cash for this offer.";
         return "";
     }
-    if (receiver.money < receiverCash) {
+    if (receiverCash > 0 && receiver.money < receiverCash) {
         outError = "Receiver has insufficient cash for this request.";
         return "";
     }
@@ -1214,7 +1219,9 @@ void GameEngine::invalidateConflictingTrades() {
         }
         const Player& s = m_players[trade.senderId];
         const Player& r = m_players[trade.receiverId];
-        if (s.isBankrupt || r.isBankrupt || s.money < trade.senderCash || r.money < trade.receiverCash) {
+        if (s.isBankrupt || r.isBankrupt ||
+            (trade.senderCash > 0 && s.money < trade.senderCash) ||
+            (trade.receiverCash > 0 && r.money < trade.receiverCash)) {
             trade.status = "INVALIDATED";
             continue;
         }
@@ -1259,7 +1266,8 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
         outError = "Trade invalidated: one or more parties are bankrupt.";
         return false;
     }
-    if (sender.money < trade.senderCash || receiver.money < trade.receiverCash) {
+    if ((trade.senderCash > 0 && sender.money < trade.senderCash) ||
+        (trade.receiverCash > 0 && receiver.money < trade.receiverCash)) {
         trade.status = "INVALIDATED";
         outError = "Trade invalidated: insufficient funds.";
         return false;

@@ -2,6 +2,7 @@ import { useState } from "react"
 import type { EnginePlayer } from "../engine/GameEngineInterface"
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES } from "../theme/colors"
+import MortgageStatusIndicator from "./MortgageStatusIndicator"
 
 interface MortgageManagerModalProps {
   player: EnginePlayer
@@ -196,9 +197,7 @@ export function MortgageManagerModal({
                       <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
                         {prop.name}
                         {prop.isMortgaged && (
-                          <span style={{ fontSize: "8.5px", fontFamily: '"Oswald", sans-serif', fontWeight: 700, letterSpacing: "0.05em", background: "rgba(142, 35, 56, 0.4)", border: "1px solid rgba(239, 68, 68, 0.5)", color: "#fca5a5", padding: "1px 5px", borderRadius: "3px" }}>
-                            MORTGAGED
-                          </span>
+                          <MortgageStatusIndicator isMortgaged={true} variant="badge" />
                         )}
                       </div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>

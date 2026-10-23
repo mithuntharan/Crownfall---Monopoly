@@ -47,6 +47,12 @@ const TYPE_ICONS: Record<string, string> = {
   RESIGN: "🏳️",
   game_over: "🏆",
   GAME_OVER: "🏆",
+  trade: "🤝",
+  TRADE: "🤝",
+  trade_accept: "🤝",
+  TRADE_ACCEPT: "🤝",
+  trade_offer: "🤝",
+  TRADE_OFFER: "🤝",
 }
 
 function formatEventTime(timestamp: number): string {

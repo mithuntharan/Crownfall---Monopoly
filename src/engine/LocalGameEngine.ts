@@ -122,7 +122,7 @@ export class LocalGameEngine implements IGameEngine {
       maxPlayers: rules.maxPlayers ?? 6,
       playerCount: rules.playerCount ?? 4,
       defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
-      startingMoneyOptions: rules.startingMoneyOptions ?? [20000, 25000, 30000],
+      startingMoneyOptions: rules.startingMoneyOptions ?? [25000, 30000, 35000, 40000, 45000, 50000, 55000],
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
       passStartBonus: rules.passStartBonus ?? 1500,
       requireLandingToBuild: rules.requireLandingToBuild ?? false, // New rule: anywhere building
@@ -307,6 +307,16 @@ export class LocalGameEngine implements IGameEngine {
         success: false,
         state: await this.getState(),
         error: "Only the host (Player 1) can edit game settings.",
+      }
+    }
+    if (newRules.defaultStartingMoney !== undefined) {
+      const validStartingOptions = [25000, 30000, 35000, 40000, 45000, 50000, 55000]
+      if (!validStartingOptions.includes(newRules.defaultStartingMoney)) {
+        return {
+          success: false,
+          state: await this.getState(),
+          error: "Starting money must be one of: ₹25,000, ₹30,000, ₹35,000, ₹40,000, ₹45,000, ₹50,000, ₹55,000.",
+        }
       }
     }
     this.rules = {
@@ -1273,8 +1283,8 @@ export class LocalGameEngine implements IGameEngine {
       const receiverOwnsAll = offer.receiverPropertyIds.every((p) => r.ownedProperties.includes(p))
 
       // Check if players have sufficient cash
-      const senderHasCash = s.money >= offer.senderCash
-      const receiverHasCash = r.money >= offer.receiverCash
+      const senderHasCash = offer.senderCash === 0 || s.money >= offer.senderCash
+      const receiverHasCash = offer.receiverCash === 0 || r.money >= offer.receiverCash
 
       if (hasConflict || !senderOwnsAll || !receiverOwnsAll || !senderHasCash || !receiverHasCash) {
         offer.status = "INVALIDATED"
@@ -1301,8 +1311,11 @@ export class LocalGameEngine implements IGameEngine {
     if (senderCash < 0 || receiverCash < 0) {
       return { success: false, state: await this.getState(), error: "Negative cash offer" }
     }
-    if (sender.money < senderCash) {
+    if (senderCash > 0 && sender.money < senderCash) {
       return { success: false, state: await this.getState(), error: "Insufficient sender cash" }
+    }
+    if (receiverCash > 0 && receiver.money < receiverCash) {
+      return { success: false, state: await this.getState(), error: "Insufficient receiver cash" }
     }
     if (senderPropertyIds.length === 0 && senderCash === 0 && receiverPropertyIds.length === 0 && receiverCash === 0) {
       return { success: false, state: await this.getState(), error: "Empty trade offer" }
@@ -1368,7 +1381,8 @@ export class LocalGameEngine implements IGameEngine {
       offer.status = "INVALIDATED"
       return { success: false, state: await this.getState(), error: "Player unavailable or bankrupt" }
     }
-    if (sender.money < offer.senderCash || receiver.money < offer.receiverCash) {
+    if ((offer.senderCash > 0 && sender.money < offer.senderCash) ||
+        (offer.receiverCash > 0 && receiver.money < offer.receiverCash)) {
       offer.status = "INVALIDATED"
       return { success: false, state: await this.getState(), error: "Insufficient funds for trade" }
     }

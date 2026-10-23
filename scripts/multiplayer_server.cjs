@@ -224,6 +224,12 @@ class Room {
     }
     this.gameState = state;
     if (this.gameState && this.gameState.players) {
+      for (const gp of this.gameState.players) {
+        const rp = this.getPlayerById(gp.id);
+        if (rp && gp.isBankrupt !== undefined) {
+          rp.isBankrupt = Boolean(gp.isBankrupt);
+        }
+      }
       if (this.gameState.players.length > this.players.length) {
         this.gameState.players = this.gameState.players.slice(0, this.players.length);
       }
@@ -732,7 +738,12 @@ class Room {
     }
     const defaultStartingMoney = newRules.defaultStartingMoney ?? newRules.startingMoney;
     if (defaultStartingMoney !== undefined) {
-      this.rules.defaultStartingMoney = defaultStartingMoney;
+      const parsedMoney = parseInt(defaultStartingMoney, 10);
+      const validStartingOptions = [25000, 30000, 35000, 40000, 45000, 50000, 55000];
+      if (!validStartingOptions.includes(parsedMoney)) {
+        throw new Error(`Invalid starting money: ₹${defaultStartingMoney}. Supported options: ₹25,000 to ₹55,000 in increments of ₹5,000.`);
+      }
+      this.rules.defaultStartingMoney = parsedMoney;
     }
     const doublesRule = newRules.doublesRuleEnabled ?? newRules.doublesRule;
     if (doublesRule !== undefined) {
@@ -904,7 +915,8 @@ class Room {
         if (targetId !== playerId) {
           throw new Error('You are not authorized to resign on behalf of another player.');
         }
-        if (player.isBankrupt) {
+        const engP = this.gameState?.players?.find(p => p.id === playerId);
+        if (player.isBankrupt || engP?.isBankrupt) {
           throw new Error('Player has already resigned or been eliminated.');
         }
       }
@@ -1347,12 +1359,28 @@ class Room {
         sequenceNumber: seq,
         description: `${player.name}'s turn timed out. Automatically passed to ${nextPlayer.name}.`,
       });
+    } else if (action === 'tradeAccept') {
+      this.addEvent({
+        id: `ev_trade_${now}_${player.id}_${seq}`,
+        type: 'TRADE',
+        category: 'PROPERTIES',
+        timestamp: now,
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        sequenceNumber: seq,
+        description: engineRes?.eventDescription || `${player.name} completed a trade deal.`,
+      });
     }
 
     // Check for player bankruptcy
     if (engineRes?.state?.players) {
       for (const p of engineRes.state.players) {
         if (p.isBankrupt) {
+          const roomP = this.getPlayerById(p.id);
+          if (roomP) {
+            roomP.isBankrupt = true;
+          }
           const alreadyLogged = this.eventLog.some(e => e.type === 'BANKRUPTCY' && e.playerId === p.id);
           if (!alreadyLogged) {
             this.addEvent({

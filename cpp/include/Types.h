@@ -121,7 +121,7 @@ struct GameRules {
     int minPlayers = 2;
     int maxPlayers = 6;
     int defaultStartingMoney = 25000;
-    std::vector<int> startingMoneyOptions = { 20000, 25000, 30000 };
+    std::vector<int> startingMoneyOptions = { 25000, 30000, 35000, 40000, 45000, 50000, 55000 };
     bool doublesRuleEnabled = true;
     int passStartBonus = 1500;
     bool requireLandingToBuild = false; // New rule: Players can build on eligible properties from anywhere during their turn
