@@ -1,4 +1,5 @@
 import React from "react"
+import PropertyLandmarkArtwork from "./PropertyLandmarkArtwork"
 
 export interface PendingPurchaseInfo {
   propertyId: string
@@ -37,6 +38,24 @@ export const BoardCenterPurchaseControl: React.FC<BoardCenterPurchaseControlProp
       role="region"
       aria-label={`Purchase decision for ${pending.propertyName}`}
     >
+      <div
+        className="purchase-card-landmark"
+        style={{
+          maxHeight: "75px",
+          overflow: "hidden",
+          borderRadius: "6px",
+          marginBottom: "8px",
+          border: "1px solid rgba(200, 155, 69, 0.4)",
+        }}
+      >
+        <PropertyLandmarkArtwork
+          propertyId={pending.propertyId}
+          propertyName={pending.propertyName}
+          colorGroup={pending.colorGroup}
+          showLabel={false}
+          style={{ width: "100%", height: "75px" }}
+        />
+      </div>
       <div className="purchase-compact-row">
         <div className="purchase-info-group">
           <strong className="purchase-name">{pending.propertyName.toUpperCase()}</strong>

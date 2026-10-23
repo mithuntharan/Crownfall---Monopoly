@@ -44,6 +44,9 @@ import StandingsModal from "./components/StandingsModal"
 import { TradeModal } from "./components/TradeModal"
 import { QuickChatWidget } from "./components/QuickChatWidget"
 import { MortgageManagerModal } from "./components/MortgageManagerModal"
+import MortgageStatusIndicator from "./components/MortgageStatusIndicator"
+import PropertyLandmarkArtwork from "./components/PropertyLandmarkArtwork"
+import CrownfallCursor from "./components/CrownfallCursor"
 import { TimelineReplayModal } from "./components/TimelineReplayModal"
 import { FinancialInsightsModal } from "./components/FinancialInsightsModal"
 import { PreferencesModal } from "./components/PreferencesModal"
@@ -2262,15 +2265,12 @@ function Board({
                 price={price}
                 boardWidth={boardWidth}
               />
-              {isMortgaged && (
-                <span
-                  className={`tile-mortgage-indicator side-${space.side}`}
-                  title={propertyOwner ? `Mortgaged by ${propertyOwner.name}` : "Mortgaged"}
-                  aria-label="Mortgaged"
-                >
-                  MORTGAGED
-                </span>
-              )}
+              <MortgageStatusIndicator
+                isMortgaged={isMortgaged}
+                variant="tile"
+                side={space.side}
+                ownerName={propertyOwner?.name}
+              />
               {buildingCount > 0 && propertyOwner && !isMortgaged && (
                 <div
                   className={`tile-buildings-container side-${space.side} ${buildingCount >= 4 ? "has-hotel" : "has-houses"}`}
@@ -2313,6 +2313,7 @@ function Board({
                   style={{
                     backgroundColor: getPlayerColorHex(propertyOwner.color),
                     borderColor: getPlayerColorHex(propertyOwner.color),
+                    boxShadow: `0 0 6px 1.5px ${getPlayerColorHex(propertyOwner.color)}aa, inset 0 0 2px rgba(255, 255, 255, 0.45)`,
                   }}
                   title={`Owned by ${propertyOwner.name} (${propertyOwner.color})`}
                 />
@@ -2817,27 +2818,49 @@ function PropertyVisual({
   owned = false,
   isMortgaged = false,
   ownerName,
+  ownerColor,
   buildingCount = 0,
+  isGroupMonopoly = false,
+  hasSpecialPair = false,
 }: {
   property?: PropertyDefinition | SpecialPropertyDefinition | null
-
   owned?: boolean
-
   isMortgaged?: boolean
   ownerName?: string
+  ownerColor?: string
   buildingCount?: number
+  isGroupMonopoly?: boolean
+  hasSpecialPair?: boolean
 }) {
   const prop = property || CITY_PROPERTIES.margoa
 
   const isCity = "colorGroup" in prop && prop.colorGroup !== "NONE"
 
-  const city = isCity ? prop as PropertyDefinition : null
+  const city = isCity ? (prop as PropertyDefinition) : null
 
-  const special = !isCity ? prop as SpecialPropertyDefinition : null
+  const special = !isCity ? (prop as SpecialPropertyDefinition) : null
 
   const colorGroup = city ? city.colorGroup : "NONE"
 
   const theme = getColorGroupTheme(colorGroup)
+
+  // Applicable rent tier calculation:
+  // - Mortgaged: rent is suspended (no payable tier applies)
+  // - Unmortgaged:
+  //   * 0 houses: Base rent (doubled if owner holds a color group monopoly)
+  //   * 1-3 houses: Corresponding house rent tier
+  //   * 4+ buildings: Hotel rent tier
+  const applicableCityTier = isMortgaged
+    ? null
+    : buildingCount >= 4
+      ? 4
+      : buildingCount
+
+  const applicableSpecialTier = isMortgaged
+    ? null
+    : hasSpecialPair
+      ? "pair"
+      : "alone"
 
   return (
     <div
@@ -2852,47 +2875,125 @@ function PropertyVisual({
         <strong>{prop.name.toUpperCase()}</strong>
         <span>{theme.label}</span>
       </div>
+      <PropertyLandmarkArtwork
+        propertyId={prop.id}
+        propertyName={prop.name}
+        colorGroup={colorGroup}
+      />
       <div className="property-price">
-        <small>PURCHASE PRICE</small>
-        <strong>Rs{prop.purchasePrice.toLocaleString()}</strong>
-        {isMortgaged ? (
-          <span
-            className="owner-badge"
-            style={{ background: "#601424", color: "#f8e5b6" }}
-          >
-            MORTGAGED
-          </span>
-        ) : owned ? (
-          <span className="owner-badge">
-            OWNED BY YOU{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
-          </span>
-        ) : ownerName ? (
-          <span className="owner-badge" style={{ background: "rgba(113, 31, 49, 0.7)", color: "#f8e5b6" }}>
-            OWNED BY {ownerName.toUpperCase()}{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
-          </span>
-        ) : null}
+        <div className="price-item">
+          <small>PURCHASE PRICE</small>
+          <strong>Rs{prop.purchasePrice.toLocaleString()}</strong>
+        </div>
+        <div className="property-status-badges" style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {owned ? (
+            <span
+              className="owner-badge"
+              style={{
+                boxShadow: ownerColor ? `0 0 7px 1.5px ${getPlayerColorHex(ownerColor)}88` : "0 0 6px 1px rgba(16, 185, 129, 0.4)",
+                borderColor: ownerColor ? getPlayerColorHex(ownerColor) : "rgba(16, 185, 129, 0.6)",
+              }}
+            >
+              OWNED BY YOU{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
+            </span>
+          ) : ownerName ? (
+            <span
+              className="owner-badge"
+              style={{
+                background: "rgba(30, 41, 59, 0.88)",
+                color: "#f8fafc",
+                borderColor: ownerColor ? getPlayerColorHex(ownerColor) : "rgba(200, 155, 69, 0.6)",
+                boxShadow: ownerColor ? `0 0 7px 1.5px ${getPlayerColorHex(ownerColor)}88` : "0 0 6px rgba(0,0,0,0.2)",
+              }}
+            >
+              OWNED BY {ownerName.toUpperCase()}{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
+            </span>
+          ) : null}
+          <MortgageStatusIndicator
+            isMortgaged={isMortgaged}
+            variant="badge"
+            ownerName={ownerName}
+          />
+        </div>
       </div>
       {city && (
         <>
           <div className="rent-table">
-            <div>
-              <span>RENT (BASE)</span>
-              <b>Rs{city.baseRent.toLocaleString()}</b>
+            {isMortgaged && (
+              <div className="rent-suspended-banner">
+                <span>⚠️ RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
+              </div>
+            )}
+            <div
+              className={`rent-tier-row ${
+                applicableCityTier === 0 ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                RENT (BASE)
+                {applicableCityTier === 0 && (
+                  <span className="rent-tier-active-badge">
+                    {isGroupMonopoly ? "APPLICABLE (2× GROUP)" : "APPLICABLE"}
+                  </span>
+                )}
+              </span>
+              <b>
+                Rs
+                {(
+                  city.baseRent * (applicableCityTier === 0 && isGroupMonopoly ? 2 : 1)
+                ).toLocaleString()}
+              </b>
             </div>
-            <div>
-              <span>WITH 1 HOUSE</span>
+            <div
+              className={`rent-tier-row ${
+                applicableCityTier === 1 ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                WITH 1 HOUSE
+                {applicableCityTier === 1 && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>Rs{city.rentOneHouse.toLocaleString()}</b>
             </div>
-            <div>
-              <span>WITH 2 HOUSES</span>
+            <div
+              className={`rent-tier-row ${
+                applicableCityTier === 2 ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                WITH 2 HOUSES
+                {applicableCityTier === 2 && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>Rs{city.rentTwoHouses.toLocaleString()}</b>
             </div>
-            <div>
-              <span>WITH 3 HOUSES</span>
+            <div
+              className={`rent-tier-row ${
+                applicableCityTier === 3 ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                WITH 3 HOUSES
+                {applicableCityTier === 3 && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>Rs{city.rentThreeHouses.toLocaleString()}</b>
             </div>
-            <div>
-              <span>WITH HOTEL</span>
+            <div
+              className={`rent-tier-row ${
+                applicableCityTier === 4 ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                WITH HOTEL
+                {applicableCityTier === 4 && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>Rs{city.hotelRent.toLocaleString()}</b>
             </div>
           </div>
@@ -2927,15 +3028,38 @@ function PropertyVisual({
       {special && (
         <>
           <div className="rent-table">
-            <div>
-              <span>RENT ALONE</span>
+            {isMortgaged && (
+              <div className="rent-suspended-banner">
+                <span>⚠️ RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
+              </div>
+            )}
+            <div
+              className={`rent-tier-row ${
+                applicableSpecialTier === "alone" ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                RENT ALONE
+                {applicableSpecialTier === "alone" && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>{special.rentAlone}</b>
             </div>
-            <div>
-              <span>RENT WITH PAIR</span>
+            <div
+              className={`rent-tier-row ${
+                applicableSpecialTier === "pair" ? "is-active-tier" : "is-secondary-tier"
+              }`}
+            >
+              <span>
+                RENT WITH PAIR
+                {applicableSpecialTier === "pair" && (
+                  <span className="rent-tier-active-badge">APPLICABLE</span>
+                )}
+              </span>
               <b>{special.rentWithPair}</b>
             </div>
-            <div>
+            <div className="rent-tier-row is-secondary-tier">
               <span>PAIR RELATIONSHIP</span>
               <b>{special.pair}</b>
             </div>
@@ -3713,7 +3837,7 @@ function GameModal({
 
     return (
       <ModalShell title="MORTGAGE PROPERTY" close={close}>
-        <PropertyVisual property={selectedProperty} owned />
+        <PropertyVisual property={selectedProperty} owned buildingCount={currentBuildings} />
         {hasBuildings && (
           <div
             className="lobby-tip"
@@ -3782,7 +3906,7 @@ function GameModal({
 
     return (
       <ModalShell title="UNMORTGAGE PROPERTY" close={close}>
-        <PropertyVisual property={selectedProperty} isMortgaged />
+        <PropertyVisual property={selectedProperty} isMortgaged buildingCount={0} />
         <div className="balance-check" style={{ marginTop: "10px" }}>
           <span>PRINCIPAL + 10% INTEREST</span>
           <b>Rs{totalRepayment.toLocaleString()}</b>
@@ -3870,7 +3994,7 @@ function GameModal({
 
     return (
       <ModalShell title="SELL PROPERTY" close={close}>
-        <PropertyVisual property={selectedProperty} owned />
+        <PropertyVisual property={selectedProperty} owned isMortgaged={isMortgaged} buildingCount={currentBuildings} />
         {hasBuildings && (
           <div
             className="lobby-tip"
@@ -4128,14 +4252,36 @@ function GameModal({
       }
     }
 
+    let isGroupMonopoly = false
+    if (owner && isCity && city) {
+      const citiesInGroup = Object.values(CITY_PROPERTIES).filter((c) => c.colorGroup === city.colorGroup)
+      const ownedInGroup = (owner.ownedProperties || []).filter((id) =>
+        citiesInGroup.some((c) => c.id === id)
+      ).length
+      isGroupMonopoly = ownedInGroup >= 3
+    }
+    let hasSpecialPair = false
+    if (owner && !isCity) {
+      const sp = (SPECIAL_PROPERTIES as any)[propId]
+      if (sp && sp.pairProperty) {
+        const pairSp = Object.values(SPECIAL_PROPERTIES).find((p) => p.name === sp.pairProperty)
+        if (pairSp && (owner.ownedProperties || []).includes(pairSp.id)) {
+          hasSpecialPair = true
+        }
+      }
+    }
+
     return (
       <ModalShell title="PROPERTY DETAILS" close={close} className="property-details-sheet">
         <PropertyVisual
           property={selectedProperty}
           owned={isOwner}
           ownerName={owner?.name}
+          ownerColor={owner?.color}
           isMortgaged={isMortgaged}
           buildingCount={buildings}
+          isGroupMonopoly={isGroupMonopoly}
+          hasSpecialPair={hasSpecialPair}
         />
 
         {/* Mortgage & Charges Status Section */}
@@ -5384,20 +5530,25 @@ function GameScreen({
 
       // 4. Animate remote player token along perimeter
       setTurnState("MOVING")
-      const targetPos = evt.newPosition
+      const isRemainingInJail = Boolean(
+        evt.actionResult?.eventDescription?.toLowerCase().includes("remains in jail") ||
+        (evt.newPosition === 9 && evt.previousPosition === 9 && !evt.isDouble)
+      )
+      const targetPos = isRemainingInJail ? 9 : evt.newPosition
+      const effectiveStartPos = isRemainingInJail ? 9 : (evt.previousPosition !== undefined ? evt.previousPosition : startPos)
       const isStraightToJail = Boolean(
         evt.actionResult?.mustGoToJail &&
         (evt.actionResult?.eventDescription?.toLowerCase().includes("three consecutive doubles") ||
          evt.actionResult?.eventDescription?.toLowerCase().includes("consecutive doubles"))
       )
-      const stepsToWalk = isStraightToJail ? 0 : evt.diceTotal
+      const stepsToWalk = (isStraightToJail || isRemainingInJail) ? 0 : evt.diceTotal
 
       await animatePlayerMovement(
         remotePlayerId,
-        startPos,
+        effectiveStartPos,
         targetPos,
         stepsToWalk,
-        isStraightToJail,
+        isStraightToJail || isRemainingInJail,
       )
 
       // 5. Converge to authoritative state
@@ -5630,8 +5781,13 @@ function GameScreen({
       return
     }
 
-    // Event 4: Jail (just visiting on space 9)
-    if (result.newPosition === 9 && !result.mustGoToJail) {
+    // Event 4: Jail (just visiting on space 9 - only when not serving a jail sentence)
+    const isPlayerInJailSentence = Boolean(
+      engineState.players[result.playerId]?.inJail ||
+      result.eventDescription?.toLowerCase().includes("jail") ||
+      result.eventDescription?.toLowerCase().includes("remains in jail")
+    )
+    if (result.newPosition === 9 && !result.mustGoToJail && !isPlayerInJailSentence) {
       const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
       const visitMsg = `${pName} is just visiting Jail.`
       addGameplayEvent({
@@ -6125,7 +6281,12 @@ function GameScreen({
       setRolling(false)
       rollingRef.current = false
 
-      const targetPos = result.newPosition
+      const isRemainingInJail = Boolean(
+        result.eventDescription?.toLowerCase().includes("remains in jail") ||
+        (result.newPosition === 9 && (result.previousPosition === 9 || snapStartPos === 9) && !result.isDouble)
+      )
+
+      const targetPos = isRemainingInJail ? 9 : result.newPosition
 
       const isStraightToJail = Boolean(
         result.mustGoToJail &&
@@ -6135,15 +6296,15 @@ function GameScreen({
           result.eventDescription?.toLowerCase().includes("consecutive doubles"))
       )
 
-      const stepsToWalk = isStraightToJail ? 0 : result.diceTotal
-      const startPos = result.previousPosition !== undefined ? result.previousPosition : snapStartPos
+      const stepsToWalk = (isStraightToJail || isRemainingInJail) ? 0 : result.diceTotal
+      const startPos = isRemainingInJail ? 9 : (result.previousPosition !== undefined ? result.previousPosition : snapStartPos)
 
       await animatePlayerMovement(
         snapPlayerIndex,
         startPos,
         targetPos,
         stepsToWalk,
-        isStraightToJail,
+        isStraightToJail || isRemainingInJail,
       )
 
       setTurnState("RESOLVING_LANDING")
@@ -6632,8 +6793,8 @@ function GameScreen({
                   <span className="timer-digits">{formatTimer(humanTimeRemaining)}</span>
                 </div>
               ) : (
-                <div className="human-turn-timer-badge bot-mode" title="Bot Turn In Progress">
-                  <span className="timer-icon">🤖</span>
+                <div className="human-turn-timer-badge waiting-turn" title={`Waiting for ${activePlayer.name}'s turn`}>
+                  <span className="timer-icon">⏳</span>
                   <span className="timer-digits">{activePlayer.name.toUpperCase()}</span>
                 </div>
               )}
@@ -8226,6 +8387,7 @@ export default function App() {
           {toastMessage}
         </div>
       )}
+      <CrownfallCursor />
     </>
   )
 }

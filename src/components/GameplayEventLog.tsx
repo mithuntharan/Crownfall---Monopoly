@@ -151,53 +151,53 @@ export function matchGameplayEventCategory(type: string, category: EventLogCateg
 
 const TYPE_CONFIG: Record<
   string,
-  { label: string; icon: string; bg: string; color: string }
+  { label: string; icon: string; bg: string; color: string; border: string; accentBorder: string; isImportant: boolean }
 > = {
-  roll: { label: "ROLL", icon: "🎲", bg: "rgba(59, 130, 246, 0.2)", color: "#93c5fd" },
-  roll_move: { label: "ROLL", icon: "🎲", bg: "rgba(59, 130, 246, 0.2)", color: "#93c5fd" },
-  ROLL_MOVE: { label: "ROLL", icon: "🎲", bg: "rgba(59, 130, 246, 0.2)", color: "#93c5fd" },
-  buy: { label: "BOUGHT", icon: "🏛️", bg: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7" },
-  BUY: { label: "BOUGHT", icon: "🏛️", bg: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7" },
-  decline: { label: "DECLINED", icon: "🚫", bg: "rgba(107, 114, 128, 0.2)", color: "#d1d5db" },
-  DECLINE: { label: "DECLINED", icon: "🚫", bg: "rgba(107, 114, 128, 0.2)", color: "#d1d5db" },
-  rent: { label: "RENT", icon: "💸", bg: "rgba(239, 68, 68, 0.2)", color: "#fca5a5" },
-  RENT: { label: "RENT", icon: "💸", bg: "rgba(239, 68, 68, 0.2)", color: "#fca5a5" },
-  build: { label: "BUILD", icon: "🏗️", bg: "rgba(16, 185, 129, 0.25)", color: "#a7f3d0" },
-  BUILD: { label: "BUILD", icon: "🏗️", bg: "rgba(16, 185, 129, 0.25)", color: "#a7f3d0" },
-  demolish: { label: "DEMOLISH", icon: "🏚️", bg: "rgba(245, 158, 11, 0.2)", color: "#fde68a" },
-  DEMOLISH: { label: "DEMOLISH", icon: "🏚️", bg: "rgba(245, 158, 11, 0.2)", color: "#fde68a" },
-  destroy: { label: "DESTROY", icon: "🏚️", bg: "rgba(245, 158, 11, 0.2)", color: "#fde68a" },
-  chance: { label: "CHANCE", icon: "✨", bg: "rgba(168, 85, 247, 0.2)", color: "#d8b4fe" },
-  CHANCE: { label: "CHANCE", icon: "✨", bg: "rgba(168, 85, 247, 0.2)", color: "#d8b4fe" },
-  chest: { label: "CHEST", icon: "💎", bg: "rgba(236, 72, 153, 0.2)", color: "#fbcfe8" },
-  CHEST: { label: "CHEST", icon: "💎", bg: "rgba(236, 72, 153, 0.2)", color: "#fbcfe8" },
-  tax: { label: "TAX", icon: "⚖️", bg: "rgba(220, 38, 38, 0.25)", color: "#f87171" },
-  TAX: { label: "TAX", icon: "⚖️", bg: "rgba(220, 38, 38, 0.25)", color: "#f87171" },
-  jail: { label: "JAIL", icon: "🔒", bg: "rgba(185, 28, 28, 0.3)", color: "#fca5a5" },
-  JAIL: { label: "JAIL", icon: "🔒", bg: "rgba(185, 28, 28, 0.3)", color: "#fca5a5" },
-  rest: { label: "REST HOUSE", icon: "☕", bg: "rgba(217, 119, 6, 0.25)", color: "#fcd34d" },
-  REST: { label: "REST HOUSE", icon: "☕", bg: "rgba(217, 119, 6, 0.25)", color: "#fcd34d" },
-  club: { label: "ROYAL CLUB", icon: "👑", bg: "rgba(200, 155, 69, 0.25)", color: "var(--gold-light)" },
-  CLUB: { label: "ROYAL CLUB", icon: "👑", bg: "rgba(200, 155, 69, 0.25)", color: "var(--gold-light)" },
-  bankruptcy: { label: "BANKRUPT", icon: "💀", bg: "rgba(127, 29, 29, 0.4)", color: "#f87171" },
-  BANKRUPTCY: { label: "BANKRUPT", icon: "💀", bg: "rgba(127, 29, 29, 0.4)", color: "#f87171" },
-  turn_change: { label: "TURN", icon: "👤", bg: "rgba(200, 155, 69, 0.2)", color: "var(--gold-light)" },
-  TURN_CHANGE: { label: "TURN", icon: "👤", bg: "rgba(200, 155, 69, 0.2)", color: "var(--gold-light)" },
-  reward: { label: "REWARD", icon: "🌟", bg: "rgba(34, 197, 94, 0.2)", color: "#86efac" },
-  start_pass: { label: "REWARD", icon: "🌟", bg: "rgba(34, 197, 94, 0.2)", color: "#86efac" },
-  START_PASS: { label: "REWARD", icon: "🌟", bg: "rgba(34, 197, 94, 0.2)", color: "#86efac" },
-  timeout: { label: "TIMEOUT", icon: "⌛", bg: "rgba(239, 68, 68, 0.2)", color: "#fca5a5" },
-  mortgage: { label: "MORTGAGE", icon: "📜", bg: "rgba(147, 51, 234, 0.2)", color: "#d8b4fe" },
-  MORTGAGE: { label: "MORTGAGE", icon: "📜", bg: "rgba(147, 51, 234, 0.2)", color: "#d8b4fe" },
-  unmortgage: { label: "UNMORTGAGE", icon: "🔓", bg: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7" },
-  UNMORTGAGE: { label: "UNMORTGAGE", icon: "🔓", bg: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7" },
-  resign: { label: "RESIGNED", icon: "🏳️", bg: "rgba(156, 163, 175, 0.25)", color: "#d1d5db" },
-  RESIGN: { label: "RESIGNED", icon: "🏳️", bg: "rgba(156, 163, 175, 0.25)", color: "#d1d5db" },
-  resignation: { label: "RESIGNED", icon: "🏳️", bg: "rgba(156, 163, 175, 0.25)", color: "#d1d5db" },
-  game_over: { label: "GAME OVER", icon: "🏆", bg: "rgba(234, 179, 8, 0.25)", color: "#fde047" },
-  GAME_OVER: { label: "GAME OVER", icon: "🏆", bg: "rgba(234, 179, 8, 0.25)", color: "#fde047" },
-  system: { label: "SYSTEM", icon: "⚙️", bg: "rgba(100, 116, 139, 0.25)", color: "#cbd5e1" },
-  error: { label: "ERROR", icon: "⚠️", bg: "rgba(220, 38, 38, 0.3)", color: "#fca5a5" },
+  roll: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  roll_move: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  ROLL_MOVE: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  buy: { label: "BOUGHT", icon: "🏛️", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
+  BUY: { label: "BOUGHT", icon: "🏛️", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
+  decline: { label: "DECLINED", icon: "🚫", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
+  DECLINE: { label: "DECLINED", icon: "🚫", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
+  rent: { label: "RENT", icon: "💸", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  RENT: { label: "RENT", icon: "💸", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  build: { label: "BUILD", icon: "🏗️", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
+  BUILD: { label: "BUILD", icon: "🏗️", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
+  demolish: { label: "DEMOLISH", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  DEMOLISH: { label: "DEMOLISH", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  destroy: { label: "DESTROY", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  chance: { label: "CHANCE", icon: "✨", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
+  CHANCE: { label: "CHANCE", icon: "✨", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
+  chest: { label: "CHEST", icon: "💎", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
+  CHEST: { label: "CHEST", icon: "💎", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
+  tax: { label: "TAX", icon: "⚖️", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  TAX: { label: "TAX", icon: "⚖️", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  jail: { label: "JAIL", icon: "🔒", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
+  JAIL: { label: "JAIL", icon: "🔒", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
+  rest: { label: "REST HOUSE", icon: "☕", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  REST: { label: "REST HOUSE", icon: "☕", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  club: { label: "ROYAL CLUB", icon: "👑", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  CLUB: { label: "ROYAL CLUB", icon: "👑", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  bankruptcy: { label: "BANKRUPT", icon: "💀", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
+  BANKRUPTCY: { label: "BANKRUPT", icon: "💀", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
+  turn_change: { label: "TURN", icon: "👤", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
+  TURN_CHANGE: { label: "TURN", icon: "👤", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
+  reward: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  start_pass: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  START_PASS: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  timeout: { label: "TIMEOUT", icon: "⌛", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
+  mortgage: { label: "MORTGAGE", icon: "📜", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
+  MORTGAGE: { label: "MORTGAGE", icon: "📜", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
+  unmortgage: { label: "UNMORTGAGE", icon: "🔓", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
+  UNMORTGAGE: { label: "UNMORTGAGE", icon: "🔓", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
+  resign: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  RESIGN: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  resignation: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  game_over: { label: "GAME OVER", icon: "🏆", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
+  GAME_OVER: { label: "GAME OVER", icon: "🏆", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
+  system: { label: "SYSTEM", icon: "⚙️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: false },
+  error: { label: "ERROR", icon: "⚠️", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
 }
 
 export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear }: GameplayEventLogProps) {
@@ -282,29 +282,30 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
             position: "fixed",
             inset: 0,
             zIndex: 70,
-            background: "rgba(0,0,0,0.65)",
+            background: "rgba(15, 23, 42, 0.6)",
             backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "20px 12px",
+            padding: "16px 10px",
           }}
         >
           <div
             className="event-log-card"
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: "560px",
-              maxWidth: "min(560px, 96vw)",
+              width: "580px",
+              maxWidth: "min(580px, 96vw)",
               maxHeight: "calc(100dvh - 24px)",
               height: "min(640px, calc(100dvh - 24px))",
-              background: "linear-gradient(180deg, #101c36 0%, #091224 100%)",
-              border: "2px solid var(--gold, #c89b3d)",
+              background: "linear-gradient(180deg, #fefdfb 0%, #f7f3ea 100%)",
+              border: "1.5px solid var(--gold, #b45309)",
               borderRadius: "14px",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.8), 0 0 25px rgba(200,155,69,0.2)",
+              boxShadow: "0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(0,0,0,0.08)",
               display: "flex",
               flexDirection: "column",
-              color: "#fff",
+              color: "#0f172a",
               fontFamily: "'DM Sans', sans-serif",
               overflow: "hidden",
             }}
@@ -315,9 +316,10 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                borderBottom: "1px solid rgba(200, 155, 69, 0.35)",
-                padding: "14px 18px",
-                background: "rgba(0,0,0,0.3)",
+                borderBottom: "1.5px solid rgba(180, 130, 40, 0.3)",
+                padding: "12px 18px",
+                background: "#f4ede0",
+                flexShrink: 0,
               }}
             >
               <div>
@@ -325,16 +327,17 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                   style={{
                     fontFamily: "'Playfair Display', serif",
                     fontSize: "17px",
-                    color: "var(--gold-light, #f4e6c7)",
+                    fontWeight: 800,
+                    color: "#451a03",
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
-                    letterSpacing: "0.03em",
+                    letterSpacing: "0.02em",
                   }}
                 >
-                  <span>📜</span> CROWNFALL EVENT LOG
+                  <span>📜</span> CROWNFALL CHRONICLE · EVENT LOG
                 </strong>
-                <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", display: "block", marginTop: "2px" }}>
+                <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px", fontWeight: 500 }}>
                   Authoritative chronological game events · Oldest to newest
                 </span>
               </div>
@@ -342,17 +345,18 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                 onClick={handleToggle}
                 aria-label="Close event log"
                 style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(200,155,69,0.3)",
+                  background: "rgba(0, 0, 0, 0.05)",
+                  border: "1px solid rgba(180, 130, 40, 0.35)",
                   borderRadius: "50%",
                   width: "30px",
                   height: "30px",
-                  color: "#fff",
+                  color: "#475569",
                   display: "grid",
                   placeItems: "center",
                   cursor: "pointer",
                   fontSize: "14px",
-                  transition: "background 0.2s",
+                  fontWeight: 700,
+                  transition: "all 0.15s ease",
                 }}
               >
                 ✕
@@ -366,11 +370,11 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                 display: "flex",
                 gap: "6px",
                 overflowX: "auto",
-                padding: "10px 14px",
-                background: "rgba(8, 14, 28, 0.95)",
-                borderBottom: "1px solid rgba(200, 155, 69, 0.2)",
+                padding: "8px 12px",
+                background: "#ede5d5",
+                borderBottom: "1px solid rgba(180, 130, 40, 0.25)",
                 scrollbarWidth: "thin",
-                scrollbarColor: "var(--gold, #c89b3d) transparent",
+                scrollbarColor: "var(--gold, #b45309) transparent",
                 WebkitOverflowScrolling: "touch",
                 flexShrink: 0,
               }}
@@ -385,8 +389,8 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                     onClick={() => setActiveCategory(cat.id)}
                     style={{
                       whiteSpace: "nowrap",
-                      padding: "8px 12px",
-                      minHeight: "36px",
+                      padding: "6px 11px",
+                      minHeight: "34px",
                       borderRadius: "7px",
                       fontSize: "11px",
                       fontFamily: "'Oswald', 'DM Sans', sans-serif",
@@ -399,27 +403,27 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                       gap: "6px",
                       transition: "all 0.18s ease",
                       border: isActive
-                        ? "1px solid var(--gold, #c89b3d)"
-                        : "1px solid rgba(255,255,255,0.12)",
+                        ? "1px solid #711f31"
+                        : "1px solid rgba(180, 130, 40, 0.25)",
                       background: isActive
-                        ? "linear-gradient(135deg, rgba(113, 31, 49, 0.9) 0%, rgba(162, 45, 68, 0.9) 100%)"
-                        : "rgba(255,255,255,0.05)",
-                      color: isActive ? "#ffffff" : "rgba(255,255,255,0.72)",
-                      boxShadow: isActive ? "0 2px 8px rgba(113,31,49,0.5)" : "none",
+                        ? "linear-gradient(135deg, #881337 0%, #9f1239 100%)"
+                        : "rgba(255, 255, 255, 0.8)",
+                      color: isActive ? "#ffffff" : "#475569",
+                      boxShadow: isActive ? "0 2px 6px rgba(136, 19, 55, 0.35)" : "none",
                     }}
                   >
                     <span>{cat.icon}</span>
                     <span>{cat.label}</span>
                     <span
                       style={{
-                        padding: "1px 6px",
+                        padding: "1px 5px",
                         borderRadius: "10px",
                         fontSize: "9.5px",
                         fontWeight: 800,
                         background: isActive
-                          ? "rgba(255,255,255,0.25)"
-                          : "rgba(0,0,0,0.35)",
-                        color: isActive ? "#fff" : "rgba(255,255,255,0.6)",
+                          ? "rgba(255, 255, 255, 0.25)"
+                          : "rgba(0, 0, 0, 0.08)",
+                        color: isActive ? "#ffffff" : "#334155",
                       }}
                     >
                       {count}
@@ -434,12 +438,13 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
               ref={feedRef}
               onScroll={handleScroll}
               style={{
-                padding: "12px 14px",
+                padding: "10px 14px",
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
-                gap: "8px",
+                gap: "6px",
                 flex: 1,
+                background: "#f9f7f2",
               }}
             >
               {displayedEvents.length === 0 ? (
@@ -447,7 +452,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                   style={{
                     padding: "48px 16px",
                     textAlign: "center",
-                    color: "rgba(255,255,255,0.5)",
+                    color: "#64748b",
                     fontSize: "13px",
                     display: "flex",
                     flexDirection: "column",
@@ -470,18 +475,20 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                     <div
                       key={evt.id || `evt_${idx}`}
                       style={{
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "8px",
-                        padding: "10px 12px",
+                        background: "#fffdf9",
+                        border: "1px solid rgba(202, 192, 175, 0.45)",
+                        borderLeft: cfg.isImportant ? `4px solid ${cfg.accentBorder}` : "1px solid rgba(202, 192, 175, 0.45)",
+                        borderRadius: "7px",
+                        padding: "8px 12px",
                         display: "flex",
                         alignItems: "flex-start",
                         gap: "10px",
+                        boxShadow: "0 1px 3px rgba(60, 50, 40, 0.05)",
                       }}
                     >
                       <span
                         style={{
-                          fontSize: "17px",
+                          fontSize: "16px",
                           lineHeight: 1,
                           marginTop: "2px",
                           flexShrink: 0,
@@ -496,19 +503,20 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                             alignItems: "center",
                             justifyContent: "space-between",
                             gap: "8px",
-                            marginBottom: "4px",
+                            marginBottom: "3px",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                             <span
                               style={{
-                                fontSize: "10px",
+                                fontSize: "9.5px",
                                 fontWeight: 800,
                                 letterSpacing: "0.06em",
                                 padding: "2px 6px",
                                 borderRadius: "4px",
                                 background: cfg.bg,
                                 color: cfg.color,
+                                border: `1px solid ${cfg.border}`,
                               }}
                             >
                               {cfg.label}
@@ -516,8 +524,12 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                             {evt.turnNumber !== undefined && (
                               <span
                                 style={{
-                                  fontSize: "10px",
-                                  color: "rgba(255,255,255,0.45)",
+                                  fontSize: "9.5px",
+                                  fontWeight: 600,
+                                  color: "#4b4f56",
+                                  background: "#f4ede0",
+                                  padding: "1px 5px",
+                                  borderRadius: "3px",
                                 }}
                               >
                                 Turn #{evt.turnNumber}
@@ -527,7 +539,9 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                           <span
                             style={{
                               fontSize: "10px",
-                              color: "rgba(255,255,255,0.45)",
+                              color: "#686d76",
+                              fontWeight: 500,
+                              fontFamily: "DM Sans, sans-serif",
                             }}
                           >
                             {new Date(evt.timestamp).toLocaleTimeString([], {
@@ -540,13 +554,13 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                         <div
                           style={{
                             fontSize: "12.5px",
-                            color: "#f3f4f6",
+                            color: "#1e2024",
                             fontWeight: 500,
                             lineHeight: 1.35,
                             wordBreak: "break-word",
                           }}
                         >
-                          <strong style={{ color: evt.playerColor || "var(--gold-light, #f4e6c7)" }}>
+                          <strong style={{ color: "#1e2024", fontWeight: 700 }}>
                             {evt.playerName}:
                           </strong>{" "}
                           {evt.description}
@@ -555,12 +569,24 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                           <div
                             style={{
                               fontSize: "11px",
-                              fontWeight: 700,
+                              fontWeight: 800,
                               marginTop: "3px",
-                              color: evt.amount > 0 ? "#86efac" : "#fca5a5",
+                              color: evt.amount > 0 ? "#15803d" : "#b91c1c",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
                             }}
                           >
-                            {evt.amount > 0 ? `+₹${evt.amount.toLocaleString()}` : `-₹${Math.abs(evt.amount).toLocaleString()}`}
+                            <span
+                              style={{
+                                padding: "1px 6px",
+                                borderRadius: "4px",
+                                background: evt.amount > 0 ? "#dcfce7" : "#fee2e2",
+                                border: `1px solid ${evt.amount > 0 ? "#bbf7d0" : "#fecaca"}`,
+                              }}
+                            >
+                              {evt.amount > 0 ? `+₹${evt.amount.toLocaleString()}` : `-₹${Math.abs(evt.amount).toLocaleString()}`}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -573,14 +599,16 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
             {/* Footer */}
             <div
               style={{
-                borderTop: "1px solid rgba(200, 155, 69, 0.25)",
+                borderTop: "1.5px solid rgba(180, 130, 40, 0.25)",
                 padding: "10px 16px",
-                background: "rgba(0,0,0,0.25)",
+                background: "#f4ede0",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 fontSize: "11.5px",
-                color: "rgba(255,255,255,0.6)",
+                color: "#64748b",
+                fontWeight: 600,
+                flexShrink: 0,
               }}
             >
               <span>
@@ -589,14 +617,15 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
               <button
                 onClick={handleToggle}
                 style={{
-                  background: "rgba(200, 155, 69, 0.15)",
-                  border: "1px solid var(--gold, #c89b3d)",
-                  color: "var(--gold-light, #f4e6c7)",
+                  background: "var(--gold, #b45309)",
+                  border: "1px solid #92400e",
+                  color: "#ffffff",
                   borderRadius: "6px",
-                  padding: "4px 12px",
+                  padding: "4px 14px",
                   cursor: "pointer",
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: "11.5px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
                 }}
               >
                 Close

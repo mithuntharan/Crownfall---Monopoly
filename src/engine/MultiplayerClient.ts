@@ -162,6 +162,7 @@ export class MultiplayerClient {
   private httpBaseUrl: string
   private roomCode: string | null = null
   private sessionToken: string | null = null
+  private reconnectToken: string | null = null
   private playerId: number | null = null
   private clientId: string = getOrCreateClientId()
   private status: ConnectionStatus = "disconnected"
@@ -195,12 +196,17 @@ export class MultiplayerClient {
     this.serverUrl = endpoints.wsUrl
     this.httpBaseUrl = endpoints.httpUrl
 
-    // Attempt to load existing session from sessionStorage
+    // Attempt to load existing session and high-entropy reconnect token
     if (typeof window !== "undefined") {
       this.roomCode = sessionStorage.getItem("crownfall_mp_room")
       this.sessionToken = sessionStorage.getItem("crownfall_mp_token")
       const pid = sessionStorage.getItem("crownfall_mp_pid")
       if (pid !== null) this.playerId = parseInt(pid, 10)
+      if (this.roomCode) {
+        this.reconnectToken =
+          localStorage.getItem(`crownfall_reconnect_${this.roomCode}`) ||
+          sessionStorage.getItem("crownfall_mp_reconnect_token")
+      }
     }
   }
 
@@ -222,6 +228,10 @@ export class MultiplayerClient {
 
   public getSessionToken(): string | null {
     return this.sessionToken
+  }
+
+  public getReconnectToken(): string | null {
+    return this.reconnectToken
   }
 
   public getPendingJoinRequestId(): string | null {
@@ -331,26 +341,44 @@ export class MultiplayerClient {
     this.errorListeners.forEach((l) => l(err))
   }
 
-  private saveSession(roomCode: string, token: string, playerId: number) {
+  private saveSession(roomCode: string, token: string, playerId: number, reconnectToken?: string) {
     this.roomCode = roomCode
     this.sessionToken = token
     this.playerId = playerId
+    if (reconnectToken) {
+      this.reconnectToken = reconnectToken
+    }
     if (typeof window !== "undefined") {
       sessionStorage.setItem("crownfall_mp_room", roomCode)
       sessionStorage.setItem("crownfall_mp_token", token)
       sessionStorage.setItem("crownfall_mp_pid", String(playerId))
+      const rToken = this.reconnectToken
+      if (rToken) {
+        sessionStorage.setItem("crownfall_mp_reconnect_token", rToken)
+        try {
+          localStorage.setItem(`crownfall_reconnect_${roomCode}`, rToken)
+          localStorage.setItem("crownfall_last_reconnect_token", rToken)
+        } catch (_) {}
+      }
     }
   }
 
   public clearSession() {
     this.disconnect()
+    if (this.roomCode && typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(`crownfall_reconnect_${this.roomCode}`)
+      } catch (_) {}
+    }
     this.roomCode = null
     this.sessionToken = null
+    this.reconnectToken = null
     this.playerId = null
     this.latestSnapshot = null
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("crownfall_mp_room")
       sessionStorage.removeItem("crownfall_mp_token")
+      sessionStorage.removeItem("crownfall_mp_reconnect_token")
       sessionStorage.removeItem("crownfall_mp_pid")
     }
   }
@@ -435,7 +463,7 @@ export class MultiplayerClient {
       if (!data.ok) throw new Error(data.error || "Failed to create room.")
 
       this.latestSnapshot = data.snapshot
-      this.saveSession(data.roomCode, data.sessionToken, data.playerId)
+      this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken)
       this.connectWebSocket()
       return { roomCode: data.roomCode, playerId: data.playerId, snapshot: data.snapshot }
     } catch (e: any) {
@@ -473,6 +501,9 @@ export class MultiplayerClient {
     }, 4000)
 
     try {
+      if (!this.reconnectToken && typeof window !== "undefined") {
+        this.reconnectToken = localStorage.getItem(`crownfall_reconnect_${roomCode}`)
+      }
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -482,6 +513,7 @@ export class MultiplayerClient {
           playerColor,
           clientId: this.clientId,
           sessionToken: this.sessionToken,
+          reconnectToken: this.reconnectToken,
           captchaToken,
         }),
       })
@@ -497,7 +529,7 @@ export class MultiplayerClient {
 
       if (data.status === "ACCEPTED") {
         this.latestSnapshot = data.snapshot
-        this.saveSession(data.roomCode, data.sessionToken, data.playerId)
+        this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken)
         this.connectWebSocket()
         return {
           status: "ACCEPTED",
@@ -535,6 +567,7 @@ export class MultiplayerClient {
     status: "PENDING" | "ACCEPTED" | "REJECTED"
     playerId?: number
     sessionToken?: string
+    reconnectToken?: string
     rejectReason?: string
     snapshot?: MultiplayerRoomSnapshot
   }> {
@@ -549,7 +582,7 @@ export class MultiplayerClient {
       }
 
       if (data.status === "ACCEPTED" && data.sessionToken) {
-        this.saveSession(roomCode, data.sessionToken, data.playerId)
+        this.saveSession(roomCode, data.sessionToken, data.playerId, data.reconnectToken)
         if (data.snapshot) {
           this.latestSnapshot = data.snapshot
           this.snapshotListeners.forEach((l) => l(data.snapshot))
@@ -625,7 +658,13 @@ export class MultiplayerClient {
   }
 
   public async reconnect(): Promise<MultiplayerRoomSnapshot | null> {
-    if (!this.roomCode || !this.sessionToken) return null
+    if (!this.roomCode) return null
+    if (!this.reconnectToken && typeof window !== "undefined") {
+      this.reconnectToken =
+        localStorage.getItem(`crownfall_reconnect_${this.roomCode}`) ||
+        sessionStorage.getItem("crownfall_mp_reconnect_token")
+    }
+    if (!this.sessionToken && !this.reconnectToken) return null
     try {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/reconnect`, {
         method: "POST",
@@ -633,6 +672,7 @@ export class MultiplayerClient {
         body: JSON.stringify({
           roomCode: this.roomCode,
           sessionToken: this.sessionToken,
+          reconnectToken: this.reconnectToken,
           clientId: this.clientId,
         }),
       })
@@ -642,6 +682,14 @@ export class MultiplayerClient {
         return null
       }
       this.playerId = data.playerId
+      if (data.sessionToken) this.sessionToken = data.sessionToken
+      if (data.reconnectToken) this.reconnectToken = data.reconnectToken
+      this.saveSession(
+        this.roomCode,
+        this.sessionToken || data.sessionToken,
+        data.playerId,
+        this.reconnectToken || data.reconnectToken,
+      )
       this.latestSnapshot = data.snapshot
       this.connectWebSocket()
       return data.snapshot
@@ -651,7 +699,8 @@ export class MultiplayerClient {
   }
 
   public connectWebSocket() {
-    if (!this.roomCode || !this.sessionToken) return
+    if (!this.roomCode) return
+    if (!this.sessionToken && !this.reconnectToken) return
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return
     }
@@ -673,6 +722,7 @@ export class MultiplayerClient {
             type: "JOIN_WS",
             roomCode: this.roomCode,
             sessionToken: this.sessionToken,
+            reconnectToken: this.reconnectToken,
             clientId: this.clientId,
           }),
         )
@@ -709,10 +759,21 @@ export class MultiplayerClient {
             if (typeof window !== "undefined") {
               sessionStorage.setItem("crownfall_mp_pid", String(msg.yourPlayerId))
             }
-          } else if (msg.type === "INIT_SNAPSHOT" && msg.player?.id !== undefined) {
-            this.playerId = msg.player.id
-            if (typeof window !== "undefined") {
-              sessionStorage.setItem("crownfall_mp_pid", String(msg.player.id))
+          } else if (msg.type === "INIT_SNAPSHOT") {
+            if (msg.player?.id !== undefined) {
+              this.playerId = msg.player.id
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("crownfall_mp_pid", String(msg.player.id))
+              }
+            }
+            const syncToken = msg.player?.reconnectToken
+            if (syncToken && typeof syncToken === "string") {
+              this.reconnectToken = syncToken
+              if (this.roomCode && typeof window !== "undefined") {
+                try {
+                  localStorage.setItem(`crownfall_reconnect_${this.roomCode}`, syncToken)
+                } catch (_) {}
+              }
             }
           }
 

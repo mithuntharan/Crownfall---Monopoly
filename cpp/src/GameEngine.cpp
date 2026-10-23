@@ -452,9 +452,15 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         if (result.isDouble || player.jailTurns >= 3) {
             player.inJail = false;
             player.jailTurns = 0;
-            result.eventDescription = player.name + (result.isDouble ? " rolled doubles and was released from Jail!" : " finished 3-turn jail sentence and is released!");
-            addLogEntry(player.id, "jail", result.eventDescription);
+            std::string releaseMsg = player.name + (result.isDouble ? " rolled doubles and was released from Jail!" : " finished 3-turn jail sentence and is released!");
+            result.eventDescription = releaseMsg;
+            addLogEntry(player.id, "jail", releaseMsg);
         } else {
+            result.previousPosition = player.position;
+            result.newPosition = player.position;
+            result.spaceName = "JAIL";
+            result.spaceType = SpaceType::Corner;
+            result.mustGoToJail = false;
             result.eventDescription = player.name + " remains in Jail (turn " + std::to_string(player.jailTurns) + "/3).";
             m_lastTurnResult = result;
             addLogEntry(player.id, "jail", result.eventDescription);
@@ -589,15 +595,20 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                     else if (result.diceTotal == 8) { player.money -= 3000; result.moneyChange = -3000; }
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
+                    player.jailTurns = 0;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
+                    result.spaceName = "JAIL";
+                    result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Chance: Go to Jail.";
                 } else if (decl->kind == "rest") {
                     player.inRestHouse = true;
                     player.position = 27;
                     result.mustGoToRestHouse = true;
                     result.newPosition = 27;
+                    result.spaceName = "REST HOUSE";
+                    result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Chance: Rest House (skips next turn).";
                 } else if (decl->kind == "move" && result.diceTotal == 9) {
                     if (player.position > 1) {
@@ -632,15 +643,20 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                     else if (result.diceTotal == 11) { player.money -= 1500; result.moneyChange = -1500; }
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
+                    player.jailTurns = 0;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
+                    result.spaceName = "JAIL";
+                    result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Community Chest: Go to Jail.";
                 } else if (decl->kind == "rest") {
                     player.inRestHouse = true;
                     player.position = 27;
                     result.mustGoToRestHouse = true;
                     result.newPosition = 27;
+                    result.spaceName = "REST HOUSE";
+                    result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Community Chest: Rest House (skips next turn).";
                 } else if (decl->kind == "players" && result.diceTotal == 2) {
                     int collected = 0;
@@ -676,6 +692,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 result.eventDescription = player.name + " entered the Royal Club.";
             } else if (nextPos == 27) {
                 player.inRestHouse = true;
+                result.mustGoToRestHouse = true;
                 result.eventDescription = player.name + " stopped at the Rest House (must skip next turn).";
             }
         } else if (space.type == SpaceType::Tax) {

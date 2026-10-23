@@ -536,6 +536,11 @@ export class LocalGameEngine implements IGameEngine {
             : "served 3 turns and is released from Jail!"
         }`
       } else {
+        res.previousPosition = player.position
+        res.newPosition = player.position
+        res.spaceName = "JAIL"
+        res.spaceType = "corner"
+        res.mustGoToJail = false
         res.eventDescription = `${player.name} remains in Jail (turn ${player.jailTurns}/3).`
         if (player.isHuman) {
           this.turnState = "WAITING_FOR_ACTION"
@@ -710,15 +715,20 @@ export class LocalGameEngine implements IGameEngine {
             }
           } else if (decl.kind === "jail") {
             player.inJail = true
+            player.jailTurns = 0
             player.position = 9
             res.mustGoToJail = true
             res.newPosition = 9
+            res.spaceName = "JAIL"
+            res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Chance: Go to Jail.`
           } else if (decl.kind === "rest") {
             player.inRestHouse = true
             player.position = 27
             res.mustGoToRestHouse = true
             res.newPosition = 27
+            res.spaceName = "REST HOUSE"
+            res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Chance: Rest House (skips next turn).`
           } else if (decl.kind === "move" && total === 9) {
             if (player.position > 1) {
@@ -764,15 +774,20 @@ export class LocalGameEngine implements IGameEngine {
             }
           } else if (decl.kind === "jail") {
             player.inJail = true
+            player.jailTurns = 0
             player.position = 9
             res.mustGoToJail = true
             res.newPosition = 9
+            res.spaceName = "JAIL"
+            res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Community Chest: Go to Jail.`
           } else if (decl.kind === "rest") {
             player.inRestHouse = true
             player.position = 27
             res.mustGoToRestHouse = true
             res.newPosition = 27
+            res.spaceName = "REST HOUSE"
+            res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Community Chest: Rest House (skips next turn).`
           } else if (decl.kind === "players" && total === 2) {
             let collected = 0
@@ -802,6 +817,7 @@ export class LocalGameEngine implements IGameEngine {
           res.eventDescription = `${player.name} entered the Royal Club.`
         } else if (nextPos === 27) {
           player.inRestHouse = true
+          res.mustGoToRestHouse = true
           res.eventDescription = `${player.name} stopped at the Rest House (must skip next turn).`
         }
       } else if (space.type === "tax") {
