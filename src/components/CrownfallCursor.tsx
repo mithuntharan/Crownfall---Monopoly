@@ -1,31 +1,32 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef } from "react"
 
 /**
  * Crownfall Dotter-Inspired Custom Cursor
  * 
  * Features:
- * - Ultra-high performance: transforms DOM nodes directly via requestAnimationFrame,
+ * - High performance: transforms DOM nodes directly via requestAnimationFrame,
  *   bypassing React re-renders completely during pointer movement.
- * - Precision pinpoint dot (6px) with an elegant lagging/smooth antique-gold ring.
+ * - Precision pinpoint dot (7px) with an antique-gold outer ring.
  * - Subtle hover state over interactive elements (buttons, spaces, property cards).
  * - Restrained click feedback compression without distracting ripples.
  * - Automatically hides over text inputs, preserving standard I-beam and selection.
- * - Hardware capability guard: enabled ONLY on fine pointer devices with hover.
- * - Fully disabled on touchscreens / mobile devices with zero DOM overhead.
+ * - Hardware capability guard: enabled on devices with hover and fine pointer.
+ * - Fully disabled on touch-only devices with zero overhead.
  * - Honors prefers-reduced-motion.
  */
 export const CrownfallCursor: React.FC = () => {
   const dotRef = useRef<HTMLDivElement | null>(null)
   const ringRef = useRef<HTMLDivElement | null>(null)
-  const [supported, setSupported] = useState(false)
 
   useEffect(() => {
-    // Only enable if device supports hover and has a fine pointer (mouse/trackpad)
-    if (typeof window === "undefined" || !window.matchMedia) return
-    const mqHover = window.matchMedia("(hover: hover) and (pointer: fine)")
-    if (!mqHover.matches) return
+    if (typeof window === "undefined") return
 
-    setSupported(true)
+    // Hardware check: don't track on touch-only devices
+    const isTouchOnly =
+      window.matchMedia &&
+      window.matchMedia("(pointer: coarse) and not (hover: hover) and not (any-pointer: fine)").matches
+
+    if (isTouchOnly) return
 
     let mouseX = -100
     let mouseY = -100
@@ -37,12 +38,12 @@ export const CrownfallCursor: React.FC = () => {
     let isTextTarget = false
     let animationFrameId: number | null = null
 
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const prefersReducedMotion =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const lerpFactor = prefersReducedMotion ? 1 : 0.22
 
-    const onPointerMove = (e: PointerEvent) => {
-      // Ignore simulated touches or pen events without fine precision
-      if (e.pointerType === "touch") return
+    const onPointerMove = (e: MouseEvent | PointerEvent) => {
+      if ((e as PointerEvent).pointerType === "touch") return
 
       mouseX = e.clientX
       mouseY = e.clientY
@@ -53,7 +54,6 @@ export const CrownfallCursor: React.FC = () => {
         ringY = mouseY
       }
 
-      // Check target element to detect interactive or text input elements
       const target = e.target as HTMLElement | null
       if (target) {
         const isInput =
@@ -61,26 +61,27 @@ export const CrownfallCursor: React.FC = () => {
           target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT" ||
           target.isContentEditable ||
-          Boolean(target.closest("input, textarea, select, [contenteditable='true']"))
+          Boolean(target.closest?.("input, textarea, select, [contenteditable='true']"))
 
-        isTextTarget = isInput
+        isTextTarget = Boolean(isInput)
 
         const isClickable =
           !isInput &&
           (target.tagName === "BUTTON" ||
             target.tagName === "A" ||
-            target.getAttribute("role") === "button" ||
-            target.classList.contains("board-space") ||
-            target.classList.contains("property-card") ||
-            target.classList.contains("price-chip") ||
-            target.classList.contains("clickable") ||
-            Boolean(target.closest("button, a, [role='button'], .board-space, .property-card, .price-chip")))
+            target.getAttribute?.("role") === "button" ||
+            target.classList?.contains("board-space") ||
+            target.classList?.contains("property-card") ||
+            target.classList?.contains("price-chip") ||
+            target.classList?.contains("clickable") ||
+            Boolean(target.closest?.("button, a, [role='button'], .board-space, .property-card, .price-chip, .clickable")))
 
         isHovering = Boolean(isClickable)
       }
     }
 
-    const onPointerDown = () => {
+    const onPointerDown = (e: MouseEvent | PointerEvent) => {
+      if ((e as PointerEvent).pointerType === "touch") return
       isClicking = true
     }
 
@@ -92,12 +93,14 @@ export const CrownfallCursor: React.FC = () => {
       isHidden = true
     }
 
-    const onPointerEnter = () => {
+    const onPointerEnter = (e: MouseEvent | PointerEvent) => {
+      if ((e as PointerEvent).pointerType === "touch") return
       isHidden = false
+      mouseX = (e as MouseEvent).clientX
+      mouseY = (e as MouseEvent).clientY
     }
 
     const renderLoop = () => {
-      // Smooth interpolation for the outer ring
       ringX += (mouseX - ringX) * lerpFactor
       ringY += (mouseY - ringY) * lerpFactor
 
@@ -127,8 +130,8 @@ export const CrownfallCursor: React.FC = () => {
     window.addEventListener("pointermove", onPointerMove, { passive: true })
     window.addEventListener("pointerdown", onPointerDown, { passive: true })
     window.addEventListener("pointerup", onPointerUp, { passive: true })
-    document.addEventListener("mouseleave", onPointerLeave)
-    document.addEventListener("mouseenter", onPointerEnter)
+    document.documentElement.addEventListener("mouseleave", onPointerLeave)
+    document.documentElement.addEventListener("mouseenter", onPointerEnter)
 
     animationFrameId = requestAnimationFrame(renderLoop)
 
@@ -136,15 +139,13 @@ export const CrownfallCursor: React.FC = () => {
       window.removeEventListener("pointermove", onPointerMove)
       window.removeEventListener("pointerdown", onPointerDown)
       window.removeEventListener("pointerup", onPointerUp)
-      document.removeEventListener("mouseleave", onPointerLeave)
-      document.removeEventListener("mouseenter", onPointerEnter)
+      document.documentElement.removeEventListener("mouseleave", onPointerLeave)
+      document.documentElement.removeEventListener("mouseenter", onPointerEnter)
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId)
       }
     }
   }, [])
-
-  if (!supported) return null
 
   return (
     <div className="crownfall-cursor-wrapper" aria-hidden="true">

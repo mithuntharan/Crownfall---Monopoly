@@ -46,7 +46,6 @@ import { QuickChatWidget } from "./components/QuickChatWidget"
 import { MortgageManagerModal } from "./components/MortgageManagerModal"
 import MortgageStatusIndicator from "./components/MortgageStatusIndicator"
 import PropertyLandmarkArtwork from "./components/PropertyLandmarkArtwork"
-import CrownfallCursor from "./components/CrownfallCursor"
 import { TimelineReplayModal } from "./components/TimelineReplayModal"
 import { FinancialInsightsModal } from "./components/FinancialInsightsModal"
 import { PreferencesModal } from "./components/PreferencesModal"
@@ -8387,7 +8386,6 @@ export default function App() {
           {toastMessage}
         </div>
       )}
-      <CrownfallCursor />
     </>
   )
 }
