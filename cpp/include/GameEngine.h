@@ -1,10 +1,8 @@
 #pragma once
 
 #include "Types.h"
-#include "BusinessData.h"
 #include <string>
 #include <vector>
-#include <memory>
 #include <random>
 #include <optional>
 #include <utility>
@@ -50,6 +48,8 @@ public:
     bool buyCurrentProperty(int playerId);
     bool declinePropertyPurchase(int playerId);
     bool buildHouseOrHotel(int playerId, const std::string& propertyId);
+    bool buildHouseOrHotel(int playerId, const std::string& propertyId, std::string& outError);
+    bool buildHouseOrHotel(int playerId, const std::string& propertyId, std::string& outError, std::string& outReasonCode);
     bool sellHouseOrHotel(int playerId, const std::string& propertyId);
     bool sellProperty(int playerId, const std::string& propertyId, int& outSellPrice);
     bool mortgageProperty(int playerId, const std::string& propertyId);
@@ -117,6 +117,13 @@ public:
     int getLastDice1() const { return m_lastDice1; }
     int getLastDice2() const { return m_lastDice2; }
     const TurnResult& getLastTurnResult() const { return m_lastTurnResult; }
+    int getCurrentTurnId() const { return m_currentTurnId; }
+    bool isLandingActive() const { return m_landingActive; }
+    const std::string& getLandingPropertyId() const { return m_landingPropertyId; }
+    int getLandingPosition() const { return m_landingPosition; }
+    const std::map<std::string, int>& getPropertyPurchasedTurn() const { return m_propertyPurchasedTurn; }
+    const std::map<std::string, int>& getPropertyPurchasedOwner() const { return m_propertyPurchasedOwner; }
+    const std::map<std::string, int>& getPropertyBuildTurn() const { return m_propertyBuildTurn; }
 
     // Serialization
     std::string exportStateJson() const;
@@ -130,6 +137,16 @@ private:
     bool m_gameStarted = false;
     TurnState m_turnState = TurnState::WAITING_FOR_ROLL;
     std::mt19937 m_rng;
+
+    int m_currentTurnId = 1;
+    std::map<std::string, int> m_propertyPurchasedTurn; // propertyId -> logical turnId when purchased/acquired
+    std::map<std::string, int> m_propertyPurchasedOwner; // propertyId -> playerId who purchased/acquired it
+    std::map<std::string, int> m_propertyBuildTurn;     // propertyId -> logical turnId when built (Mode B allowance)
+    int m_landingTurnId = -1;
+    int m_landingPlayerId = -1;
+    int m_landingPosition = -1;
+    std::string m_landingPropertyId;
+    bool m_landingActive = false;
 
     bool m_devMode = false;
     std::vector<ActivityLogEntry> m_activityLog;

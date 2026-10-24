@@ -1,4 +1,7 @@
-// @ts-check
+/**
+ * test_part2_part3_part5.cjs
+ * Crownfall Acceptance Verification Suite
+ */
 const { CppEngineProcess } = require('./engine_bridge.cjs');
 const assert = require('assert');
 
@@ -17,7 +20,8 @@ async function run() {
       console.log(`  ✓ [PASS] ${desc}`);
       passed++;
     } catch (err) {
-      console.error(`  ✗ [FAIL] ${desc}:`, err.message);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`  ✗ [FAIL] ${desc}:`, msg);
       process.exit(1);
     }
   }

@@ -182,7 +182,7 @@ export function TradeModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            <span>🤝</span> PROPERTY TRADING & NEGOTIATION
+            PROPERTY TRADING &amp; NEGOTIATION
           </strong>
           <button onClick={close} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -455,7 +455,7 @@ export function TradeModal({
               {/* Error Alert */}
               {errorMsg && (
                 <div style={{ padding: "8px 12px", background: "rgba(200,50,50,0.2)", border: "1px solid var(--crimson)", borderRadius: "6px", color: "#ff8b8b", fontSize: "12px", marginBottom: "12px" }}>
-                  ⚠️ {errorMsg}
+                  {errorMsg}
                 </div>
               )}
 
@@ -499,7 +499,7 @@ export function TradeModal({
               {/* Active Incoming */}
               <div style={{ marginBottom: "20px" }}>
                 <h4 style={{ color: "var(--gold-300)", fontSize: "13px", textTransform: "uppercase", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>📥</span> Incoming Trade Offers ({incomingOffers.length})
+                  Incoming Trade Offers ({incomingOffers.length})
                 </h4>
                 {incomingOffers.length === 0 ? (
                   <p style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>No pending incoming trade offers.</p>
@@ -621,7 +621,7 @@ export function TradeModal({
               {/* Active Outgoing */}
               <div style={{ marginBottom: "20px" }}>
                 <h4 style={{ color: "var(--gold-300)", fontSize: "13px", textTransform: "uppercase", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>📤</span> Outgoing Trade Offers ({outgoingOffers.length})
+                  Outgoing Trade Offers ({outgoingOffers.length})
                 </h4>
                 {outgoingOffers.length === 0 ? (
                   <p style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>No active outgoing offers.</p>

@@ -159,7 +159,7 @@ export function FinancialInsightsModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            <span>📊</span> AUTHORITATIVE INSIGHTS &amp; FINANCIAL ANALYSIS
+            AUTHORITATIVE INSIGHTS &amp; FINANCIAL ANALYSIS
           </strong>
           <button onClick={close} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -193,7 +193,7 @@ export function FinancialInsightsModal({
               cursor: "pointer",
             }}
           >
-            🏆 PLAYER COMPARISONS
+            PLAYER COMPARISONS
           </button>
           <button
             onClick={() => setActiveTab("player_detail")}
@@ -208,7 +208,7 @@ export function FinancialInsightsModal({
               cursor: "pointer",
             }}
           >
-            🔍 PORTFOLIO DEEP DIVE ({player.name})
+            PORTFOLIO DEEP DIVE ({player.name})
           </button>
         </div>
 
@@ -316,10 +316,10 @@ export function FinancialInsightsModal({
                             ₹{item.cash.toLocaleString()}
                           </td>
                           <td style={{ padding: "8px", textAlign: "center" }}>
-                            🏛️ {item.propCount} {item.mortgages > 0 ? `(${item.mortgages} mort)` : ""}
+                            {item.propCount} {item.mortgages > 0 ? `(${item.mortgages} mort)` : ""}
                           </td>
                           <td style={{ padding: "8px", textAlign: "center" }}>
-                            {item.houses > 0 ? `🏠${item.houses} ` : ""}{item.hotels > 0 ? `🏨${item.hotels}` : item.houses === 0 ? "—" : ""}
+                            {item.houses > 0 ? `${item.houses}H ` : ""}{item.hotels > 0 ? `${item.hotels}HTL` : item.houses === 0 ? "—" : ""}
                           </td>
                           <td style={{ padding: "8px", textAlign: "right" }}>
                             <span style={{ color: "#10b981" }}>+₹{item.rentReceived.toLocaleString()}</span> /{" "}
@@ -370,7 +370,7 @@ export function FinancialInsightsModal({
                                     transition: "all 0.15s ease",
                                   }}
                                 >
-                                  🥾 Kick
+                                  Kick
                                 </button>
                               )}
                             </div>
@@ -519,7 +519,7 @@ export function FinancialInsightsModal({
                             {grp.name}
                           </span>
                           <span style={{ fontWeight: 700, color: isMonopoly ? "#10b981" : "var(--text-muted)" }}>
-                            {isMonopoly ? "👑 FULL MONOPOLY (" : ""}{grp.owned} / {grp.total} ({pct}%){isMonopoly ? ")" : ""}
+                            {isMonopoly ? "FULL MONOPOLY (" : ""}{grp.owned} / {grp.total} ({pct}%){isMonopoly ? ")" : ""}
                           </span>
                         </div>
                         <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
@@ -568,8 +568,8 @@ export function FinancialInsightsModal({
                         </div>
                         <div style={{ textAlign: "right" }}>
                           <div style={{ fontWeight: 700, color: "var(--gold-300)" }}>₹{p.purchasePrice.toLocaleString()}</div>
-                          {p.houses > 0 && <div style={{ fontSize: "9px" }}>🏠 {p.houses}</div>}
-                          {p.isHotel && <div style={{ fontSize: "9px" }}>🏨 Hotel</div>}
+                          {p.houses > 0 && <div style={{ fontSize: "9px" }}>{p.houses} House{p.houses > 1 ? "s" : ""}</div>}
+                          {p.isHotel && <div style={{ fontSize: "9px" }}>Hotel</div>}
                         </div>
                       </div>
                     ))}

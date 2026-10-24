@@ -16,14 +16,14 @@ export type EventLogCategory =
   | "SYSTEM_ERRORS"
 
 export const EVENT_LOG_CATEGORIES: { id: EventLogCategory; label: string; icon: string }[] = [
-  { id: "ALL", label: "Full Log", icon: "📋" },
-  { id: "TURNS_DICE", label: "Turns & Dice", icon: "🎲" },
-  { id: "RENT_PAYMENTS", label: "Rent & Payments", icon: "💰" },
-  { id: "PROPERTIES", label: "Properties", icon: "🏠" },
-  { id: "CONSTRUCTION", label: "Construction", icon: "🏗️" },
-  { id: "CHANCE_CHEST", label: "Chance & Chest", icon: "🃏" },
-  { id: "MOVEMENT_LOCATIONS", label: "Movement & Locations", icon: "📍" },
-  { id: "SYSTEM_ERRORS", label: "System & Errors", icon: "⚙️" },
+  { id: "ALL", label: "Full Log", icon: "" },
+  { id: "TURNS_DICE", label: "Turns & Dice", icon: "" },
+  { id: "RENT_PAYMENTS", label: "Rent & Payments", icon: "" },
+  { id: "PROPERTIES", label: "Properties", icon: "" },
+  { id: "CONSTRUCTION", label: "Construction", icon: "" },
+  { id: "CHANCE_CHEST", label: "Chance & Chest", icon: "" },
+  { id: "MOVEMENT_LOCATIONS", label: "Movement & Locations", icon: "" },
+  { id: "SYSTEM_ERRORS", label: "System & Errors", icon: "" },
 ]
 
 export function matchEventCategory(type: string, category: EventLogCategory): boolean {
@@ -281,73 +281,91 @@ export function TransactionLedgerModal({
         {/* View Switcher Tabs */}
         <div className="ledger-view-tabs">
           <button
+            type="button"
             className={`ledger-view-tab ${activeTab === "LEDGER" ? "active" : ""}`}
             onClick={() => setActiveTab("LEDGER")}
           >
-            💰 FINANCIAL LEDGER ({deduplicatedLedger.length})
+            <span>Financial Ledger</span>
+            <span className="ledger-tab-count">{deduplicatedLedger.length}</span>
           </button>
           <button
+            type="button"
             className={`ledger-view-tab ${activeTab === "ACTIVITY" ? "active" : ""}`}
             onClick={() => setActiveTab("ACTIVITY")}
           >
-            📜 TURN LOG ({activityLog.length})
+            <span>Turn Log</span>
+            <span className="ledger-tab-count">{activityLog.length}</span>
           </button>
         </div>
 
         {activeTab === "LEDGER" ? (
           <>
             <div className="ledger-stats-banner">
-              <span>
-                PERSISTENT RECORDS: <strong>{deduplicatedLedger.length} Events</strong>
-              </span>
-              <span>
-                VOLUME: <strong>₹{totalVolume.toLocaleString()}</strong>
-              </span>
-              <span className="ready-pill" style={{ fontSize: "8px" }}>
-                SYNCHRONIZED
-              </span>
+              <div className="ledger-stat-card">
+                <span className="ledger-stat-label">PERSISTENT RECORDS</span>
+                <strong className="ledger-stat-value">{deduplicatedLedger.length} Events</strong>
+              </div>
+              <div className="ledger-stat-card">
+                <span className="ledger-stat-label">VOLUME</span>
+                <strong className="ledger-stat-value">₹{totalVolume.toLocaleString()}</strong>
+              </div>
+              <div className="ledger-stat-card status-card">
+                <span className="ledger-stat-label">STATUS</span>
+                <span className="ready-pill">SYNCHRONIZED</span>
+              </div>
             </div>
 
-            {/* Filter by Player */}
-            <div className="activity-log-filter-row" style={{ marginBottom: "6px" }}>
-              <button
-                className={`activity-log-filter-btn ${playerFilter === "ALL" ? "active" : ""}`}
-                onClick={() => setPlayerFilter("ALL")}
-              >
-                ALL PLAYERS
-              </button>
-              {players.map((p) => (
-                <button
-                  key={p.id}
-                  className={`activity-log-filter-btn ${playerFilter === p.name ? "active" : ""}`}
-                  onClick={() => setPlayerFilter(p.name)}
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
+            <div className="ledger-filters-wrap">
+              {/* Filter by Player */}
+              <div className="ledger-filter-row">
+                <span className="ledger-filter-label">Filter Player:</span>
+                <div className="activity-log-filter-row">
+                  <button
+                    type="button"
+                    className={`activity-log-filter-btn ${playerFilter === "ALL" ? "active" : ""}`}
+                    onClick={() => setPlayerFilter("ALL")}
+                  >
+                    All Players
+                  </button>
+                  {players.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`activity-log-filter-btn ${playerFilter === p.name ? "active" : ""}`}
+                      onClick={() => setPlayerFilter(p.name)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            {/* Filter by Transaction Type */}
-            <div className="activity-log-filter-row" style={{ marginBottom: "8px" }}>
-              {[
-                { id: "ALL", label: "ALL TYPES" },
-                { id: "PURCHASE", label: "PURCHASE" },
-                { id: "RENT", label: "RENT" },
-                { id: "CONSTRUCTION", label: "BUILD" },
-                { id: "DESTRUCTION", label: "DESTROY" },
-                { id: "START/REWARD", label: "REWARDS" },
-                { id: "TAX/FEE", label: "TAX & FEES" },
-                { id: "BANKRUPTCY", label: "BANKRUPTCY" },
-                { id: "MORTGAGE", label: "MORTGAGES" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  className={`activity-log-filter-btn ${typeFilter === item.id ? "active" : ""}`}
-                  onClick={() => setTypeFilter(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
+              {/* Filter by Transaction Type */}
+              <div className="ledger-filter-row">
+                <span className="ledger-filter-label">Filter Category:</span>
+                <div className="activity-log-filter-row">
+                  {[
+                    { id: "ALL", label: "All Types" },
+                    { id: "PURCHASE", label: "Purchase" },
+                    { id: "RENT", label: "Rent" },
+                    { id: "CONSTRUCTION", label: "Build" },
+                    { id: "DESTRUCTION", label: "Destroy" },
+                    { id: "START/REWARD", label: "Rewards" },
+                    { id: "TAX/FEE", label: "Tax & Fees" },
+                    { id: "BANKRUPTCY", label: "Bankruptcy" },
+                    { id: "MORTGAGE", label: "Mortgages" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`activity-log-filter-btn ${typeFilter === item.id ? "active" : ""}`}
+                      onClick={() => setTypeFilter(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Ledger List */}
@@ -471,7 +489,6 @@ export function TransactionLedgerModal({
                     onClick={() => setLogFilter(cat.id)}
                     style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
                   >
-                    <span>{cat.icon}</span>
                     <span>{cat.label}</span>
                     <span
                       style={{

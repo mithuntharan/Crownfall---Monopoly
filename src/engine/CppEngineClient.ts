@@ -32,6 +32,7 @@ export class CppEngineClient implements IGameEngine {
         doubles: rules?.doublesRuleEnabled ?? true,
         timerEnabled: rules?.timerEnabled ?? false,
         timerSeconds: rules?.timerSeconds ?? 60,
+        requireLandingToBuild: rules?.requireLandingToBuild ?? false,
         devMode: rules?.devMode ?? false,
         playerCount: playerConfigs?.length ?? 4,
         playerName: playerConfigs?.[0]?.name ?? "Player 1",
@@ -67,6 +68,7 @@ export class CppEngineClient implements IGameEngine {
         doubles: rules?.doublesRuleEnabled ?? true,
         timerEnabled: rules?.timerEnabled ?? false,
         timerSeconds: rules?.timerSeconds ?? 60,
+        requireLandingToBuild: rules?.requireLandingToBuild ?? false,
         playerCount: playerConfigs?.length ?? 4,
         inLobby: true,
         startGame: false,
@@ -90,6 +92,7 @@ export class CppEngineClient implements IGameEngine {
         timerEnabled: rules.timerEnabled,
         timerSeconds: rules.timerSeconds,
         maxPlayers: rules.maxPlayers,
+        requireLandingToBuild: rules.requireLandingToBuild,
       }),
     })
     const data = await res.json()
@@ -159,6 +162,8 @@ export class CppEngineClient implements IGameEngine {
   async buildHouseOrHotel(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState
+    error?: string
+    reason?: string
   }> {
     const res = await fetch(`${this.baseUrl}/build`, {
       method: "POST",
@@ -166,7 +171,7 @@ export class CppEngineClient implements IGameEngine {
       body: JSON.stringify({ playerId, propertyId }),
     })
     const data = await res.json()
-    return { success: !!data.ok, state: data.state }
+    return { success: !!data.ok, state: data.state, error: data.error, reason: data.reason }
   }
 
   async sellHouseOrHotel(playerId: number, propertyId: string): Promise<{

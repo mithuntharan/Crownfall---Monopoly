@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 /**
  * Crownfall Dotter-Inspired Custom Cursor
@@ -10,23 +10,44 @@ import React, { useEffect, useRef } from "react"
  * - Subtle hover state over interactive elements (buttons, spaces, property cards).
  * - Restrained click feedback compression without distracting ripples.
  * - Automatically hides over text inputs, preserving standard I-beam and selection.
- * - Hardware capability guard: enabled on devices with hover and fine pointer.
- * - Fully disabled on touch-only devices with zero overhead.
+ * - Hardware capability guard: enabled only on devices with hover and fine pointer.
+ * - Fully disabled on touch-first devices with zero overhead (returns null).
+ * - Hybrid device support: dynamically hides during touch gestures and restores on mouse movement.
  * - Honors prefers-reduced-motion.
  */
+
+const getSupportsFinePointer = (): boolean => {
+  if (typeof window === "undefined" || !window.matchMedia) return false
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches
+}
+
 export const CrownfallCursor: React.FC = () => {
   const dotRef = useRef<HTMLDivElement | null>(null)
   const ringRef = useRef<HTMLDivElement | null>(null)
+  const [isSupported, setIsSupported] = useState<boolean>(getSupportsFinePointer)
+
+  // Listen for capability changes (e.g., plugging in or unplugging a mouse / keyboard dock)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return
+
+    const mql = window.matchMedia("(hover: hover) and (pointer: fine)")
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsSupported(Boolean(e.matches))
+    }
+
+    setIsSupported(mql.matches)
+
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", handleMediaChange)
+      return () => mql.removeEventListener("change", handleMediaChange)
+    } else if (typeof mql.addListener === "function") {
+      mql.addListener(handleMediaChange)
+      return () => mql.removeListener(handleMediaChange)
+    }
+  }, [])
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-
-    // Hardware check: don't track on touch-only devices
-    const isTouchOnly =
-      window.matchMedia &&
-      window.matchMedia("(pointer: coarse) and not (hover: hover) and not (any-pointer: fine)").matches
-
-    if (isTouchOnly) return
+    if (!isSupported || typeof window === "undefined") return
 
     let mouseX = -100
     let mouseY = -100
@@ -37,16 +58,77 @@ export const CrownfallCursor: React.FC = () => {
     let isHidden = true
     let isTextTarget = false
     let animationFrameId: number | null = null
+    let lastTouchTimestamp = 0
 
-    const prefersReducedMotion =
-      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    const lerpFactor = prefersReducedMotion ? 1 : 0.22
+    const motionQuery = window.matchMedia
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null
+    let prefersReducedMotion = Boolean(motionQuery?.matches)
 
-    const onPointerMove = (e: MouseEvent | PointerEvent) => {
-      if ((e as PointerEvent).pointerType === "touch") return
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      prefersReducedMotion = e.matches
+    }
 
-      mouseX = e.clientX
-      mouseY = e.clientY
+    if (motionQuery?.addEventListener) {
+      motionQuery.addEventListener("change", handleMotionChange)
+    } else if (motionQuery?.addListener) {
+      motionQuery.addListener(handleMotionChange)
+    }
+
+    const hideCursor = () => {
+      isHidden = true
+      isClicking = false
+      isHovering = false
+      if (dotRef.current) {
+        dotRef.current.style.opacity = "0"
+      }
+      if (ringRef.current) {
+        ringRef.current.style.opacity = "0"
+        ringRef.current.classList.remove("is-hovering", "is-clicking")
+      }
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
+      }
+    }
+
+    const startRenderLoop = () => {
+      if (animationFrameId === null) {
+        animationFrameId = requestAnimationFrame(renderLoop)
+      }
+    }
+
+    const onTouchInteraction = () => {
+      lastTouchTimestamp = Date.now()
+      hideCursor()
+    }
+
+    const isTouchEvent = (e: Event): boolean => {
+      if ("pointerType" in e && (e as PointerEvent).pointerType === "touch") {
+        return true
+      }
+      if (Date.now() - lastTouchTimestamp < 650) {
+        return true
+      }
+      if ("sourceCapabilities" in e && (e as any).sourceCapabilities?.firesTouchEvents) {
+        return true
+      }
+      return false
+    }
+
+    const onPointerMove = (e: PointerEvent | MouseEvent) => {
+      if (isTouchEvent(e)) {
+        hideCursor()
+        return
+      }
+
+      const clientX = e.clientX
+      const clientY = e.clientY
+
+      if (typeof clientX !== "number" || typeof clientY !== "number") return
+
+      mouseX = clientX
+      mouseY = clientY
 
       if (isHidden) {
         isHidden = false
@@ -78,40 +160,71 @@ export const CrownfallCursor: React.FC = () => {
 
         isHovering = Boolean(isClickable)
       }
+
+      startRenderLoop()
     }
 
-    const onPointerDown = (e: MouseEvent | PointerEvent) => {
-      if ((e as PointerEvent).pointerType === "touch") return
+    const onPointerDown = (e: PointerEvent | MouseEvent) => {
+      if (isTouchEvent(e)) {
+        hideCursor()
+        return
+      }
       isClicking = true
     }
 
-    const onPointerUp = () => {
+    const onPointerUp = (e?: PointerEvent | MouseEvent) => {
+      if (e && isTouchEvent(e)) {
+        hideCursor()
+        return
+      }
       isClicking = false
     }
 
     const onPointerLeave = () => {
-      isHidden = true
+      hideCursor()
     }
 
-    const onPointerEnter = (e: MouseEvent | PointerEvent) => {
-      if ((e as PointerEvent).pointerType === "touch") return
+    const onPointerEnter = (e: PointerEvent | MouseEvent) => {
+      if (isTouchEvent(e)) {
+        hideCursor()
+        return
+      }
+      mouseX = e.clientX
+      mouseY = e.clientY
+      ringX = mouseX
+      ringY = mouseY
       isHidden = false
-      mouseX = (e as MouseEvent).clientX
-      mouseY = (e as MouseEvent).clientY
+      startRenderLoop()
+    }
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        hideCursor()
+      }
     }
 
     const renderLoop = () => {
+      if (isHidden) {
+        if (dotRef.current) dotRef.current.style.opacity = "0"
+        if (ringRef.current) ringRef.current.style.opacity = "0"
+        animationFrameId = null
+        return
+      }
+
+      const lerpFactor = prefersReducedMotion ? 1 : 0.22
       ringX += (mouseX - ringX) * lerpFactor
       ringY += (mouseY - ringY) * lerpFactor
 
+      const targetOpacity = isTextTarget ? "0" : "1"
+
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`
-        dotRef.current.style.opacity = isHidden || isTextTarget ? "0" : "1"
+        dotRef.current.style.opacity = targetOpacity
       }
 
       if (ringRef.current) {
         ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0)`
-        ringRef.current.style.opacity = isHidden || isTextTarget ? "0" : "1"
+        ringRef.current.style.opacity = targetOpacity
 
         if (isHovering && !isClicking) {
           ringRef.current.classList.add("is-hovering")
@@ -127,25 +240,64 @@ export const CrownfallCursor: React.FC = () => {
       animationFrameId = requestAnimationFrame(renderLoop)
     }
 
+    // Defensive touch listeners to proactively suppress and hide cursor on touch interactions
+    window.addEventListener("touchstart", onTouchInteraction, { passive: true, capture: true })
+    window.addEventListener("touchmove", onTouchInteraction, { passive: true, capture: true })
+    window.addEventListener("touchend", onTouchInteraction, { passive: true, capture: true })
+    window.addEventListener("touchcancel", onTouchInteraction, { passive: true, capture: true })
+
+    // Pointer events for accurate fine-pointer tracking
     window.addEventListener("pointermove", onPointerMove, { passive: true })
     window.addEventListener("pointerdown", onPointerDown, { passive: true })
     window.addEventListener("pointerup", onPointerUp, { passive: true })
+    window.addEventListener("pointercancel", onPointerLeave, { passive: true })
+
+    // Window and document boundary handlers
     document.documentElement.addEventListener("mouseleave", onPointerLeave)
     document.documentElement.addEventListener("mouseenter", onPointerEnter)
-
-    animationFrameId = requestAnimationFrame(renderLoop)
+    window.addEventListener("blur", onPointerLeave)
+    document.addEventListener("visibilitychange", onVisibilityChange)
 
     return () => {
+      window.removeEventListener("touchstart", onTouchInteraction, true)
+      window.removeEventListener("touchmove", onTouchInteraction, true)
+      window.removeEventListener("touchend", onTouchInteraction, true)
+      window.removeEventListener("touchcancel", onTouchInteraction, true)
+
       window.removeEventListener("pointermove", onPointerMove)
       window.removeEventListener("pointerdown", onPointerDown)
       window.removeEventListener("pointerup", onPointerUp)
+      window.removeEventListener("pointercancel", onPointerLeave)
+
       document.documentElement.removeEventListener("mouseleave", onPointerLeave)
       document.documentElement.removeEventListener("mouseenter", onPointerEnter)
+      window.removeEventListener("blur", onPointerLeave)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+
+      if (motionQuery?.removeEventListener) {
+        motionQuery.removeEventListener("change", handleMotionChange)
+      } else if (motionQuery?.removeListener) {
+        motionQuery.removeListener(handleMotionChange)
+      }
+
       if (animationFrameId !== null) {
         cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
+      }
+
+      if (dotRef.current) {
+        dotRef.current.style.opacity = "0"
+      }
+      if (ringRef.current) {
+        ringRef.current.style.opacity = "0"
+        ringRef.current.classList.remove("is-hovering", "is-clicking")
       }
     }
-  }, [])
+  }, [isSupported])
+
+  if (!isSupported) {
+    return null
+  }
 
   return (
     <div className="crownfall-cursor-wrapper" aria-hidden="true">
@@ -156,3 +308,4 @@ export const CrownfallCursor: React.FC = () => {
 }
 
 export default CrownfallCursor
+

@@ -93,7 +93,7 @@ export function MortgageManagerModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            <span>🏦</span> MORTGAGE & REDEMPTION MANAGER
+            MORTGAGE & REDEMPTION MANAGER
           </strong>
           <button onClick={close} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -159,7 +159,7 @@ export function MortgageManagerModal({
         {/* Error Notice */}
         {errorNotice && (
           <div style={{ margin: "10px 16px 0", padding: "8px 12px", background: "rgba(200,50,50,0.2)", border: "1px solid var(--crimson)", borderRadius: "6px", color: "#ff8b8b", fontSize: "12px" }}>
-            ⚠️ {errorNotice}
+            {errorNotice}
           </div>
         )}
 
@@ -202,7 +202,7 @@ export function MortgageManagerModal({
                       </div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
                         Cost: ₹{prop.purchasePrice.toLocaleString()} | Mortgage Val: ₹{prop.mortgageValue.toLocaleString()}
-                        {hasBuildings && ` | ⚠️ ${prop.buildingsCount} house(s) built`}
+                        {hasBuildings && ` | ${prop.buildingsCount} house(s) built`}
                       </div>
                     </div>
                   </div>

@@ -109,18 +109,8 @@ export function TimelineReplayModal({
 
   const selectedEvent = filteredEvents[currentIndex]
 
-  const getEventIcon = (type: string) => {
-    const t = type.toUpperCase()
-    if (t.includes("ROLL") || t.includes("MOVE")) return "🎲"
-    if (t.includes("RENT")) return "💸"
-    if (t.includes("BUY") || t.includes("PURCHASE")) return "🏠"
-    if (t.includes("BUILD")) return "🔨"
-    if (t.includes("DESTROY")) return "💥"
-    if (t.includes("TRADE")) return "🤝"
-    if (t.includes("MORTGAGE")) return "🏦"
-    if (t.includes("JAIL")) return "🚨"
-    if (t.includes("PASS") || t.includes("START")) return "🚩"
-    return "📜"
+  const getEventIcon = (_type: string) => {
+    return ""
   }
 
   return (
@@ -133,7 +123,7 @@ export function TimelineReplayModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            <span>⏱️</span> TURN TIMELINE & HISTORICAL REPLAY
+            TURN TIMELINE & HISTORICAL REPLAY
           </strong>
           <button onClick={close} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -155,7 +145,7 @@ export function TimelineReplayModal({
             justifyContent: "space-between",
           }}
         >
-          <span>🛡️ READ-ONLY SESSION ARCHIVE — LIVE GAME CONTINUES SAFELY</span>
+          <span>READ-ONLY SESSION ARCHIVE — LIVE GAME CONTINUES SAFELY</span>
           <span style={{ color: "var(--gold-300)", fontWeight: 700 }}>Round {roundNumber}</span>
         </div>
 
@@ -249,8 +239,7 @@ export function TimelineReplayModal({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--gold-300)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>{getEventIcon(selectedEvent.type)}</span>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--gold-300)" }}>
                 {selectedEvent.title}
               </span>
               <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>

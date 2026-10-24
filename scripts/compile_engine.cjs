@@ -18,10 +18,30 @@ if (!fs.existsSync(binDir)) {
 const isWin = process.platform === 'win32';
 const targetBin = path.join(binDir, isWin ? 'monopoly_engine.exe' : 'monopoly_engine');
 
-// If already built for this platform, verify executable
+// If already built for this platform, check if source files were modified
 if (fs.existsSync(targetBin)) {
-  console.log(`[BUILD] C++ engine binary already exists at: ${targetBin}`);
-  process.exit(0);
+  const binMtime = fs.statSync(targetBin).mtimeMs;
+  const srcFiles = [
+    'cpp/src/main.cpp',
+    'cpp/src/GameEngine.cpp',
+    'cpp/src/BusinessData.cpp',
+    'cpp/include/GameEngine.h',
+    'cpp/include/BusinessData.h',
+    'cpp/include/Types.h',
+  ];
+  let needsRecompile = false;
+  for (const src of srcFiles) {
+    const fullPath = path.join(rootDir, src);
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).mtimeMs > binMtime) {
+      needsRecompile = true;
+      break;
+    }
+  }
+  if (!needsRecompile) {
+    console.log(`[BUILD] C++ engine binary is up to date: ${targetBin}`);
+    process.exit(0);
+  }
+  console.log('[BUILD] Source files modified. Recompiling C++ engine binary...');
 }
 
 console.log('[BUILD] Compiling C++ native engine for platform:', process.platform);

@@ -411,26 +411,35 @@ void runRegressionTests() {
     assert(eng.getPlayersMutable()[0].buildings["patna"] == 1);
     assert(eng.getPlayers()[0].money == cashBefore - patnaBuildCost);
 
-    // Build second house from anywhere
-    buildSuccess = eng.buildHouseOrHotel(0, "patna");
-    assert(buildSuccess);
-    assert(eng.getPlayersMutable()[0].buildings["patna"] == 2);
+    // Build second house on patna during same turn: MUST BE REJECTED IN MODE B
+    std::string modeBErr;
+    bool secondPatnaSuccess = eng.buildHouseOrHotel(0, "patna", modeBErr);
+    assert(!secondPatnaSuccess);
+    assert(eng.getPlayersMutable()[0].buildings["patna"] == 1);
 
-    // Now destroy one house: 50% refund
+    // Build on a different eligible owned property ("kanpur") during the same turn: MUST SUCCEED (per-property allowance)
+    bool kanpurSuccess = eng.buildHouseOrHotel(0, "kanpur");
+    assert(kanpurSuccess);
+    assert(eng.getPlayersMutable()[0].buildings["kanpur"] == 1);
+
+    // Second build on kanpur during that same turn: MUST BE REJECTED
+    bool secondKanpurSuccess = eng.buildHouseOrHotel(0, "kanpur");
+    assert(!secondKanpurSuccess);
+    assert(eng.getPlayersMutable()[0].buildings["kanpur"] == 1);
+
+    // Now destroy one house on patna: 50% refund
     int cashBeforeDestroy = eng.getPlayers()[0].money;
     int expectedRefund = ((patnaBuildCost * 50 / 100 + 99) / 100) * 100;
     bool destroySuccess = eng.sellHouseOrHotel(0, "patna");
     assert(destroySuccess);
-    assert(eng.getPlayersMutable()[0].buildings["patna"] == 1);
+    assert(eng.getPlayersMutable()[0].buildings["patna"] == 0);
     assert(eng.getPlayers()[0].money == cashBeforeDestroy + expectedRefund);
 
     // Cannot destroy when 0 buildings remain
-    eng.sellHouseOrHotel(0, "patna"); // now 0
-    assert(eng.getPlayersMutable()[0].buildings["patna"] == 0);
     bool invalidDestroy = eng.sellHouseOrHotel(0, "patna"); // already 0!
     assert(!invalidDestroy);
 
-    std::cout << "  ✓ Anywhere-building: Constructed from space 0; Destroy "
+    std::cout << "  ✓ Anywhere-building: Constructed from space 0; Mode B per-property 1-build turn limit enforced; Destroy "
                  "refunded 50% of cost.\n";
   }
 
@@ -771,12 +780,23 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     bool timerEnabled = getJsonBoolField(line, "timerEnabled", false);
     int timerSeconds = getJsonIntField(line, "timerSeconds", 60);
     bool devMode = getJsonBoolField(line, "devMode", false);
+    bool requireLandingToBuild = false;
+    if (line.find("\"requireLandingToBuild\"") != std::string::npos) {
+      requireLandingToBuild = getJsonBoolField(line, "requireLandingToBuild", false);
+    }
+    if (line.find("\"buildingRule\"") != std::string::npos || line.find("\"buildingMode\"") != std::string::npos) {
+      std::string br = getJsonStringField(line, "buildingRule");
+      if (br.empty()) br = getJsonStringField(line, "buildingMode");
+      if (br == "land" || br == "WhenYouLand" || br == "ModeA" || br == "modeA" || br == "A") requireLandingToBuild = true;
+      else if (br == "anywhere" || br == "Anywhere" || br == "ModeB" || br == "modeB" || br == "B") requireLandingToBuild = false;
+    }
 
     GameRules r;
     r.defaultStartingMoney = startingMoney;
     r.doublesRuleEnabled = doubles;
     r.timerEnabled = timerEnabled;
     r.timerSeconds = timerSeconds;
+    r.requireLandingToBuild = requireLandingToBuild;
     engine = std::make_unique<GameEngine>(r);
 
     int playerCount = getJsonIntField(line, "playerCount", 4);
@@ -910,6 +930,15 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     }
     if (line.find("\"maxPlayers\"") != std::string::npos) {
       r.maxPlayers = getJsonIntField(line, "maxPlayers", r.maxPlayers);
+    }
+    if (line.find("\"requireLandingToBuild\"") != std::string::npos) {
+      r.requireLandingToBuild = getJsonBoolField(line, "requireLandingToBuild", r.requireLandingToBuild);
+    }
+    if (line.find("\"buildingRule\"") != std::string::npos || line.find("\"buildingMode\"") != std::string::npos) {
+      std::string br = getJsonStringField(line, "buildingRule");
+      if (br.empty()) br = getJsonStringField(line, "buildingMode");
+      if (br == "land" || br == "WhenYouLand" || br == "ModeA" || br == "modeA" || br == "A") r.requireLandingToBuild = true;
+      else if (br == "anywhere" || br == "Anywhere" || br == "ModeB" || br == "modeB" || br == "B") r.requireLandingToBuild = false;
     }
     std::string err;
     if (!engine->updateRules(r, requesterId, err)) {
@@ -1136,12 +1165,21 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     std::cout << "{\"ok\":true,\"state\":"
               << toCompactJson(engine->exportStateJson()) << "}\n"
               << std::flush;
-  } else if (action == "build") {
+  } else if (action == "build" || action == "buildBuilding" || action == "buildHouseOrHotel") {
     int playerId =
         getJsonIntField(line, "playerId", engine->getActivePlayerIndex());
     std::string propId = getJsonStringField(line, "propertyId");
-    bool success = engine->buildHouseOrHotel(playerId, propId);
+    if (propId.empty()) {
+      propId = getJsonStringField(line, "property");
+      if (propId.empty()) {
+        propId = getJsonStringField(line, "propId");
+      }
+    }
+    std::string buildErr;
+    std::string buildReason;
+    bool success = engine->buildHouseOrHotel(playerId, propId, buildErr, buildReason);
     std::cout << "{\"ok\":" << (success ? "true" : "false")
+              << (success ? "" : (",\"error\":\"" + escapeJson(buildErr) + "\",\"reason\":\"" + escapeJson(buildReason) + "\""))
               << ",\"state\":" << toCompactJson(engine->exportStateJson())
               << "}\n"
               << std::flush;

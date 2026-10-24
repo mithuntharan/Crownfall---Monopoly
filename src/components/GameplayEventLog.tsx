@@ -35,14 +35,14 @@ export type EventLogCategory =
   | "SYSTEM_ERRORS"
 
 export const EVENT_LOG_CATEGORIES: { id: EventLogCategory; label: string; icon: string }[] = [
-  { id: "ALL", label: "Full Log", icon: "📋" },
-  { id: "TURNS_DICE", label: "Turns & Dice", icon: "🎲" },
-  { id: "RENT_PAYMENTS", label: "Rent & Payments", icon: "💰" },
-  { id: "PROPERTIES", label: "Properties", icon: "🏠" },
-  { id: "CONSTRUCTION", label: "Construction", icon: "🏗️" },
-  { id: "CHANCE_CHEST", label: "Chance & Chest", icon: "🃏" },
-  { id: "MOVEMENT_LOCATIONS", label: "Movement & Locations", icon: "📍" },
-  { id: "SYSTEM_ERRORS", label: "System & Errors", icon: "⚙️" },
+  { id: "ALL", label: "Full Log", icon: "" },
+  { id: "TURNS_DICE", label: "Turns & Dice", icon: "" },
+  { id: "RENT_PAYMENTS", label: "Rent & Payments", icon: "" },
+  { id: "PROPERTIES", label: "Properties", icon: "" },
+  { id: "CONSTRUCTION", label: "Construction", icon: "" },
+  { id: "CHANCE_CHEST", label: "Chance & Chest", icon: "" },
+  { id: "MOVEMENT_LOCATIONS", label: "Movement & Locations", icon: "" },
+  { id: "SYSTEM_ERRORS", label: "System & Errors", icon: "" },
 ]
 
 export function matchGameplayEventCategory(type: string, category: EventLogCategory): boolean {
@@ -153,51 +153,51 @@ const TYPE_CONFIG: Record<
   string,
   { label: string; icon: string; bg: string; color: string; border: string; accentBorder: string; isImportant: boolean }
 > = {
-  roll: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
-  roll_move: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
-  ROLL_MOVE: { label: "ROLL", icon: "🎲", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
-  buy: { label: "BOUGHT", icon: "🏛️", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
-  BUY: { label: "BOUGHT", icon: "🏛️", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
-  decline: { label: "DECLINED", icon: "🚫", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
-  DECLINE: { label: "DECLINED", icon: "🚫", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
-  rent: { label: "RENT", icon: "💸", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
-  RENT: { label: "RENT", icon: "💸", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
-  build: { label: "BUILD", icon: "🏗️", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
-  BUILD: { label: "BUILD", icon: "🏗️", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
-  demolish: { label: "DEMOLISH", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
-  DEMOLISH: { label: "DEMOLISH", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
-  destroy: { label: "DESTROY", icon: "🏚️", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
-  chance: { label: "CHANCE", icon: "✨", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
-  CHANCE: { label: "CHANCE", icon: "✨", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
-  chest: { label: "CHEST", icon: "💎", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
-  CHEST: { label: "CHEST", icon: "💎", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
-  tax: { label: "TAX", icon: "⚖️", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
-  TAX: { label: "TAX", icon: "⚖️", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
-  jail: { label: "JAIL", icon: "🔒", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
-  JAIL: { label: "JAIL", icon: "🔒", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
-  rest: { label: "REST HOUSE", icon: "☕", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
-  REST: { label: "REST HOUSE", icon: "☕", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
-  club: { label: "ROYAL CLUB", icon: "👑", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
-  CLUB: { label: "ROYAL CLUB", icon: "👑", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
-  bankruptcy: { label: "BANKRUPT", icon: "💀", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
-  BANKRUPTCY: { label: "BANKRUPT", icon: "💀", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
-  turn_change: { label: "TURN", icon: "👤", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
-  TURN_CHANGE: { label: "TURN", icon: "👤", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
-  reward: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
-  start_pass: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
-  START_PASS: { label: "REWARD", icon: "🌟", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
-  timeout: { label: "TIMEOUT", icon: "⌛", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
-  mortgage: { label: "MORTGAGE", icon: "📜", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
-  MORTGAGE: { label: "MORTGAGE", icon: "📜", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
-  unmortgage: { label: "UNMORTGAGE", icon: "🔓", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
-  UNMORTGAGE: { label: "UNMORTGAGE", icon: "🔓", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
-  resign: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
-  RESIGN: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
-  resignation: { label: "RESIGNED", icon: "🏳️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
-  game_over: { label: "GAME OVER", icon: "🏆", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
-  GAME_OVER: { label: "GAME OVER", icon: "🏆", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
-  system: { label: "SYSTEM", icon: "⚙️", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: false },
-  error: { label: "ERROR", icon: "⚠️", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
+  roll: { label: "ROLL", icon: "", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  roll_move: { label: "ROLL", icon: "", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  ROLL_MOVE: { label: "ROLL", icon: "", bg: "#f1f5f9", color: "#334155", border: "#cbd5e1", accentBorder: "transparent", isImportant: false },
+  buy: { label: "BOUGHT", icon: "", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
+  BUY: { label: "BOUGHT", icon: "", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: true },
+  decline: { label: "DECLINED", icon: "", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
+  DECLINE: { label: "DECLINED", icon: "", bg: "#f8fafc", color: "#64748b", border: "#e2e8f0", accentBorder: "transparent", isImportant: false },
+  rent: { label: "RENT", icon: "", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  RENT: { label: "RENT", icon: "", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  build: { label: "BUILD", icon: "", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
+  BUILD: { label: "BUILD", icon: "", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#16a34a", isImportant: true },
+  demolish: { label: "DEMOLISH", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  DEMOLISH: { label: "DEMOLISH", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  destroy: { label: "DESTROY", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: false },
+  chance: { label: "CHANCE", icon: "", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
+  CHANCE: { label: "CHANCE", icon: "", bg: "#faf5ff", color: "#6b21a8", border: "#e9d5ff", accentBorder: "#9333ea", isImportant: false },
+  chest: { label: "CHEST", icon: "", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
+  CHEST: { label: "CHEST", icon: "", bg: "#fdf2f8", color: "#9d174d", border: "#fbcfe8", accentBorder: "#db2777", isImportant: false },
+  tax: { label: "TAX", icon: "", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  TAX: { label: "TAX", icon: "", bg: "#fff1f2", color: "#9f1239", border: "#fecdd3", accentBorder: "#e11d48", isImportant: true },
+  jail: { label: "JAIL", icon: "", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
+  JAIL: { label: "JAIL", icon: "", bg: "#fff7ed", color: "#9a3412", border: "#fed7aa", accentBorder: "#ea580c", isImportant: true },
+  rest: { label: "REST HOUSE", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  REST: { label: "REST HOUSE", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  club: { label: "ROYAL CLUB", icon: "", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  CLUB: { label: "ROYAL CLUB", icon: "", bg: "#fefce8", color: "#78350f", border: "#fef08a", accentBorder: "#d97706", isImportant: false },
+  bankruptcy: { label: "BANKRUPT", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
+  BANKRUPTCY: { label: "BANKRUPT", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#b91c1c", isImportant: true },
+  turn_change: { label: "TURN", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
+  TURN_CHANGE: { label: "TURN", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#d97706", isImportant: true },
+  reward: { label: "REWARD", icon: "", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  start_pass: { label: "REWARD", icon: "", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  START_PASS: { label: "REWARD", icon: "", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", accentBorder: "#22c55e", isImportant: true },
+  timeout: { label: "TIMEOUT", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
+  mortgage: { label: "MORTGAGE", icon: "", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
+  MORTGAGE: { label: "MORTGAGE", icon: "", bg: "#f5f3ff", color: "#5b21b6", border: "#ddd6fe", accentBorder: "#7c3aed", isImportant: false },
+  unmortgage: { label: "UNMORTGAGE", icon: "", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
+  UNMORTGAGE: { label: "UNMORTGAGE", icon: "", bg: "#ecfdf5", color: "#065f46", border: "#a7f3d0", accentBorder: "#059669", isImportant: false },
+  resign: { label: "RESIGNED", icon: "", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  RESIGN: { label: "RESIGNED", icon: "", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  resignation: { label: "RESIGNED", icon: "", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: true },
+  game_over: { label: "GAME OVER", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
+  GAME_OVER: { label: "GAME OVER", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
+  system: { label: "SYSTEM", icon: "", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: false },
+  error: { label: "ERROR", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
 }
 
 export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear }: GameplayEventLogProps) {
@@ -335,7 +335,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                     letterSpacing: "0.02em",
                   }}
                 >
-                  <span>📜</span> CROWNFALL CHRONICLE · EVENT LOG
+                  CROWNFALL CHRONICLE · EVENT LOG
                 </strong>
                 <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px", fontWeight: 500 }}>
                   Authoritative chronological game events · Oldest to newest
@@ -412,7 +412,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                       boxShadow: isActive ? "0 2px 6px rgba(136, 19, 55, 0.35)" : "none",
                     }}
                   >
-                    <span>{cat.icon}</span>
+                    {cat.icon ? <span>{cat.icon}</span> : null}
                     <span>{cat.label}</span>
                     <span
                       style={{
@@ -460,7 +460,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "28px", opacity: 0.7 }}>📭</span>
+                  <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--gold-400, #b45309)" }}>[LOG EMPTY]</span>
                   <span>
                     {deduplicatedEvents.length === 0
                       ? "No events recorded in this session yet."
@@ -486,16 +486,18 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                         boxShadow: "0 1px 3px rgba(60, 50, 40, 0.05)",
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: "16px",
-                          lineHeight: 1,
-                          marginTop: "2px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {cfg.icon}
-                      </span>
+                      {cfg.icon ? (
+                        <span
+                          style={{
+                            fontSize: "16px",
+                            lineHeight: 1,
+                            marginTop: "2px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {cfg.icon}
+                        </span>
+                      ) : null}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
@@ -614,22 +616,6 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
               <span>
                 Showing {displayedEvents.length} of {deduplicatedEvents.length} events
               </span>
-              <button
-                onClick={handleToggle}
-                style={{
-                  background: "var(--gold, #b45309)",
-                  border: "1px solid #92400e",
-                  color: "#ffffff",
-                  borderRadius: "6px",
-                  padding: "4px 14px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: "11.5px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
-                }}
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>

@@ -113,7 +113,7 @@ export function LayoutDiagnosticsOverlay({ enabled = false }: { enabled?: boolea
           boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
         }}
       >
-        <span>{issues.length > 0 ? "⚠️" : "📏"}</span>
+        <span>{issues.length > 0 ? "[!]" : "[OK]"}</span>
         <span>
           {viewportWidth}×{viewportHeight} · {issues.length === 0 ? "LAYOUT OK" : `${issues.length} OVERFLOWS`}
         </span>

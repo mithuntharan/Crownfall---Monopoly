@@ -476,12 +476,6 @@ function Icon({ name, size = 20 }: IconProps) {
       </>
     ),
 
-    crown: (
-      <>
-        <path d="m3 7 4 4 5-7 5 7 4-4-2 12H5L3 7Z" />
-      </>
-    ),
-
     home: (
       <>
         <path d="m3 11 9-8 9 8v10h-6v-7H9v7H3V11Z" />
@@ -619,10 +613,6 @@ function Button({
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`logo ${compact ? "logo-compact" : ""}`}>
-      <span className="logo-crest">
-        <Icon name="crown" size={compact ? 12 : 22} />
-      </span>
-      <span className="logo-rule" />
       <strong>CROWNFALL</strong>
       <small>.IO ONLINE</small>
     </div>
@@ -740,11 +730,13 @@ function SettingRow({
 }) {
   return (
     <div className="setting-row">
-      <div>
+      <div className="setting-row-text" style={{ minWidth: 0, flex: "1 1 auto" }}>
         <strong>{label}</strong>
         <small>{value}</small>
       </div>
-      {control}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
+        {control}
+      </div>
     </div>
   )
 }
@@ -777,6 +769,7 @@ function Toggle({
       className={`toggle ${isOn ? "on" : ""}`}
       onClick={handleClick}
       aria-label={label || "Toggle setting"}
+      style={{ flexShrink: 0 }}
     >
       <span />
     </button>
@@ -1100,7 +1093,7 @@ function SetupScreen({
             justifyContent: "center",
             boxShadow: "0 0 25px rgba(200, 155, 69, 0.3)",
           }}>
-            <Icon name="crown" size={32} />
+            <Icon name="users" size={32} />
           </div>
 
           <div>
@@ -1129,7 +1122,7 @@ function SetupScreen({
           }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "rgba(255,255,255,0.6)" }}>Status:</span>
-              <span style={{ color: "var(--gold)", fontWeight: 700 }}>⏳ Pending Host Decision</span>
+              <span style={{ color: "var(--gold)", fontWeight: 700 }}>Pending Host Decision</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "rgba(255,255,255,0.6)" }}>Player Name:</span>
@@ -1164,11 +1157,7 @@ function SetupScreen({
       />
       <div className="screen-content">
         <div className="intro-mark">
-          {create ? (
-            <Icon name="crown" size={28} />
-          ) : (
-            <Icon name="users" size={28} />
-          )}
+          <Icon name="users" size={28} />
         </div>
         <div className="section-heading">
           <span>{create ? "PLAYER SETUP" : "ENTER TABLE"}</span>
@@ -1319,17 +1308,6 @@ function SetupScreen({
           </div>
         </div>
 
-        <div className="setup-note">
-          <Icon name="signal" />
-          <div>
-            <strong>HOST CONTROL & APPROVAL</strong>
-            <span>
-              {create
-                ? "As host, you will see and approve joining human players and can configure rules before match start."
-                : "Submitting a join request requires host approval before you are admitted to the table."}
-            </span>
-          </div>
-        </div>
 
         {turnstileSiteKey && (
           <div
@@ -1403,6 +1381,13 @@ function LobbyScreen({
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
   const [leaveError, setLeaveError] = useState<string | null>(null)
 
+  const snapshot = multiplayerClient.getLatestSnapshot()
+  const isMultiplayer = Boolean(roomCode || multiplayerClient.getRoomCode())
+  const actingHostId = isMultiplayer
+    ? (snapshot?.actingHostPlayerId ?? snapshot?.hostPlayerId ?? 0)
+    : 0
+  const isLocalHost = Boolean(localPlayerId !== null && localPlayerId === actingHostId)
+
   const handleConfirmQuitLobby = async () => {
     if (isLeavingRoom) return
     setIsLeavingRoom(true)
@@ -1449,7 +1434,7 @@ function LobbyScreen({
               onClick={() => setShowQuitConfirm(true)}
               title="Leave room and return to main menu"
             >
-              🚪 QUIT ROOM
+              QUIT ROOM
             </button>
           </div>
         </div>
@@ -1458,14 +1443,14 @@ function LobbyScreen({
             <i className="status-dot" /> {players.length} OF {players.length} SEATS READY
           </span>
           <span>
-            {localPlayerId === 0
-              ? "YOU ARE HOST"
+            {isLocalHost
+              ? (players[localPlayerId]?.isOriginalHost !== false ? "YOU ARE HOST" : "YOU ARE ACTING HOST")
               : `SEAT: PLAYER ${localPlayerId + 1} (${players[localPlayerId]?.name || "YOU"})`}
           </span>
         </div>
 
         {/* Host Pending Join Requests Banner */}
-        {localPlayerId === 0 && pendingRequests && pendingRequests.length > 0 && (
+        {isLocalHost && pendingRequests && pendingRequests.length > 0 && (
           <div
             className="lobby-pending-requests-card"
             style={{
@@ -1482,7 +1467,7 @@ function LobbyScreen({
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <strong style={{ fontSize: "12px", color: "var(--gold-light)", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>👑</span> PENDING JOIN REQUESTS ({pendingRequests.length})
+                PENDING JOIN REQUESTS ({pendingRequests.length})
               </strong>
               <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)" }}>Host approval required</span>
             </div>
@@ -1593,7 +1578,7 @@ function LobbyScreen({
                           letterSpacing: "0.1em",
                         }}
                       >
-                        YOUR PLAYER NAME {index === 0 ? "(HOST)" : ""}
+                        YOUR PLAYER NAME {player.isHost ? (player.isOriginalHost !== false ? "(HOST)" : "(ACTING HOST)") : (index === 0 && !isMultiplayer ? "(HOST)" : "")}
                       </label>
                       <input
                         type="text"
@@ -1691,15 +1676,17 @@ function LobbyScreen({
                   )}
                   <small>
                     {player.color.toUpperCase()} ·{" "}
-                    {index === 0
-                      ? "Crown (HOST)"
-                      : [
-                          "Lamp",
-                          "Turret",
-                          "Ship",
-                          "Diamond",
-                          "Ring",
-                        ][index - 1] || "Player"}
+                    {player.isHost
+                      ? (player.isOriginalHost !== false ? "Crown (HOST)" : "Crown (ACTING HOST)")
+                      : (index === 0 && !isMultiplayer)
+                        ? "Crown (HOST)"
+                        : [
+                            "Lamp",
+                            "Turret",
+                            "Ship",
+                            "Diamond",
+                            "Ring",
+                          ][index - 1] || "Player"}
                     {isSelf ? " · [YOU]" : ""}
                   </small>
                 </div>
@@ -1707,7 +1694,7 @@ function LobbyScreen({
                   <span className="ready-pill" style={isSelf ? { background: "var(--gold)", color: "var(--ink)" } : {}}>
                     {isSelf ? "YOU" : "READY"}
                   </span>
-                  {localPlayerId === 0 && index !== 0 && (
+                  {isLocalHost && !player.isHost && (
                     <button
                       type="button"
                       className="lobby-kick-btn"
@@ -1742,7 +1729,7 @@ function LobbyScreen({
         {/* Lobby Rules Summary */}
         <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "10px" }}>
           <div className="lobby-tip" style={{ margin: 0 }}>
-            <span>MATCH RULES {localPlayerId === 0 ? "(YOU ARE HOST)" : "(HOST CONTROLLED)"}</span>
+            <span>MATCH RULES {isLocalHost ? "(YOU ARE HOST)" : "(HOST CONTROLLED)"}</span>
             Timer: {timerEnabled ? `${timerSeconds}s per turn` : "Disabled"} · Starting Cash: ₹{startingMoney.toLocaleString()} · Doubles: {doublesRule ? "Classic (Extra Roll)" : "Single Roll (Doubles Off)"}
           </div>
         </div>
@@ -1789,12 +1776,12 @@ function LobbyScreen({
             navigator.clipboard.writeText(window.location.origin + "?join=" + roomCode)
           }
         }}>INVITE</Button>
-        {(localPlayerId === 0 || localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)) && onOpenHostSettings && (
+        {isLocalHost && onOpenHostSettings && (
           <Button variant="secondary" onClick={onOpenHostSettings}>
-            ⚙️ HOST SETTINGS
+            HOST SETTINGS
           </Button>
         )}
-        {(localPlayerId === 0 || localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)) ? (
+        {isLocalHost ? (
           <Button onClick={onStartGame} icon="arrow">
             START GAME
           </Button>
@@ -1816,7 +1803,7 @@ function LobbyScreen({
               textAlign: "center",
             }}
           >
-            ⏳ WAITING FOR HOST TO START
+            WAITING FOR HOST TO START
           </button>
         )}
       </div>
@@ -1840,13 +1827,12 @@ function LobbyScreen({
               </button>
             </div>
             <div style={{ padding: "18px 16px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", marginBottom: "8px" }}>🚪</div>
               <p style={{ color: "var(--ink)", fontSize: "14px", marginBottom: "8px", fontWeight: 700 }}>
                 Leave Lobby & Return to Main Menu?
               </p>
               <p style={{ color: "var(--ink-soft)", fontSize: "12px", marginBottom: "16px", lineHeight: 1.5 }}>
                 Are you sure you want to quit room <strong>"{roomCode}"</strong>?
-                {localPlayerId === 0
+                {isLocalHost
                   ? " As the host, host authority will transfer to an eligible remaining player."
                   : " Your seat will be vacated."}
               </p>
@@ -1862,7 +1848,7 @@ function LobbyScreen({
                     fontSize: "12px",
                   }}
                 >
-                  ⚠️ {leaveError}
+                  {leaveError}
                 </div>
               )}
               <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
@@ -2119,10 +2105,12 @@ function Board({
             <Logo compact />
             <span className="board-center-motto">THE EMPIRE AWAITS</span>
           </div>
-          <BoardCenterRecentEvents
-            events={recentEvents}
-            onOpenFullLog={onOpenFullLog}
-          />
+          {!(pendingPurchase && isHumanTurn) && (
+            <BoardCenterRecentEvents
+              events={recentEvents}
+              onOpenFullLog={onOpenFullLog}
+            />
+          )}
           {pendingPurchase && isHumanTurn ? (() => {
             const currentBuyer = players.find((p) => p.id === pendingPurchase.buyerId) || players[pendingPurchase.buyerId]
             const latestBuyerCash = currentBuyer ? currentBuyer.money : pendingPurchase.buyerMoney
@@ -2361,9 +2349,9 @@ function PlayerStrip({
 
           let statusIcon = ""
           let statusClass = ""
-          if (isBankrupt) { statusIcon = "💀"; statusClass = "bankrupt" }
-          else if (isJailed) { statusIcon = "🔒"; statusClass = "jailed" }
-          else if (isResting) { statusIcon = "☕"; statusClass = "resting" }
+          if (isBankrupt) { statusIcon = "BANKRUPT"; statusClass = "bankrupt" }
+          else if (isJailed) { statusIcon = "JAILED"; statusClass = "jailed" }
+          else if (isResting) { statusIcon = "RESTING"; statusClass = "resting" }
 
           return (
             <div
@@ -2398,7 +2386,7 @@ function PlayerStrip({
                         cursor: "pointer",
                       }}
                     >
-                      🥾
+                      KICK
                     </button>
                   )}
                 </div>
@@ -2406,7 +2394,7 @@ function PlayerStrip({
                 <div className="ps-meta">
                   <span className="ps-pos" title={`At ${space?.name ?? pos}`}>#{pos}</span>
                   {propCount > 0 && (
-                    <span className="ps-props" title={`${propCount} properties`}>🏛️{propCount}</span>
+                    <span className="ps-props" title={`${propCount} properties`}>{propCount}P</span>
                   )}
                 </div>
               </div>
@@ -2430,9 +2418,20 @@ interface DiceProps {
   rolling: boolean
   settling?: boolean
   dieIndex?: number
+  reducedMotion?: boolean
 }
 
-function Dice({ value, rolling, settling, dieIndex = 0 }: DiceProps) {
+/**
+ * Normalized exponential ease-out function: E(t) = (1 - 2^(-k*t)) / (1 - 2^(-k))
+ * Yields rapid initial spin with smooth, progressive deceleration to exact final orientation (0,0,0).
+ */
+function easeOutExpo(t: number, k = 6.0): number {
+  if (t <= 0) return 0
+  if (t >= 1) return 1
+  return (1 - Math.pow(2, -k * t)) / (1 - Math.pow(2, -k))
+}
+
+function Dice({ value, rolling, settling = false, dieIndex = 0, reducedMotion = false }: DiceProps) {
   const dots: Record<number, number[]> = {
     1: [5],
     2: [1, 9],
@@ -2444,13 +2443,222 @@ function Dice({ value, rolling, settling, dieIndex = 0 }: DiceProps) {
 
   const safeVal = value >= 1 && value <= 6 ? value : 1
 
+  const dieRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
+  const [displayVal, setDisplayVal] = useState<number>(safeVal)
+
+  // Track latest authoritative value in a ref so the active rAF animation callback
+  // always has access to the most recent authoritative face value without stale closures
+  const safeValRef = useRef<number>(safeVal)
+  safeValRef.current = safeVal
+
+  const isRollingRef = useRef<boolean>(rolling)
+  isRollingRef.current = rolling
+
+  const isSettlingRef = useRef<boolean>(settling)
+  isSettlingRef.current = settling
+
+  // Synchronize display value when idle
+  useEffect(() => {
+    if (!rolling && !settling) {
+      setDisplayVal(safeVal)
+    }
+  }, [value, rolling, settling, safeVal])
+
+  useEffect(() => {
+    // If not rolling and not settling, ensure die is at rest and cancel any running animation
+    if (!rolling && !settling) {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      if (dieRef.current) {
+        dieRef.current.style.transform = ""
+        dieRef.current.style.boxShadow = ""
+      }
+      setDisplayVal(safeVal)
+      return
+    }
+
+    // Only start a new animation cycle when rolling begins
+    // If settling begins while animation is already running, the loop handles the transition
+    if (rafRef.current !== null) {
+      return
+    }
+
+    const checkReducedMotion = Boolean(
+      reducedMotion ||
+      (typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    )
+
+    const startTime = performance.now()
+
+    // Reduced motion mode: short, restrained ease-out without disorienting multi-axis spins
+    if (checkReducedMotion) {
+      const duration = 140
+      const initialTiltX = dieIndex === 2 ? -8 : -6
+      const initialScale = 1.05
+
+      const tickReduced = (now: number) => {
+        const elapsed = now - startTime
+        const t = Math.min(1, elapsed / duration)
+        const decay = 1 - easeOutExpo(t, 6.0)
+
+        if (dieRef.current) {
+          const rx = (initialTiltX * decay).toFixed(2)
+          const sc = (1 + (initialScale - 1) * decay).toFixed(3)
+          dieRef.current.style.transform = `rotateX(${rx}deg) scale(${sc})`
+        }
+
+        if (t < 1 && (isRollingRef.current || isSettlingRef.current)) {
+          rafRef.current = requestAnimationFrame(tickReduced)
+        } else {
+          if (dieRef.current) {
+            dieRef.current.style.transform = ""
+            dieRef.current.style.boxShadow = ""
+          }
+          setDisplayVal(safeValRef.current)
+          rafRef.current = null
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(tickReduced)
+      return () => {
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+        }
+      }
+    }
+
+    // Full 3D exponential ease-out roll
+    // Varied trajectories per roll and per die index so consecutive rolls do not look identical
+    const dirX = Math.random() < 0.5 ? 1 : -1
+    const dirY = (dieIndex === 2 ? -1 : 1) * (Math.random() < 0.5 ? 1 : -1)
+    const dirZ = Math.random() < 0.5 ? 1 : -1
+
+    const turnsX = (dieIndex === 2 ? 2.5 : 2.0) + (Math.random() < 0.5 ? 0.5 : 1.0)
+    const turnsY = (dieIndex === 1 ? 2.5 : 2.0) + (Math.random() < 0.5 ? 0.5 : 1.0)
+    const turnsZ = Math.random() < 0.5 ? 0.5 : 1.0
+
+    const tiltX = (Math.random() - 0.5) * 32
+    const tiltY = (Math.random() - 0.5) * 32
+
+    const totalRotX = dirX * turnsX * 360 + tiltX
+    const totalRotY = dirY * turnsY * 360 + tiltY
+    const totalRotZ = dirZ * turnsZ * 360
+
+    let settleStartTime: number | null = null
+    let settleStartTau = 0.58
+    let currentTau = 0
+    let lastFaceChangeTime = startTime
+    let currentFace = safeVal
+
+    const tick = (now: number) => {
+      // Transition from rolling to settling
+      if (isSettlingRef.current && settleStartTime === null) {
+        settleStartTime = now
+        settleStartTau = Math.max(0.5, Math.min(0.68, currentTau))
+      }
+
+      if (settleStartTime !== null) {
+        const settleElapsed = now - settleStartTime
+        const settleDuration = 260
+        const settleProgress = Math.min(1, settleElapsed / settleDuration)
+        currentTau = settleStartTau + (1 - settleStartTau) * settleProgress
+      } else {
+        const rollElapsed = now - startTime
+        const rollDuration = 340
+        currentTau = Math.min(0.58, (rollElapsed / rollDuration) * 0.58)
+      }
+
+      // Exponential deceleration: velocity decreases exponentially from maximum down to zero
+      const decay = 1 - easeOutExpo(currentTau, 6.0)
+
+      // Angular rotation strictly scales with decay factor, reaching exact 0deg at tau = 1
+      const rx = totalRotX * decay
+      const ry = totalRotY * decay
+      const rz = totalRotZ * decay
+
+      // Parabolic 3D lift & depth trajectory
+      const arc = Math.sin(currentTau * Math.PI)
+      let ty = -18 * arc * decay
+      const tz = 12 * arc * decay
+      let sc = 1 + 0.10 * arc * decay
+
+      // Subtle final settling cushion near touchdown (tau > 0.82)
+      if (currentTau > 0.82) {
+        const s = (currentTau - 0.82) / 0.18
+        const cushion = Math.sin(s * Math.PI) * 1.5
+        ty += cushion
+        sc -= cushion * 0.015
+      }
+
+      if (dieRef.current) {
+        dieRef.current.style.transform = `translate3d(0, ${ty.toFixed(2)}px, ${tz.toFixed(2)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg) scale(${sc.toFixed(3)})`
+        const shadowSpread = (3 + 7 * arc * decay).toFixed(1)
+        const shadowBlur = (8 + 10 * arc * decay).toFixed(1)
+        const shadowAlpha = (0.25 + 0.15 * arc * decay).toFixed(2)
+        dieRef.current.style.boxShadow = `0 ${shadowSpread}px ${shadowBlur}px rgba(0, 0, 0, ${shadowAlpha})`
+      }
+
+      // Progressively decelerate face changes during rapid rotation, then lock to authoritative value
+      if (currentTau < 0.62 && !isSettlingRef.current) {
+        const faceInterval = 40 + (currentTau / 0.62) * 120
+        if (now - lastFaceChangeTime >= faceInterval) {
+          lastFaceChangeTime = now
+          let nextFace = Math.floor(Math.random() * 6) + 1
+          if (nextFace === currentFace) nextFace = (nextFace % 6) + 1
+          currentFace = nextFace
+          setDisplayVal(nextFace)
+        }
+      } else {
+        if (currentFace !== safeValRef.current) {
+          currentFace = safeValRef.current
+          setDisplayVal(safeValRef.current)
+        }
+      }
+
+      // Check if animation is complete or interrupted
+      const isComplete = currentTau >= 1 && (!isRollingRef.current && !isSettlingRef.current)
+      const isInterrupted = !isRollingRef.current && !isSettlingRef.current && currentTau > 0.2
+
+      if (isComplete || isInterrupted) {
+        if (dieRef.current) {
+          dieRef.current.style.transform = ""
+          dieRef.current.style.boxShadow = ""
+        }
+        setDisplayVal(safeValRef.current)
+        rafRef.current = null
+      } else {
+        rafRef.current = requestAnimationFrame(tick)
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick)
+
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      if (dieRef.current) {
+        dieRef.current.style.transform = ""
+        dieRef.current.style.boxShadow = ""
+      }
+    }
+  }, [rolling, settling, dieIndex, reducedMotion])
+
   return (
     <div
+      ref={dieRef}
       className={`die ${dieIndex ? `die-${dieIndex}` : ""} ${rolling ? "rolling" : ""} ${settling ? "settling" : ""}`}
       aria-label={`Die showing ${safeVal}`}
     >
       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((p) => (
-        <i key={p} className={dots[safeVal]?.includes(p) ? "show" : ""} />
+        <i key={p} className={dots[displayVal]?.includes(p) ? "show" : ""} />
       ))}
     </div>
   )
@@ -2620,14 +2828,24 @@ function ConstructionManagerModal({
   onBuild,
   onDestroy,
   isSubmitting,
+  rules,
+  turnBuildingsBuilt = [],
+  turnPurchasedProperties = [],
+  activeLanding = null,
 }: {
   activePlayer: EnginePlayer
   close: () => void
   onBuild: (propertyId: string) => Promise<void>
   onDestroy: (propertyId: string) => Promise<void>
   isSubmitting: boolean
+  rules?: GameRules
+  turnBuildingsBuilt?: string[]
+  turnPurchasedProperties?: string[]
+  activeLanding?: { propertyId: string | null; position: number; isActive: boolean } | null
 }) {
   const [filterGroup, setFilterGroup] = useState<string>("ALL")
+
+  const isRequireLanding = rules?.requireLandingToBuild ?? false
 
   // Find all city properties owned by active player
   const ownedCityProps = useMemo(() => {
@@ -2667,7 +2885,9 @@ function ConstructionManagerModal({
       </div>
 
       <div className="construction-subhead">
-        ANYWHERE-BUILDING ACTIVE · NO LANDING REQUIRED
+        {isRequireLanding
+          ? "BUILD MODE A — LAND TO BUILD ACTIVE · MUST BE ON PROPERTY"
+          : "BUILD MODE B — BUILD FROM ANYWHERE ACTIVE · MAX 1 BUILD PER PROPERTY PER TURN"}
       </div>
 
       <div className="activity-log-filter-row" style={{ margin: "6px 0 10px" }}>
@@ -2697,8 +2917,17 @@ function ConstructionManagerModal({
             const groupComplete = isGroupComplete(city.colorGroup)
             const { count, total } = getGroupOwnedCount(city.colorGroup)
 
+            const propSpaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === city.id)
+            const isCurrentlyOnProperty = activePlayer.position === propSpaceIndex
+            const isLandingEligible = activeLanding
+              ? (activeLanding.isActive && activeLanding.propertyId === city.id && activeLanding.position === propSpaceIndex)
+              : isCurrentlyOnProperty
+
+            const purchasedThisTurn = turnPurchasedProperties.includes(city.id)
+            const builtThisTurn = turnBuildingsBuilt.includes(city.id)
+
             const canAfford = activePlayer.money >= city.buildingCost
-            const canBuild = !isMortgaged && bCount < 4 && canAfford
+            let canBuild = !isMortgaged && bCount < 4 && canAfford && !purchasedThisTurn && (isRequireLanding ? (isCurrentlyOnProperty && isLandingEligible) : !builtThisTurn)
             const canDestroy = bCount > 0
 
             // 50% refund, rounded to nearest 100
@@ -2706,9 +2935,23 @@ function ConstructionManagerModal({
 
             // Reason if cannot build
             let buildReason = ""
-            if (bCount >= 4) buildReason = "Max Level (Hotel reached)"
-            else if (isMortgaged) buildReason = "Property is mortgaged"
-            else if (!canAfford) buildReason = `Needs Rs${city.buildingCost.toLocaleString()} (Short Rs${(city.buildingCost - activePlayer.money).toLocaleString()})`
+            if (canBuild) {
+              buildReason = ""
+            } else if (bCount >= 4) {
+              buildReason = "Maximum construction limit reached (Hotel)."
+            } else if (isMortgaged) {
+              buildReason = "Property is mortgaged."
+            } else if (purchasedThisTurn) {
+              buildReason = "You must wait until your next turn to build on this property."
+            } else if (isRequireLanding && !isLandingEligible) {
+              buildReason = "Land on this property during your turn to build."
+            } else if (isRequireLanding && !isCurrentlyOnProperty) {
+              buildReason = "You must be on this property to build."
+            } else if (!isRequireLanding && builtThisTurn) {
+              buildReason = "You have already built on this property this turn."
+            } else if (!canAfford) {
+              buildReason = `Needs ₹${city.buildingCost.toLocaleString()} (Short ₹${(city.buildingCost - activePlayer.money).toLocaleString()})`
+            }
 
             const nextBType = bCount === 3 ? "Hotel" : `House #${bCount + 1}`
 
@@ -2751,7 +2994,7 @@ function ConstructionManagerModal({
                 <div className="construction-card-body">
                   <div className="construction-metrics">
                     <span>
-                      Rent: Rs{(
+                      Rent: ₹{(
                         bCount === 4
                           ? city.hotelRent
                           : bCount === 3
@@ -2763,12 +3006,12 @@ function ConstructionManagerModal({
                                 : city.baseRent
                       ).toLocaleString()}
                     </span>
-                    <span>Build Cost: Rs{city.buildingCost.toLocaleString()}</span>
+                    <span>Build Cost: ₹{city.buildingCost.toLocaleString()}</span>
                   </div>
 
                   {!canBuild && buildReason && (
                     <div className="construction-reason">
-                      ⚠️ {buildReason}
+                      {buildReason}
                     </div>
                   )}
 
@@ -2782,7 +3025,15 @@ function ConstructionManagerModal({
                         ? "..."
                         : bCount >= 4
                           ? "HOTEL REACHED"
-                          : `BUILD ${nextBType.toUpperCase()} · Rs${city.buildingCost.toLocaleString()}`}
+                          : purchasedThisTurn
+                            ? "WAIT UNTIL NEXT TURN"
+                            : isRequireLanding && !isCurrentlyOnProperty
+                              ? "MUST BE ON PROPERTY"
+                              : isRequireLanding && !isLandingEligible
+                                ? "LAND ON PROPERTY TO BUILD"
+                                : !isRequireLanding && builtThisTurn
+                                  ? "BUILT THIS TURN"
+                                  : `BUILD ${nextBType.toUpperCase()} · ₹${city.buildingCost.toLocaleString()}`}
                     </Button>
                     {canDestroy && (
                       <Button
@@ -2792,7 +3043,7 @@ function ConstructionManagerModal({
                         className="btn-sm"
                         style={{ background: "rgba(113, 31, 49, 0.2)", borderColor: "var(--red)" }}
                       >
-                        DESTROY ({bCount === 4 ? "HOTEL" : "HOUSE"}) · +Rs{destroyRefund.toLocaleString()}
+                        DESTROY ({bCount === 4 ? "HOTEL" : "HOUSE"}) · +₹{destroyRefund.toLocaleString()}
                       </Button>
                     )}
                   </div>
@@ -2893,7 +3144,7 @@ function PropertyVisual({
                 borderColor: ownerColor ? getPlayerColorHex(ownerColor) : "rgba(16, 185, 129, 0.6)",
               }}
             >
-              OWNED BY YOU{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
+              OWNED BY YOU{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} ${buildingCount === 1 ? "HOUSE" : "HOUSES"}`})` : ""}
             </span>
           ) : ownerName ? (
             <span
@@ -2905,7 +3156,7 @@ function PropertyVisual({
                 boxShadow: ownerColor ? `0 0 7px 1.5px ${getPlayerColorHex(ownerColor)}88` : "0 0 6px rgba(0,0,0,0.2)",
               }}
             >
-              OWNED BY {ownerName.toUpperCase()}{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} 🏠`})` : ""}
+              OWNED BY {ownerName.toUpperCase()}{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} ${buildingCount === 1 ? "HOUSE" : "HOUSES"}`})` : ""}
             </span>
           ) : null}
           <MortgageStatusIndicator
@@ -2920,7 +3171,7 @@ function PropertyVisual({
           <div className="rent-table">
             {isMortgaged && (
               <div className="rent-suspended-banner">
-                <span>⚠️ RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
+                <span>RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
               </div>
             )}
             <div
@@ -3029,7 +3280,7 @@ function PropertyVisual({
           <div className="rent-table">
             {isMortgaged && (
               <div className="rent-suspended-banner">
-                <span>⚠️ RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
+                <span>RENT SUSPENDED WHILE MORTGAGED · ₹0 DUE</span>
               </div>
             )}
             <div
@@ -3158,6 +3409,12 @@ function GameModal({
   isLeavingRoom = false,
   roomCode,
   onKickPlayer,
+  turnBuildingsBuilt = [],
+  turnPurchasedProperties = [],
+  activeLanding = null,
+  currentTurnId = 1,
+  onUpdateTurnBuildings,
+  onUpdateTurnPurchased,
 }: {
   type: Exclude<Modal, null>
 
@@ -3209,6 +3466,12 @@ function GameModal({
   isGameStarted?: boolean
   isHost?: boolean
   onKickPlayer?: (playerId: number) => void
+  turnBuildingsBuilt?: string[]
+  turnPurchasedProperties?: string[]
+  activeLanding?: { propertyId: string | null; position: number; isActive: boolean } | null
+  currentTurnId?: number
+  onUpdateTurnBuildings?: (buildings: string[]) => void
+  onUpdateTurnPurchased?: (properties: string[]) => void
 }) {
   if (type === "trade") {
     return (
@@ -3343,6 +3606,7 @@ function GameModal({
         onUpdateRules={onUpdateRules}
         isGameStarted={isGameStarted}
         isHost={isHost}
+        roomCode={roomCode || multiplayerClient.getRoomCode() || undefined}
         close={close}
       />
     )
@@ -3353,7 +3617,6 @@ function GameModal({
     return (
       <ModalShell title="RESIGN MATCH" close={close}>
         <div style={{ padding: "18px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: "36px", marginBottom: "8px" }}>🏳️</div>
           <p style={{ color: "var(--ink)", fontSize: "14px", marginBottom: "8px", fontWeight: 700 }}>
             Surrender & Resign from the Match?
           </p>
@@ -3411,7 +3674,7 @@ function GameModal({
                 onEndSession?.()
               }}
             >
-              End Session Authoritatively
+              End Game
             </Button>
           </div>
         </div>
@@ -3424,7 +3687,6 @@ function GameModal({
     return (
       <ModalShell title="QUIT GAME" close={isLeavingRoom ? () => {} : close}>
         <div style={{ padding: "18px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: "36px", marginBottom: "8px" }}>🚪</div>
           <p style={{ color: "var(--ink)", fontSize: "14px", marginBottom: "8px", fontWeight: 700 }}>
             Quit Game & Return to Main Menu?
           </p>
@@ -3468,11 +3730,22 @@ function GameModal({
         activePlayer={activePlayer}
         close={close}
         isSubmitting={false}
+        rules={rules}
+        turnBuildingsBuilt={turnBuildingsBuilt}
+        turnPurchasedProperties={turnPurchasedProperties}
+        activeLanding={activeLanding}
         onBuild={async (propId) => {
           const res = await defaultEngine.buildHouseOrHotel(activePlayerIndex, propId)
           if (res.success && setPlayers) {
             audioSystem.playBuild()
             setPlayers(res.state.players)
+            if (onUpdateTurnBuildings) {
+              if (res.state.turnBuildingsBuilt) {
+                onUpdateTurnBuildings(res.state.turnBuildingsBuilt)
+              } else if (!rules?.requireLandingToBuild) {
+                onUpdateTurnBuildings(Array.from(new Set([...turnBuildingsBuilt, propId])))
+              }
+            }
             const count = res.state.players[activePlayerIndex]?.buildings[propId] || 0
             const isHotel = count === 4
             const propName = CITY_PROPERTIES[propId]?.name || propId
@@ -3491,8 +3764,21 @@ function GameModal({
               description: bMsg,
             })
             onShowToast?.(bMsg)
+            try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
           } else {
             audioSystem.playWarning()
+            const errMsg = res.error || (
+              res.reason === "PROPERTY_PURCHASED_THIS_TURN"
+                ? "You must wait until your next turn to build on this property."
+                : res.reason === "MODE_A_PLAYER_NOT_ON_PROPERTY"
+                ? "You must be on this property to build."
+                : res.reason === "MODE_A_MUST_LAND_HERE"
+                ? "Land on this property during your turn to build."
+                : res.reason === "MODE_B_BUILD_ALLOWANCE_USED"
+                ? "You have already built on this property this turn."
+                : "Building request rejected by authoritative game engine."
+            )
+            onShowToast?.(errMsg)
           }
         }}
         onDestroy={async (propId) => {
@@ -3605,12 +3891,42 @@ function GameModal({
       (s) => s.propertyId === selectedProperty.id,
     )
 
-    const canBuild =
+    const isRequireLanding = rules?.requireLandingToBuild ?? false
+    const isCurrentlyOnProperty = (playerPositions && playerPositions[activePlayerIndex] === propSpaceIndex) || (activePlayer.position === propSpaceIndex)
+    const isLandingEligible = activeLanding
+      ? (activeLanding.isActive && activeLanding.propertyId === selectedProperty.id && activeLanding.position === propSpaceIndex)
+      : isCurrentlyOnProperty
+
+    const purchasedThisTurn = turnPurchasedProperties?.includes(selectedProperty.id) ?? false
+    const builtThisTurn = turnBuildingsBuilt?.includes(selectedProperty.id) ?? false
+
+    let canBuild =
       isCity &&
       !!city &&
       userMoney >= buildCost &&
       currentBuildings < 4 &&
-      !activePlayer.mortgages[selectedProperty.id]
+      !activePlayer.mortgages[selectedProperty.id] &&
+      !purchasedThisTurn &&
+      (isRequireLanding ? (isCurrentlyOnProperty && isLandingEligible) : !builtThisTurn)
+
+    let buildReason = ""
+    if (canBuild) {
+      buildReason = ""
+    } else if (currentBuildings >= 4) {
+      buildReason = "Maximum construction limit reached (Hotel)."
+    } else if (activePlayer.mortgages[selectedProperty.id]) {
+      buildReason = "Property is mortgaged."
+    } else if (purchasedThisTurn) {
+      buildReason = "You must wait until your next turn to build on this property."
+    } else if (isRequireLanding && !isLandingEligible) {
+      buildReason = "Land on this property during your turn to build."
+    } else if (isRequireLanding && !isCurrentlyOnProperty) {
+      buildReason = "You must be on this property to build."
+    } else if (!isRequireLanding && builtThisTurn) {
+      buildReason = "You have already built on this property this turn."
+    } else if (userMoney < buildCost) {
+      buildReason = `Cannot afford · Need ₹${buildCost.toLocaleString()}`
+    }
 
     const handleConfirmBuild = async () => {
       if (!canBuild || isSubmitting) return
@@ -3624,8 +3940,28 @@ function GameModal({
         if (res.success && setPlayers) {
           audioSystem.playBuild()
           setPlayers(res.state.players)
+          if (onUpdateTurnBuildings) {
+            if (res.state.turnBuildingsBuilt) {
+              onUpdateTurnBuildings(res.state.turnBuildingsBuilt)
+            } else if (!rules?.requireLandingToBuild) {
+              onUpdateTurnBuildings(Array.from(new Set([...turnBuildingsBuilt, selectedProperty.id])))
+            }
+          }
+          try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
         } else {
           audioSystem.playWarning()
+          const errMsg = res.error || (
+            res.reason === "PROPERTY_PURCHASED_THIS_TURN"
+              ? "You must wait until your next turn to build on this property."
+              : res.reason === "MODE_A_PLAYER_NOT_ON_PROPERTY"
+              ? "You must be on this property to build."
+              : res.reason === "MODE_A_MUST_LAND_HERE"
+              ? "Land on this property during your turn to build."
+              : res.reason === "MODE_B_BUILD_ALLOWANCE_USED"
+              ? "You have already built on this property this turn."
+              : "Building request rejected by authoritative game engine."
+          )
+          onShowToast?.(errMsg)
         }
       } finally {
         setIsSubmitting(false)
@@ -3643,7 +3979,7 @@ function GameModal({
             className="tiny-building"
             style={{ background: groupTheme.accent }}
           >
-            {currentBuildings >= 3 ? "H" : "🏠"}
+            {currentBuildings >= 3 ? "H" : "B"}
           </div>
           <span>
             <small>
@@ -3675,31 +4011,30 @@ function GameModal({
           <span>BALANCE AFTER</span>
           <b>Rs{balanceAfter.toLocaleString()}</b>
         </div>
-        {!ownsCompleteGroup && (
+        <div
+          className="lobby-tip"
+          style={{ borderLeftColor: isRequireLanding ? "var(--gold)" : "var(--green)", marginTop: "8px" }}
+        >
+          <span>{isRequireLanding ? "BUILD MODE A — LAND TO BUILD ACTIVE" : "BUILD MODE B — BUILD FROM ANYWHERE ACTIVE"}</span>
+          {isRequireLanding
+            ? "Must land on a previously owned property and remain there during the same logical turn. Cannot build on the turn purchased."
+            : "No landing requirement. Maximum 1 build per property per logical turn. Cannot build on the turn purchased."}
+        </div>
+        {buildReason && !canBuild && (
           <div
             className="lobby-tip"
             style={{ borderLeftColor: "var(--red)", marginTop: "8px" }}
           >
-            <span>RULE REQUIREMENT</span>Must own all 5 properties in{" "}
-            {groupTheme.label} before building.
+            <span>BUILDING RESTRICTION</span>
+            {buildReason}
           </div>
         )}
-        <div
-          className="lobby-tip"
-          style={{ borderLeftColor: "var(--green)", marginTop: "8px" }}
-        >
-          <span>ANYWHERE-BUILDING ACTIVE</span>Construct on eligible owned properties from anywhere during your turn.
-        </div>
         <Button onClick={handleConfirmBuild} disabled={!canBuild || isSubmitting}>
           {isSubmitting
             ? "CONSTRUCTING..."
-            : currentBuildings >= 4
-              ? "MAX BUILDINGS REACHED"
-              : !ownsCompleteGroup
-                ? "OWN COMPLETE GROUP FIRST"
-                : userMoney < buildCost
-                  ? `CANNOT AFFORD · NEED ₹${buildCost.toLocaleString()}`
-                  : `CONFIRM BUILD · Rs${buildCost.toLocaleString()}`}
+            : buildReason && !canBuild
+              ? buildReason
+              : `CONFIRM BUILD · Rs${buildCost.toLocaleString()}`}
         </Button>
         <Button variant="ghost" onClick={close}>
           CANCEL
@@ -3761,7 +4096,7 @@ function GameModal({
             className="tiny-building"
             style={{ background: "var(--burgundy)" }}
           >
-            {isHotel ? "H" : "🏠"}
+            {isHotel ? "H" : "B"}
           </div>
           <span>
             <small>{selectedProperty.name.toUpperCase()}</small>
@@ -4081,21 +4416,50 @@ function GameModal({
     const redemptionFee = Math.ceil(rawFee / 100) * 100
     const redemptionCost = mortgageVal + redemptionFee
 
+    const propSpaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === propId)
+    const isRequireLanding = rules?.requireLandingToBuild ?? false
+    const isLandedHere = (playerPositions && playerPositions[activePlayerIndex] === propSpaceIndex) || (activePlayer.position === propSpaceIndex)
+    const isLandingEligible = activeLanding
+      ? (activeLanding.isActive && activeLanding.propertyId === propId && activeLanding.position === propSpaceIndex)
+      : isLandedHere
+
+    const purchasedThisTurn = turnPurchasedProperties?.includes(propId) ?? false
+    const builtThisTurn = turnBuildingsBuilt?.includes(propId) ?? false
+
     const buildCost = city?.buildingCost || 0
-    const canBuild =
+    let canBuild =
       canAct &&
       isCity &&
       !isMortgaged &&
       buildings < 4 &&
-      propOwner.money >= buildCost
+      propOwner.money >= buildCost &&
+      !purchasedThisTurn &&
+      (isRequireLanding ? (isLandedHere && isLandingEligible) : !builtThisTurn)
+
+    let buildReason = ""
+    if (canBuild) {
+      buildReason = ""
+    } else if (buildings >= 4) {
+      buildReason = "Maximum construction limit reached (Hotel)."
+    } else if (isMortgaged) {
+      buildReason = "Property is mortgaged."
+    } else if (purchasedThisTurn) {
+      buildReason = "You must wait until your next turn to build on this property."
+    } else if (isRequireLanding && !isLandingEligible) {
+      buildReason = "Land on this property during your turn to build."
+    } else if (isRequireLanding && !isLandedHere) {
+      buildReason = "You must be on this property to build."
+    } else if (!isRequireLanding && builtThisTurn) {
+      buildReason = "You have already built on this property this turn."
+    } else if (propOwner.money < buildCost) {
+      buildReason = `Cannot afford · Need ₹${buildCost.toLocaleString()}`
+    }
 
     const refund = Math.ceil(Math.floor((buildCost * 50) / 100) / 100) * 100
     const canDestroy = canAct && isCity && buildings > 0
     const canMortgage = isOwner && !isMortgaged && buildings === 0
     const canRedeem = isOwner && isMortgaged && propOwner.money >= redemptionCost
 
-    const propSpaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === propId)
-    const isLandedHere = playerPositions && playerPositions[activePlayerIndex] === propSpaceIndex
     const isEligibleToBuy =
       isUnowned &&
       isLandedHere &&
@@ -4112,6 +4476,14 @@ function GameModal({
         if (res.success && setPlayers) {
           audioSystem.playPurchase()
           setPlayers(res.state.players)
+          if (res.state.turnPurchasedProperties && onUpdateTurnPurchased) {
+            onUpdateTurnPurchased(res.state.turnPurchasedProperties)
+          } else if (onUpdateTurnPurchased) {
+            onUpdateTurnPurchased(Array.from(new Set([...(turnPurchasedProperties || []), propId])))
+          }
+          if (res.state.turnBuildingsBuilt && onUpdateTurnBuildings) {
+            onUpdateTurnBuildings(res.state.turnBuildingsBuilt)
+          }
           onAddGameplayEvent?.({
             id: `card_buy_${Date.now()}_${activePlayer.id}_${propId}`,
             type: "BUY",
@@ -4155,6 +4527,13 @@ function GameModal({
         if (res.success && setPlayers) {
           audioSystem.playBuild()
           setPlayers(res.state.players)
+          if (onUpdateTurnBuildings) {
+            if (res.state.turnBuildingsBuilt) {
+              onUpdateTurnBuildings(res.state.turnBuildingsBuilt)
+            } else if (!rules?.requireLandingToBuild) {
+              onUpdateTurnBuildings(Array.from(new Set([...turnBuildingsBuilt, propId])))
+            }
+          }
           const count = res.state.players.find((p) => p.id === propOwner.id)?.buildings[propId] || 0
           const isHotel = count === 4
           const pName = propOwner.name
@@ -4177,6 +4556,18 @@ function GameModal({
           } catch (_) {}
         } else {
           audioSystem.playWarning()
+          const errMsg = res.error || (
+            res.reason === "PROPERTY_PURCHASED_THIS_TURN"
+              ? "You must wait until your next turn to build on this property."
+              : res.reason === "MODE_A_PLAYER_NOT_ON_PROPERTY"
+              ? "You must be on this property to build."
+              : res.reason === "MODE_A_MUST_LAND_HERE"
+              ? "Land on this property during your turn to build."
+              : res.reason === "MODE_B_BUILD_ALLOWANCE_USED"
+              ? "You have already built on this property this turn."
+              : "Building request rejected by authoritative game engine."
+          )
+          onShowToast?.(errMsg)
         }
       } finally {
         setIsSubmitting(false)
@@ -4318,28 +4709,32 @@ function GameModal({
           {/* 1. Unowned case */}
           {isUnowned && isEligibleToBuy && (
             <div className="unowned-buy-controls">
-              <Button
-                onClick={handleBuyFromCard}
-                disabled={activePlayer.money < propPrice || isSubmitting}
-              >
-                {activePlayer.money < propPrice
-                  ? `CANNOT AFFORD · ₹${propPrice.toLocaleString()} (HAVE ₹${activePlayer.money.toLocaleString()})`
-                  : isSubmitting
-                  ? "BUYING..."
-                  : `BUY PROPERTY · ₹${propPrice.toLocaleString()}`}
-              </Button>
-              <Button variant="ghost" onClick={handleDeclineFromCard} disabled={isSubmitting}>
-                DON'T BUY
-              </Button>
+              {activePlayer.money >= propPrice ? (
+                <Button
+                  onClick={handleBuyFromCard}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting
+                    ? "BUYING..."
+                    : `BUY PROPERTY · ₹${propPrice.toLocaleString()}`}
+                </Button>
+              ) : (
+                <div className="unowned-inspection-note">
+                  <div className="unowned-status-heading">Unowned Property</div>
+                  <div className="unowned-status-desc">You can't afford this property.</div>
+                </div>
+              )}
             </div>
           )}
 
           {isUnowned && !isEligibleToBuy && (
             <div className="unowned-inspection-note">
-              <span>UNOWNED PROPERTY</span>
-              {activePlayer.rotationsCompleted === 0
-                ? "First rotation restriction: Land here after passing Start to purchase."
-                : `Land on ${propName} on your turn to purchase for ₹${propPrice.toLocaleString()}.`}
+              <div className="unowned-status-heading">Unowned Property</div>
+              <div className="unowned-status-desc">
+                {activePlayer.rotationsCompleted === 0
+                  ? "First rotation restriction: Land here after passing Start to purchase."
+                  : `Land on ${propName} on your turn to purchase for ₹${propPrice.toLocaleString()}.`}
+              </div>
             </div>
           )}
 
@@ -4377,12 +4772,8 @@ function GameModal({
                   >
                     {isSubmitting
                       ? "CONSTRUCTING..."
-                      : buildings >= 4
-                      ? "MAX HOTEL BUILT"
-                      : isMortgaged
-                      ? "PROPERTY MORTGAGED (CANNOT BUILD)"
-                      : propOwner.money < buildCost
-                      ? `CANNOT AFFORD · NEED ₹${buildCost.toLocaleString()}`
+                      : buildReason && !canBuild
+                      ? buildReason
                       : `BUILD ${buildings >= 3 ? "HOTEL" : "HOUSE"} · -₹${buildCost.toLocaleString()}`}
                   </Button>
 
@@ -4437,7 +4828,7 @@ function GameModal({
               >
                 {buildings > 0
                   ? "SELL BUILDINGS FIRST TO LIQUIDATE PROPERTY"
-                  : "🏷️ SELL PROPERTY · (5% DEPR. / ROUND)"}
+                  : "SELL PROPERTY · (5% DEPR. / ROUND)"}
               </Button>
             </div>
           )}
@@ -4508,6 +4899,7 @@ function GameScreen({
   onEndSession,
   rules,
   onUpdateRules,
+  setEngineRules: incomingSetEngineRules,
   isGameStarted = false,
   isHost = true,
   doublesRule = true,
@@ -4522,6 +4914,14 @@ function GameScreen({
   pendingRequests: incomingPendingRequests,
   onAcceptJoinRequest: incomingAcceptJoinRequest,
   onRejectJoinRequest: incomingRejectJoinRequest,
+  turnBuildingsBuilt: incomingTurnBuildingsBuilt,
+  setTurnBuildingsBuilt: incomingSetTurnBuildingsBuilt,
+  turnPurchasedProperties: incomingTurnPurchasedProperties,
+  setTurnPurchasedProperties: incomingSetTurnPurchasedProperties,
+  activeLanding: incomingActiveLanding,
+  setActiveLanding: incomingSetActiveLanding,
+  currentTurnId: incomingCurrentTurnId,
+  setCurrentTurnId: incomingSetCurrentTurnId,
 }: {
   navigate: (screen: Screen) => void
 
@@ -4577,6 +4977,7 @@ function GameScreen({
   onEndSession?: () => void
   rules?: GameRules
   onUpdateRules?: (rules: Partial<GameRules>) => Promise<{ success: boolean; error?: string }>
+  setEngineRules?: (rules: Partial<GameRules> | ((prev: GameRules) => GameRules)) => void
   isGameStarted?: boolean
   isHost?: boolean
   doublesRule?: boolean
@@ -4591,6 +4992,14 @@ function GameScreen({
   pendingRequests?: PendingJoinRequest[]
   onAcceptJoinRequest?: (requestId: string) => void
   onRejectJoinRequest?: (requestId: string) => void
+  turnBuildingsBuilt?: string[]
+  setTurnBuildingsBuilt?: React.Dispatch<React.SetStateAction<string[]>>
+  turnPurchasedProperties?: string[]
+  setTurnPurchasedProperties?: React.Dispatch<React.SetStateAction<string[]>>
+  activeLanding?: { propertyId: string | null; position: number; isActive: boolean } | null
+  setActiveLanding?: React.Dispatch<React.SetStateAction<{ propertyId: string | null; position: number; isActive: boolean } | null>>
+  currentTurnId?: number
+  setCurrentTurnId?: React.Dispatch<React.SetStateAction<number>>
 }) {
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
   const [isResigning, setIsResigning] = useState(false)
@@ -4618,7 +5027,7 @@ function GameScreen({
       showToast("You have surrendered and resigned from the match.")
       setModal(null)
     } catch (err: any) {
-      showToast(`⚠️ Resignation failed: ${err?.message || "Communication error"}`)
+      showToast(`Resignation failed: ${err?.message || "Communication error"}`)
     } finally {
       setIsResigning(false)
     }
@@ -4631,7 +5040,7 @@ function GameScreen({
       if (multiplayerClient.getRoomCode()) {
         const res = await multiplayerClient.leaveRoom()
         if (res && (res as any).error) {
-          showToast(`⚠️ Could not leave room: ${(res as any).error}`)
+          showToast(`Could not leave room: ${(res as any).error}`)
           setIsLeavingRoom(false)
           return
         }
@@ -4641,15 +5050,15 @@ function GameScreen({
       setModal(null)
       navigate("menu")
     } catch (err: any) {
-      showToast(`⚠️ Leave room failed: ${err?.message || "Communication error"}`)
+      showToast(`Leave room failed: ${err?.message || "Communication error"}`)
       setIsLeavingRoom(false)
     }
   }
 
   const isEffectiveHost = Boolean(
-    isHost ||
-    localPlayerId === 0 ||
-    (multiplayerClient.getLatestSnapshot() && localPlayerId === multiplayerClient.getLatestSnapshot()?.hostPlayerId)
+    Boolean(roomCode || multiplayerClient.getRoomCode())
+      ? (localPlayerId !== null && (multiplayerClient.getLatestSnapshot()?.actingHostPlayerId ?? multiplayerClient.getLatestSnapshot()?.hostPlayerId) === localPlayerId)
+      : (localPlayerId === 0 || isHost)
   )
 
   const [localPendingRequests, setLocalPendingRequests] = useState<PendingJoinRequest[]>(() => {
@@ -4662,7 +5071,7 @@ function GameScreen({
         if (prev.some((r) => r.requestId === req.requestId)) return prev
         return [...prev, req]
       })
-      showToast(`🔔 Join request from ${req.name}!`)
+      showToast(`Join request from ${req.name}!`)
     })
 
     const unsubSnap = multiplayerClient.onSnapshot((snap) => {
@@ -4699,11 +5108,11 @@ function GameScreen({
         await incomingAcceptJoinRequest(requestId)
       } else {
         await multiplayerClient.respondJoinRequest(requestId, "ACCEPT")
-        showToast("✅ Player admitted to the table!")
+        showToast("Player admitted to the table!")
       }
       setLocalPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
     } catch (err: any) {
-      showToast(`❌ ${err?.message || "Failed to admit player"}`)
+      showToast(err?.message || "Failed to admit player")
     }
   }
 
@@ -4717,7 +5126,7 @@ function GameScreen({
       }
       setLocalPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
     } catch (err: any) {
-      showToast(`❌ ${err?.message || "Failed to reject player"}`)
+      showToast(err?.message || "Failed to reject player")
     }
   }
 
@@ -4850,7 +5259,21 @@ function GameScreen({
 
   // ── SIDE ACTION PANEL ──
   const [sideActionsOpen, setSideActionsOpen] = useState<boolean>(false)
-  const [engineRules, setEngineRules] = useState<GameRules | null>(null)
+  const engineRules = rules ?? null
+  const setEngineRules = useCallback(
+    (newRules: Partial<GameRules> | ((prev: GameRules) => GameRules)) => {
+      if (incomingSetEngineRules) {
+        incomingSetEngineRules(newRules)
+      } else if (onUpdateRules) {
+        if (typeof newRules === "function") {
+          onUpdateRules(newRules(rules ?? ({} as any)))
+        } else {
+          onUpdateRules(newRules)
+        }
+      }
+    },
+    [incomingSetEngineRules, onUpdateRules, rules],
+  )
 
   const addGameplayEvent = (entry: GameplayEventEntry) => {
     effectiveSetEventLogList((prev) => {
@@ -4868,9 +5291,11 @@ function GameScreen({
 
   const activePlayer = players[activePlayerIndex] || players[0]
 
-  // Authoritative Turn Identity: Current client must match authoritative active player index
+  const isMultiplayer = Boolean(roomCode || multiplayerClient.getRoomCode())
+
+  // Authoritative Turn Identity: In multiplayer must match localPlayerId; in local pass-and-play, any active player can act
   const isHumanTurn = Boolean(
-    activePlayerIndex === localPlayerId &&
+    (!isMultiplayer || activePlayerIndex === localPlayerId) &&
     turnState !== "GAME_OVER"
   )
 
@@ -4885,10 +5310,76 @@ function GameScreen({
   const timerFiredRef = useRef<boolean>(false)
   const advanceTurnTimeoutRef = useRef<number | null>(null)
   const turnEpochRef = useRef<number>(0)
+  const prevActivePlayerIndexRef = useRef<number>(activePlayerIndex)
+
+interface ActivePurchaseOpportunity {
+  propertyId: string
+  propertyName: string
+  purchasePrice: number
+  colorGroup?: string
+  buyerId: number
+  buyerName: string
+  turnId: number
+  skipped: boolean
+  purchased: boolean
+}
 
   // ── NON-MODAL BOARD-CENTRE PROPERTY PURCHASE STATE ──
   const [pendingPurchase, setPendingPurchase] = useState<PendingPurchaseInfo | null>(null)
+  const [purchaseOpportunity, setPurchaseOpportunity] = useState<ActivePurchaseOpportunity | null>(null)
+  const purchaseOpportunityRef = useRef<ActivePurchaseOpportunity | null>(null)
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState<boolean>(false)
+
+  // Authoritative building rules state (synchronized with App / server snapshots)
+  const [internalTurnBuildingsBuilt, internalSetTurnBuildingsBuilt] = useState<string[]>([])
+  const turnBuildingsBuilt = incomingTurnBuildingsBuilt ?? internalTurnBuildingsBuilt
+  const setTurnBuildingsBuilt = incomingSetTurnBuildingsBuilt ?? internalSetTurnBuildingsBuilt
+
+  const [internalTurnPurchasedProperties, internalSetTurnPurchasedProperties] = useState<string[]>([])
+  const turnPurchasedProperties = incomingTurnPurchasedProperties ?? internalTurnPurchasedProperties
+  const setTurnPurchasedProperties = incomingSetTurnPurchasedProperties ?? internalSetTurnPurchasedProperties
+
+  const [internalActiveLanding, internalSetActiveLanding] = useState<{ propertyId: string | null; position: number; isActive: boolean } | null>(null)
+  const activeLanding = incomingActiveLanding !== undefined ? incomingActiveLanding : internalActiveLanding
+  const setActiveLanding = incomingSetActiveLanding ?? internalSetActiveLanding
+
+  const [internalCurrentTurnId, internalSetCurrentTurnId] = useState<number>(1)
+  const currentTurnId = incomingCurrentTurnId ?? internalCurrentTurnId
+  const setCurrentTurnId = incomingSetCurrentTurnId ?? internalSetCurrentTurnId
+
+  // Re-evaluate affordability during active turn if player gains funds (e.g. mortgaging or trading)
+  useEffect(() => {
+    if (!purchaseOpportunity || purchaseOpportunity.skipped || purchaseOpportunity.purchased) {
+      return
+    }
+    const propId = purchaseOpportunity.propertyId
+    const isAlreadyOwned = players.some((p) => p.ownedProperties?.includes(propId))
+    if (isAlreadyOwned) {
+      setPurchaseOpportunity((prev) => (prev ? { ...prev, purchased: true } : null))
+      if (purchaseOpportunityRef.current) purchaseOpportunityRef.current.purchased = true
+      setPendingPurchase(null)
+      return
+    }
+
+    const buyer = players.find((p) => p.id === purchaseOpportunity.buyerId) || players[purchaseOpportunity.buyerId]
+    if (!buyer) return
+    const canAfford = buyer.money >= purchaseOpportunity.purchasePrice
+
+    if (canAfford && !pendingPurchase) {
+      setPendingPurchase({
+        propertyId: purchaseOpportunity.propertyId,
+        propertyName: purchaseOpportunity.propertyName,
+        purchasePrice: purchaseOpportunity.purchasePrice,
+        colorGroup: purchaseOpportunity.colorGroup,
+        buyerId: purchaseOpportunity.buyerId,
+        buyerName: buyer.name,
+        buyerMoney: buyer.money,
+        canAfford: true,
+      })
+    } else if (!canAfford && pendingPurchase) {
+      setPendingPurchase(null)
+    }
+  }, [players, purchaseOpportunity, pendingPurchase])
 
   // Configurable gliding animation step duration
   const currentStepDuration = useMemo(() => {
@@ -5005,20 +5496,25 @@ function GameScreen({
 
   // Invalidate pending callbacks and reset state on active player change
   useEffect(() => {
-    turnEpochRef.current += 1
-    timerFiredRef.current = false
-    if (advanceTurnTimeoutRef.current !== null) {
-      window.clearTimeout(advanceTurnTimeoutRef.current)
-      advanceTurnTimeoutRef.current = null
+    if (prevActivePlayerIndexRef.current !== activePlayerIndex) {
+      prevActivePlayerIndexRef.current = activePlayerIndex
+      turnEpochRef.current += 1
+      timerFiredRef.current = false
+      if (advanceTurnTimeoutRef.current !== null) {
+        window.clearTimeout(advanceTurnTimeoutRef.current)
+        advanceTurnTimeoutRef.current = null
+      }
+      isEndingTurnRef.current = false
+      setPendingPurchase(null)
+      setPurchaseOpportunity(null)
+      purchaseOpportunityRef.current = null
+      if (isHumanTurn) {
+        const initialSec = turnTimer?.remainingSeconds ?? currentTurnDuration
+        setHumanTimeRemaining(initialSec > 0 ? initialSec : currentTurnDuration)
+        setHasRolledThisTurn(false)
+      }
     }
-    isEndingTurnRef.current = false
-    setPendingPurchase(null)
-    if (isHumanTurn) {
-      const initialSec = turnTimer?.remainingSeconds ?? currentTurnDuration
-      setHumanTimeRemaining(initialSec > 0 ? initialSec : currentTurnDuration)
-      setHasRolledThisTurn(false)
-    }
-  }, [activePlayerIndex, isHumanTurn, currentTurnDuration])
+  }, [activePlayerIndex, isHumanTurn, currentTurnDuration, turnTimer?.remainingSeconds])
 
   // Steady 1-second countdown for human turn. When reaching zero, trigger authoritative engine timeout
   useEffect(() => {
@@ -5054,7 +5550,7 @@ function GameScreen({
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
   }
 
-  // End Turn Action: Allowed only after mandatory actions resolved, prohibited on doubles, pending purchases, and negative debt
+  // End Turn Action: Allowed only after mandatory actions resolved, prohibited on doubles and negative debt
   const canEndTurn = Boolean(
     isHumanTurn &&
     !rolling &&
@@ -5062,7 +5558,6 @@ function GameScreen({
     !diceRolling &&
     !diceSettling &&
     modal === null &&
-    !pendingPurchase &&
     activePlayer.money >= 0 &&
     turnState !== "WAITING_FOR_ROLL" &&
     turnState !== "ROLLING" &&
@@ -5103,6 +5598,12 @@ function GameScreen({
       if (res.success) {
         purchaseSucceeded = true
         audioSystem.playPurchase()
+        if (purchaseOpportunityRef.current) {
+          purchaseOpportunityRef.current.purchased = true
+        }
+        setPurchaseOpportunity((prev) => (prev ? { ...prev, purchased: true } : null))
+        setPendingPurchase(null)
+
         const mergedPlayers = res.state.players.map((p, pIdx) => {
           let name = p.name
           let color = p.color
@@ -5116,6 +5617,20 @@ function GameScreen({
         })
         setPlayers(mergedPlayers)
         setTurnState(res.state.turnState)
+        if (res.state.turnPurchasedProperties) {
+          setTurnPurchasedProperties(res.state.turnPurchasedProperties)
+        } else {
+          setTurnPurchasedProperties((prev) => Array.from(new Set([...prev, pendingPurchase.propertyId])))
+        }
+        if (res.state.turnBuildingsBuilt) {
+          setTurnBuildingsBuilt(res.state.turnBuildingsBuilt)
+        }
+        if (res.state.activeLanding !== undefined) {
+          setActiveLanding(res.state.activeLanding)
+        }
+        if (res.state.currentTurnId !== undefined) {
+          setCurrentTurnId(res.state.currentTurnId)
+        }
         if (res.state.turnState === "EXTRA_TURN") {
           setHasRolledThisTurn(false)
         }
@@ -5139,7 +5654,7 @@ function GameScreen({
           amount: pendingPurchase.purchasePrice,
           durationMs: 1000,
           timestamp: Date.now(),
-          icon: "🏛️",
+          icon: "",
         })
         try {
           new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" })
@@ -5155,7 +5670,7 @@ function GameScreen({
           message: errMsg,
           durationMs: 1500,
           timestamp: Date.now(),
-          icon: "⚠️",
+          icon: "",
         })
       }
     } finally {
@@ -5172,6 +5687,12 @@ function GameScreen({
     const buyer = players[buyerId] || players[0]
     setIsSubmittingPurchase(true)
     try {
+      if (purchaseOpportunityRef.current) {
+        purchaseOpportunityRef.current.skipped = true
+      }
+      setPurchaseOpportunity((prev) => (prev ? { ...prev, skipped: true } : null))
+      setPendingPurchase(null)
+
       const res = await defaultEngine.declinePropertyPurchase(buyerId)
       audioSystem.playWarning()
       if (res && res.state) {
@@ -5198,7 +5719,7 @@ function GameScreen({
         message: `${buyer.name} declined to buy ${pendingPurchase.propertyName}`,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "❌",
+        icon: "",
       })
     } finally {
       setIsSubmittingPurchase(false)
@@ -5215,6 +5736,12 @@ function GameScreen({
     isEndingTurnRef.current = true
     try {
       audioSystem.playTurnChange()
+      if (purchaseOpportunityRef.current) {
+        purchaseOpportunityRef.current.skipped = true
+      }
+      setPurchaseOpportunity((prev) => (prev ? { ...prev, skipped: true } : null))
+      setPendingPurchase(null)
+
       const res = await defaultEngine.endTurn(activePlayerIndex)
       if ((res as any).error) {
         showToast((res as any).error)
@@ -5222,7 +5749,11 @@ function GameScreen({
       }
       const nextState = res.state
       setHasRolledThisTurn(false)
-      syncAuthoritativeState()
+      // Immediately clear turn-scoped purchase and building tracking from next authoritative engine state
+      setTurnPurchasedProperties(nextState.turnPurchasedProperties ?? [])
+      setTurnBuildingsBuilt(nextState.turnBuildingsBuilt ?? [])
+      setActiveLanding(nextState.activeLanding ?? null)
+      if (nextState.currentTurnId !== undefined) setCurrentTurnId(nextState.currentTurnId)
       addGameplayEvent({
         id: `manual_end_${Date.now()}_${activePlayerIndex}`,
         type: "TURN_CHANGE",
@@ -5270,6 +5801,18 @@ function GameScreen({
             return { ...p, name, color }
           })
           setPlayers(mergedPlayers)
+          if (res.state.turnPurchasedProperties) {
+            setTurnPurchasedProperties(res.state.turnPurchasedProperties)
+          }
+          if (res.state.turnBuildingsBuilt) {
+            setTurnBuildingsBuilt(res.state.turnBuildingsBuilt)
+          }
+          if (res.state.activeLanding !== undefined) {
+            setActiveLanding(res.state.activeLanding)
+          }
+          if (res.state.currentTurnId !== undefined) {
+            setCurrentTurnId(res.state.currentTurnId)
+          }
           addGameplayEvent({
             id: `bot_buy_${Date.now()}_${botId}_${prop.id}`,
             type: "BUY",
@@ -5289,7 +5832,7 @@ function GameScreen({
             amount: price,
             durationMs: 1000,
             timestamp: Date.now(),
-            icon: "🏛️",
+            icon: "",
           })
           audioSystem.playPurchase()
           advanceTurn(res.state, 800)
@@ -5429,6 +5972,10 @@ function GameScreen({
       if (state.tradeOffers && setTradeOffers) {
         setTradeOffers(state.tradeOffers)
       }
+      if (state.turnBuildingsBuilt !== undefined) setTurnBuildingsBuilt(state.turnBuildingsBuilt || [])
+      if (state.turnPurchasedProperties !== undefined) setTurnPurchasedProperties(state.turnPurchasedProperties || [])
+      if (state.activeLanding !== undefined) setActiveLanding(state.activeLanding)
+      if (state.currentTurnId !== undefined) setCurrentTurnId(state.currentTurnId)
       if (
         !rollingRef.current &&
         !movingRef.current &&
@@ -5522,15 +6069,7 @@ function GameScreen({
         audioSystem.playDiceRoll()
       }
 
-      const tumbleTimer = window.setInterval(() => {
-        setDice([
-          Math.floor(Math.random() * 6) + 1,
-          Math.floor(Math.random() * 6) + 1,
-        ])
-      }, 45)
-
       await new Promise((r) => window.setTimeout(r, 220))
-      window.clearInterval(tumbleTimer)
 
       // Set authoritative dice from remote player's accepted roll
       setDice([evt.dice1, evt.dice2])
@@ -5663,14 +6202,24 @@ function GameScreen({
       window.clearTimeout(advanceTurnTimeoutRef.current)
       advanceTurnTimeoutRef.current = null
     }
-    const currentEpoch = turnEpochRef.current
+    setPendingPurchase(null)
+    setPurchaseOpportunity(null)
+    if (purchaseOpportunityRef.current) {
+      purchaseOpportunityRef.current = null
+    }
     advanceTurnTimeoutRef.current = window.setTimeout(() => {
       advanceTurnTimeoutRef.current = null
-      if (currentEpoch !== turnEpochRef.current) return
       audioSystem.playTurnChange()
       setActivePlayerIndex(engineState.activePlayerIndex)
+      if (!isMultiplayer && _setLocalPlayerId) {
+        _setLocalPlayerId(engineState.activePlayerIndex)
+      }
 
       setTurnState(engineState.turnState)
+      setTurnPurchasedProperties(engineState.turnPurchasedProperties ?? [])
+      setTurnBuildingsBuilt(engineState.turnBuildingsBuilt ?? [])
+      setActiveLanding(engineState.activeLanding ?? null)
+      if (engineState.currentTurnId !== undefined) setCurrentTurnId(engineState.currentTurnId)
       if (engineState.turnState === "GAME_OVER") {
         navigate("gameover")
       }
@@ -5718,6 +6267,19 @@ function GameScreen({
       setTurnTimer(engineState.turnTimer)
     }
 
+    if (engineState.turnPurchasedProperties !== undefined) {
+      setTurnPurchasedProperties(engineState.turnPurchasedProperties || [])
+    }
+    if (engineState.turnBuildingsBuilt !== undefined) {
+      setTurnBuildingsBuilt(engineState.turnBuildingsBuilt || [])
+    }
+    if (engineState.activeLanding !== undefined) {
+      setActiveLanding(engineState.activeLanding)
+    }
+    if (engineState.currentTurnId !== undefined) {
+      setCurrentTurnId(engineState.currentTurnId)
+    }
+
     // Determine authoritative doubles rule status and extra turn eligibility
     const isDoublesRuleActive = Boolean(
       engineRules?.doublesRuleEnabled ?? rules?.doublesRuleEnabled ?? doublesRule
@@ -5754,7 +6316,7 @@ function GameScreen({
         amount: 25000,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "🚩",
+        icon: "",
       })
     } else if (result.passStartBonusAwarded) {
       const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
@@ -5776,7 +6338,7 @@ function GameScreen({
         amount: 1500,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "🚩",
+        icon: "",
       })
     }
 
@@ -5799,7 +6361,7 @@ function GameScreen({
         message: jailMsg,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "⚖️",
+        icon: "",
       })
       if (isActingPlayerLocal || isHumanTurn) {
         setTurnState("WAITING_FOR_ACTION")
@@ -5839,7 +6401,7 @@ function GameScreen({
         message: visitMsg,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "⚖️",
+        icon: "",
       })
     }
 
@@ -5862,7 +6424,7 @@ function GameScreen({
         message: clubMsg,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "👑",
+        icon: "",
       })
     }
 
@@ -5885,7 +6447,7 @@ function GameScreen({
         message: restMsg,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "☕",
+        icon: "",
       })
       if (isActingPlayerLocal || isHumanTurn) {
         setTurnState("WAITING_FOR_ACTION")
@@ -5913,34 +6475,67 @@ function GameScreen({
         const isBuyerHuman = isMultiplayer || Boolean(buyer?.isHuman ?? (result.playerId === localPlayerId))
 
         if (isBuyerHuman) {
-          // Human player: non-modal purchase controls integrated into board center
-          setPendingPurchase({
+          const buyerMoney = buyer?.money || 0
+          const canAfford = buyerMoney >= prop.purchasePrice
+
+          const opp: ActivePurchaseOpportunity = {
             propertyId: prop.id,
             propertyName: prop.name,
             purchasePrice: prop.purchasePrice,
-            colorGroup: "colorGroup" in prop ? prop.colorGroup : undefined,
+            colorGroup: "colorGroup" in prop ? (prop as any).colorGroup : undefined,
             buyerId: result.playerId,
             buyerName: buyer?.name || "Player",
-            buyerMoney: buyer?.money || 0,
-            canAfford: (buyer?.money || 0) >= prop.purchasePrice,
-          })
+            turnId: currentTurnId,
+            skipped: false,
+            purchased: false,
+          }
+          setPurchaseOpportunity(opp)
+          purchaseOpportunityRef.current = opp
+
+          if (canAfford) {
+            // Human player: non-modal purchase controls integrated into board center
+            setPendingPurchase({
+              propertyId: prop.id,
+              propertyName: prop.name,
+              purchasePrice: prop.purchasePrice,
+              colorGroup: "colorGroup" in prop ? (prop as any).colorGroup : undefined,
+              buyerId: result.playerId,
+              buyerName: buyer?.name || "Player",
+              buyerMoney,
+              canAfford: true,
+            })
+            const buyLogMsg = `${buyer?.name || "Player"} landed on ${prop.name} (Price: ₹${prop.purchasePrice.toLocaleString()}).`
+            addGameplayEvent({
+              id: `purchase_option_${Date.now()}_${result.playerId}`,
+              type: "BUY",
+              timestamp: Date.now(),
+              playerId: result.playerId,
+              playerName: buyer?.name || "Player",
+              propertyId: prop.id,
+              propertyName: prop.name,
+              amount: prop.purchasePrice,
+              description: buyLogMsg,
+            })
+          } else {
+            // Cannot afford at landing: do NOT open buying card, show concise non-blocking message
+            setPendingPurchase(null)
+            showToast("You can't afford this property.")
+            addBoardNotification({
+              id: `board_unaffordable_${Date.now()}_${result.playerId}`,
+              type: "WARNING",
+              category: "INSUFFICIENT FUNDS",
+              message: "You can't afford this property.",
+              amount: prop.purchasePrice,
+              durationMs: 2000,
+              timestamp: Date.now(),
+              icon: "",
+            })
+          }
+
           if (isActingPlayerLocal || isHumanTurn) {
             setTurnState("WAITING_FOR_ACTION")
             setHasRolledThisTurn(true)
           }
-
-          const buyLogMsg = `${buyer.name} landed on ${prop.name} (Price: Rs${prop.purchasePrice.toLocaleString()}). Decide Buy or Don't Buy.`
-          addGameplayEvent({
-            id: `purchase_option_${Date.now()}_${result.playerId}`,
-            type: "BUY",
-            timestamp: Date.now(),
-            playerId: result.playerId,
-            playerName: buyer.name,
-            propertyId: prop.id,
-            propertyName: prop.name,
-            amount: prop.purchasePrice,
-            description: buyLogMsg,
-          })
           return
         } else if (!isMultiplayer && localPlayerId === 0) {
           // Bot player: automated background purchase according to game rules (host only)
@@ -5985,7 +6580,7 @@ function GameScreen({
         amount: result.rentAmount,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "🏛️",
+        icon: "",
       })
 
       if (hasExtraTurn) {
@@ -6026,7 +6621,7 @@ function GameScreen({
         amount: 500,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "💰",
+        icon: "",
       })
       if (hasExtraTurn) {
         setTurnState("EXTRA_TURN")
@@ -6070,7 +6665,7 @@ function GameScreen({
         amount: result.moneyChange,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "📜",
+        icon: "",
       })
 
       if (hasExtraTurn) {
@@ -6115,7 +6710,7 @@ function GameScreen({
         amount: result.moneyChange,
         durationMs: 1000,
         timestamp: Date.now(),
-        icon: "🎁",
+        icon: "",
       })
 
       if (hasExtraTurn) {
@@ -6173,10 +6768,10 @@ function GameScreen({
     const snapPlayerIndex = activePlayerIndex
     const actingPlayer = players[snapPlayerIndex]
 
-    // Authoritative client-side turn guard: only active player can roll
-    if (snapPlayerIndex !== localPlayerId) {
+    // Authoritative client-side turn guard: only active player can roll in multiplayer
+    if (isMultiplayer && snapPlayerIndex !== localPlayerId) {
       console.warn(`[Roll] Blocked manual roll: not your turn (active: ${snapPlayerIndex}, local: ${localPlayerId})`)
-      showToast(`⚠️ It is ${actingPlayer?.name || 'Player ' + (snapPlayerIndex + 1)}'s turn. Please wait for their roll.`)
+      showToast(`It is ${actingPlayer?.name || 'Player ' + (snapPlayerIndex + 1)}'s turn. Please wait for their roll.`)
       return
     }
 
@@ -6219,14 +6814,6 @@ function GameScreen({
       ? 180
       : 300
 
-    // Rapid tumbling random faces during rolling animation
-    const tumbleTimer = window.setInterval(() => {
-      setDice([
-        Math.floor(Math.random() * 6) + 1,
-        Math.floor(Math.random() * 6) + 1,
-      ])
-    }, 45)
-
     const tumbleDelayPromise = new Promise((resolve) => window.setTimeout(resolve, minTumbleMs))
 
     try {
@@ -6241,7 +6828,6 @@ function GameScreen({
         tumbleDelayPromise,
       ])
 
-      window.clearInterval(tumbleTimer)
       setDice([result.dice1, result.dice2])
       setDiceRolling(false)
       setDiceSettling(true)
@@ -6347,7 +6933,6 @@ function GameScreen({
         new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" })
       } catch (_) {}
     } catch (err: any) {
-      window.clearInterval(tumbleTimer)
       setRolling(false)
       rollingRef.current = false
       setMoving(false)
@@ -6378,6 +6963,11 @@ function GameScreen({
 
       if (state.activityLog && setActivityLog) setActivityLog(state.activityLog)
       if (state.turnTimer && setTurnTimer) setTurnTimer(state.turnTimer)
+
+      if (state.turnPurchasedProperties) setTurnPurchasedProperties(state.turnPurchasedProperties)
+      if (state.turnBuildingsBuilt) setTurnBuildingsBuilt(state.turnBuildingsBuilt)
+      if (state.activeLanding !== undefined) setActiveLanding(state.activeLanding)
+      if (state.currentTurnId !== undefined) setCurrentTurnId(state.currentTurnId)
 
       try {
         new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" })
@@ -6429,29 +7019,13 @@ function GameScreen({
             {!isGameStarted ? (isHost ? "READY FOR HOST TO START" : "WAITING FOR HOST TO START") : activePlayerPhaseText}
           </span>
         </div>
-        {localPlayerId === 0 && (
+        {isEffectiveHost && (
           <button
             className="end-session-topbar-btn"
             onClick={() => setModal("confirm_end_session")}
             title="Host Controls: End Game Session"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
-              padding: "4px 8px",
-              background: "rgba(142, 35, 56, 0.4)",
-              border: "1px solid var(--crimson)",
-              borderRadius: "8px",
-              color: "#ff8b8b",
-              fontFamily: '"Oswald", sans-serif',
-              fontSize: "10px",
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
           >
-            🛑
+            End Game
           </button>
         )}
         <div
@@ -6459,7 +7033,7 @@ function GameScreen({
           title={`Playing as ${players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}`}
           style={{ fontSize: "9px" }}
         >
-          &#x1F464; {players[localPlayerId]?.name || `P${localPlayerId + 1}`}
+          {players[localPlayerId]?.name || `P${localPlayerId + 1}`}
         </div>
         <button
           className="icon-button game-menu"
@@ -6513,7 +7087,7 @@ function GameScreen({
               type="button"
               onClick={() => {
                 navigator.clipboard?.writeText(roomCode)
-                showToast(`📋 Room code ${roomCode} copied!`)
+                showToast(`Room code ${roomCode} copied!`)
               }}
               style={{
                 padding: "4px 8px",
@@ -6526,14 +7100,14 @@ function GameScreen({
                 cursor: "pointer",
               }}
             >
-              📋 COPY
+              COPY CODE
             </button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "11px", color: "rgba(255,255,255,0.85)" }}>
             <span>Confirmed: <strong>{players.length}</strong> / {rules?.maxPlayers ?? 4}</span>
             <span style={{ color: "var(--gold-300)" }}>•</span>
             <span style={{ color: isHost ? "#4ade80" : "var(--gold-300)", fontWeight: 700 }}>
-              {isHost ? "👑 HOST" : "GUEST"}
+              {isHost ? "HOST" : "GUEST"}
             </span>
           </div>
         </div>
@@ -6638,7 +7212,6 @@ function GameScreen({
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "20px" }}>👑</span>
                   <div>
                     <div
                       style={{
@@ -6796,7 +7369,7 @@ function GameScreen({
                     cursor: "pointer",
                   }}
                 >
-                  🤝 TRADE / REQUEST ASSISTANCE
+                  TRADE / REQUEST ASSISTANCE
                 </button>
                 <button
                   type="button"
@@ -6816,7 +7389,7 @@ function GameScreen({
                     cursor: "pointer",
                   }}
                 >
-                  🏳️ RESIGN MATCH
+                  RESIGN MATCH
                 </button>
               </div>
             </div>
@@ -6826,8 +7399,8 @@ function GameScreen({
             <div className="controls-status-strip">
               <div className="dice-total">
                 <div className="dice-row">
-                  <Dice value={dice[0]} rolling={diceRolling} settling={diceSettling} dieIndex={1} />
-                  <Dice value={dice[1]} rolling={diceRolling} settling={diceSettling} dieIndex={2} />
+                  <Dice value={dice[0]} rolling={diceRolling} settling={diceSettling} dieIndex={1} reducedMotion={preferences?.reducedMotion} />
+                  <Dice value={dice[1]} rolling={diceRolling} settling={diceSettling} dieIndex={2} reducedMotion={preferences?.reducedMotion} />
                 </div>
                 <span>
                   TOTAL <b>{dice[0] + dice[1]}</b>
@@ -6835,7 +7408,6 @@ function GameScreen({
               </div>
               {!isGameStarted ? (
                 <div className="human-turn-timer-badge" title="Pre-Game Lobby">
-                  <span className="timer-icon">⏳</span>
                   <span className="timer-digits">LOBBY</span>
                 </div>
               ) : isHumanTurn ? (
@@ -6843,12 +7415,10 @@ function GameScreen({
                   className={`human-turn-timer-badge ${humanTimeRemaining <= 30 ? "low-time" : ""}`}
                   title="Your Turn Countdown (150 seconds)"
                 >
-                  <span className="timer-icon">⏱️</span>
                   <span className="timer-digits">{formatTimer(humanTimeRemaining)}</span>
                 </div>
               ) : (
                 <div className="human-turn-timer-badge waiting-turn" title={`Waiting for ${activePlayer.name}'s turn`}>
-                  <span className="timer-icon">⏳</span>
                   <span className="timer-digits">{activePlayer.name.toUpperCase()}</span>
                 </div>
               )}
@@ -6872,7 +7442,7 @@ function GameScreen({
                           cursor: "not-allowed",
                         }}
                       >
-                        👑 START GAME (NEED 2+ PLAYERS)
+                        START GAME (NEED 2+ PLAYERS)
                       </Button>
                       <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.75)", textAlign: "center" }}>
                         Waiting for players to join with room code <strong style={{ color: "var(--gold)" }}>{roomCode}</strong>.
@@ -6890,7 +7460,7 @@ function GameScreen({
                             fontWeight: 700,
                           }}
                         >
-                          🔔 {effectivePendingRequests.length} join request(s) awaiting your approval above!
+                          {effectivePendingRequests.length} join request(s) awaiting your approval above!
                         </div>
                       )}
                     </div>
@@ -6907,7 +7477,7 @@ function GameScreen({
                         boxShadow: "0 4px 15px rgba(200, 155, 69, 0.4)",
                       }}
                     >
-                      👑 START GAME ({players.length} PLAYERS)
+                      START GAME ({players.length} PLAYERS)
                     </Button>
                   )
                 ) : (
@@ -6923,61 +7493,98 @@ function GameScreen({
                       fontWeight: 700,
                     }}
                   >
-                    ⏳ WAITING FOR HOST TO START GAME
+                    WAITING FOR HOST TO START GAME
                   </Button>
                 )
               ) : (
-                <Button
-                  className="roll-button"
-                  onClick={() => roll(false)}
-                  disabled={
+                /* Feature 1: One Adaptive Roll Dice / End Turn Button */
+                (() => {
+                  const isRollPhase = turnState === "WAITING_FOR_ROLL" || turnState === "EXTRA_TURN"
+                  const isBusy =
                     rolling ||
                     moving ||
                     diceRolling ||
                     diceSettling ||
+                    rollingRef.current ||
+                    movingRef.current ||
                     isMovementInProgressRef.current ||
-                    (turnState !== "WAITING_FOR_ROLL" && turnState !== "EXTRA_TURN") ||
-                    !isHumanTurn
-                  }
-                  style={!isHumanTurn ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
-                  title={!isHumanTurn ? `Waiting for ${activePlayer.name}'s turn` : undefined}
-                >
-                  {rolling || diceRolling
-                    ? "🎲 ROLLING..."
-                    : moving
-                      ? "🚶 MOVING..."
-                      : diceSettling
-                        ? "🎲 SETTLING..."
-                        : turnState === "RESOLVING_LANDING"
-                          ? "⏳ RESOLVING..."
-                          : turnState === "EXTRA_TURN"
-                            ? isHumanTurn
-                              ? "🎲 ROLL AGAIN (DOUBLES!)"
-                              : `🎲 WAITING FOR ${activePlayer.name.toUpperCase()} (DOUBLES)...`
-                            : !isHumanTurn
-                              ? `⏳ WAITING FOR ${activePlayer.name.toUpperCase()}...`
-                              : "🎲 ROLL DICE"}
-                </Button>
-              )}
+                    turnState === "ROLLING" ||
+                    turnState === "MOVING" ||
+                    turnState === "RESOLVING_LANDING"
 
-              <button
-                className="end-turn-button"
-                onClick={handleManualEndTurn}
-                disabled={!isGameStarted || !canEndTurn}
-                title={
-                  !isHumanTurn
-                    ? "Waiting for human turn"
-                    : turnState === "WAITING_FOR_ROLL"
-                      ? "Must roll dice before ending turn"
+                  if (isRollPhase) {
+                    const rollDisabled = !isHumanTurn || isBusy || (isMultiplayer && activePlayerIndex !== localPlayerId)
+                    let rollLabel = "ROLL DICE"
+                    if (rolling || diceRolling) rollLabel = "ROLLING..."
+                    else if (moving) rollLabel = "MOVING..."
+                    else if (diceSettling) rollLabel = "SETTLING..."
+                    else if (turnState === "EXTRA_TURN") {
+                      rollLabel = isHumanTurn
+                        ? "ROLL AGAIN (DOUBLES!)"
+                        : `WAITING FOR ${activePlayer.name.toUpperCase()} (DOUBLES)...`
+                    } else if (!isHumanTurn) {
+                      rollLabel = `WAITING FOR ${activePlayer.name.toUpperCase()}...`
+                    }
+
+                    const rollTitle = !isHumanTurn
+                      ? `Waiting for ${activePlayer.name}'s turn`
                       : turnState === "EXTRA_TURN"
-                        ? "Doubles rolled: must roll again!"
-                        : modal !== null
-                          ? "Resolve pending action before ending turn"
-                          : "Finish your turn and pass to next player"
-                }
-              >
-                ✓ END TURN
-              </button>
+                        ? "Doubles rolled: click to roll again!"
+                        : "Roll the dice to move across the board"
+
+                    return (
+                      <Button
+                        className="roll-button adaptive-action-btn"
+                        onClick={() => {
+                          if (!rollDisabled && !rollingRef.current) {
+                            roll(false)
+                          }
+                        }}
+                        disabled={rollDisabled}
+                        style={!isHumanTurn ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
+                        title={rollTitle}
+                      >
+                        {rollLabel}
+                      </Button>
+                    )
+                  }
+
+                  // Post-roll phase: Adaptive End Turn
+                  const endTurnDisabled = !isHumanTurn || isBusy || !canEndTurn || isEndingTurnRef.current
+                  let endTurnLabel = "END TURN"
+                  if (rolling || diceRolling) endTurnLabel = "ROLLING..."
+                  else if (moving) endTurnLabel = "MOVING..."
+                  else if (diceSettling) endTurnLabel = "SETTLING..."
+                  else if (turnState === "RESOLVING_LANDING") endTurnLabel = "RESOLVING..."
+                  else if (activePlayer.money < 0) endTurnLabel = "SETTLE DEBT FIRST"
+                  else if (modal !== null) endTurnLabel = "RESOLVE ACTION FIRST"
+                  else if (!isHumanTurn) endTurnLabel = `WAITING FOR ${activePlayer.name.toUpperCase()}...`
+
+                  const endTurnTitle = !isHumanTurn
+                    ? `Waiting for ${activePlayer.name}'s turn`
+                    : activePlayer.money < 0
+                      ? "Must settle outstanding debt or resign before ending turn"
+                      : modal !== null
+                        ? "Resolve pending action before ending turn"
+                        : "Finish your turn and pass to next player"
+
+                  return (
+                    <Button
+                      className={`roll-button end-turn-mode adaptive-action-btn ${canEndTurn ? "end-turn-ready" : ""}`}
+                      onClick={() => {
+                        if (canEndTurn && !isEndingTurnRef.current && isHumanTurn) {
+                          handleManualEndTurn()
+                        }
+                      }}
+                      disabled={endTurnDisabled}
+                      style={!canEndTurn ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
+                      title={endTurnTitle}
+                    >
+                      {endTurnLabel}
+                    </Button>
+                  )
+                })()
+              )}
             </div>
 
             {/* Host Settings / Match Rules Trigger (only shown before match starts for host) */}
@@ -7006,8 +7613,8 @@ function GameScreen({
                   transition: "all 0.2s ease",
                 }}
               >
-                <span>⚙️</span>
-                <span>👑 CONFIGURE MATCH RULES</span>
+                <Icon name="gear" size={14} />
+                <span>CONFIGURE MATCH RULES</span>
               </button>
             )}
           </section>
@@ -7026,7 +7633,7 @@ function GameScreen({
               onClick={() => setModal("activity_log")}
               title="Financial Ledger & Turn History"
             >
-              <span>📒</span> LEDGER
+              <Icon name="ledger" size={14} /> LEDGER
               {transactionLedger.length > 0 && <span className="action-pill-count">{transactionLedger.length}</span>}
             </button>
             <button
@@ -7054,7 +7661,7 @@ function GameScreen({
                   color: "#fca5a5",
                 }}
               >
-                <span>🥾</span> KICK
+                KICK
               </button>
             )}
             <button
@@ -7063,7 +7670,7 @@ function GameScreen({
               title="Resign / Surrender Match"
               style={{ color: "#fca5a5" }}
             >
-              <span style={{ fontSize: "14px" }}>🏳️</span> RESIGN
+              RESIGN
             </button>
           </div>
         </div>
@@ -7083,7 +7690,7 @@ function GameScreen({
           onClick={() => { setEventLogOpen(true); setSideActionsOpen(false) }}
           title="Open Gameplay Event Log"
         >
-          <span className="side-action-icon">📜</span>
+          <Icon name="scroll" size={16} />
           <span>EVENT LOG</span>
           {effectiveEventLogList.length > 0 && <span className="side-action-badge">{effectiveEventLogList.length}</span>}
         </button>
@@ -7094,7 +7701,7 @@ function GameScreen({
           title="Property Trading & Negotiation"
           style={{ position: "relative" }}
         >
-          <span className="side-action-icon">🤝</span>
+          <Icon name="handshake" size={16} />
           <span>TRADE</span>
           {pendingTradesCount > 0 && <span className="side-action-badge alert">{pendingTradesCount}</span>}
         </button>
@@ -7104,7 +7711,7 @@ function GameScreen({
           onClick={() => { setModal("activity_log"); setSideActionsOpen(false) }}
           title="Financial Ledger & Turn Log"
         >
-          <span className="side-action-icon">📒</span>
+          <Icon name="ledger" size={16} />
           <span>LEDGER</span>
           {transactionLedger.length > 0 && <span className="side-action-badge">{transactionLedger.length}</span>}
         </button>
@@ -7113,7 +7720,7 @@ function GameScreen({
           onClick={() => { setModal("insights"); setSideActionsOpen(false) }}
           title="Strategy & Financial Insights"
         >
-          <span className="side-action-icon">📊</span>
+          <Icon name="chart" size={16} />
           <span>INSIGHTS</span>
         </button>
         {isEffectiveHost && (
@@ -7123,7 +7730,6 @@ function GameScreen({
             title="Host Control: Kick Players"
             style={{ color: "#fca5a5" }}
           >
-            <span className="side-action-icon">🥾</span>
             <span>KICK PLAYER</span>
           </button>
         )}
@@ -7133,7 +7739,6 @@ function GameScreen({
           title="Resign / Surrender Match"
           style={{ color: "#fca5a5" }}
         >
-          <span className="side-action-icon">🏳️</span>
           <span>RESIGN</span>
         </button>
       </div>
@@ -7189,6 +7794,12 @@ function GameScreen({
           isLeavingRoom={isLeavingRoom}
           roomCode={roomCode}
           onKickPlayer={onKickPlayer}
+          turnBuildingsBuilt={turnBuildingsBuilt}
+          turnPurchasedProperties={turnPurchasedProperties}
+          activeLanding={activeLanding}
+          currentTurnId={currentTurnId}
+          onUpdateTurnBuildings={setTurnBuildingsBuilt}
+          onUpdateTurnPurchased={setTurnPurchasedProperties}
         />
       )}
       <QuickChatWidget
@@ -7243,11 +7854,13 @@ function GameScreen({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "20px",
+              fontSize: "12px",
+              fontWeight: 800,
+              color: "#1c1810",
               boxShadow: "0 0 12px rgba(234, 179, 8, 0.6)",
             }}
           >
-            🤝
+            DEAL
           </div>
           <div>
             <div
@@ -7463,7 +8076,7 @@ function GameOverScreen({
     <main className="gameover-screen">
       <Logo compact />
       <div className="winner-crown">
-        <Icon name="crown" size={36} />
+        <Icon name="trophy" size={36} />
       </div>
       <small>{isNoWinner ? "MATCH CONCLUDED" : "WINNER"}</small>
       <strong className="winner-name">{isNoWinner ? "No Active Victor" : winner.name}</strong>
@@ -7513,7 +8126,7 @@ function GameOverScreen({
 
         {rematchError && (
           <div style={{ color: "var(--red)", fontSize: "12px", textAlign: "center", padding: "6px" }}>
-            ⚠️ {rematchError}
+            {rematchError}
           </div>
         )}
 
@@ -7593,7 +8206,18 @@ export default function App() {
     minPlayers: 2,
     timerEnabled: false,
     timerSeconds: 60,
+    requireLandingToBuild: false,
   })
+
+  const setEngineRules = useCallback(
+    (newRules: Partial<GameRules> | ((prev: GameRules) => GameRules)) => {
+      setRules((prev) => {
+        const resolved = typeof newRules === "function" ? newRules(prev) : newRules
+        return { ...prev, ...resolved }
+      })
+    },
+    [],
+  )
 
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const showToast = useCallback((msg: string, durationMs = 2500) => {
@@ -7611,9 +8235,9 @@ export default function App() {
     try {
       await multiplayerClient.respondJoinRequest(requestId, "ACCEPT")
       setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
-      showToast("✅ Player admitted to table!")
+      showToast("Player admitted to table!")
     } catch (err: any) {
-      showToast(`❌ ${err?.message || "Failed to admit player"}`)
+      showToast(err?.message || "Failed to admit player")
     }
   }
 
@@ -7623,7 +8247,7 @@ export default function App() {
       setPendingRequests((prev) => prev.filter((r) => r.requestId !== requestId))
       showToast("Player join request declined.")
     } catch (err: any) {
-      showToast(`❌ ${err?.message || "Failed to reject player"}`)
+      showToast(err?.message || "Failed to reject player")
     }
   }
 
@@ -7633,9 +8257,10 @@ export default function App() {
     if (settingsLocked || gamePhase === "IN_PROGRESS") {
       return { success: false, error: "Game settings are permanently locked for this match." }
     }
-    const currentHostId = multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
-    if (localPlayerId !== 0 && localPlayerId !== currentHostId) {
-      return { success: false, error: "Only the host can modify match settings." }
+    const currentHostId = multiplayerClient.getLatestSnapshot()?.actingHostPlayerId ?? multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
+    const isMultiplayerActive = Boolean(roomCode || multiplayerClient.getRoomCode())
+    if (isMultiplayerActive && localPlayerId !== currentHostId) {
+      return { success: false, error: "Only the active host can modify match settings." }
     }
 
     try {
@@ -7673,14 +8298,28 @@ export default function App() {
   const isMovementInProgressRef = useRef(false)
   const pendingSnapshotRef = useRef<any>(null)
 
+  const [turnBuildingsBuilt, setTurnBuildingsBuilt] = useState<string[]>([])
+  const [turnPurchasedProperties, setTurnPurchasedProperties] = useState<string[]>([])
+  const [activeLanding, setActiveLanding] = useState<{ propertyId: string | null; position: number; isActive: boolean } | null>(null)
+  const [currentTurnId, setCurrentTurnId] = useState<number>(1)
+
   const applyGameStateSnapshot = useCallback((gs: any) => {
     setActivePlayerIndex(gs.activePlayerIndex)
     setTurnState(gs.turnState)
     setRoundNumber(gs.roundNumber)
-    setPlayerPositions(gs.players.map((p: any) => p.position))
+    if (gs.players && Array.isArray(gs.players)) {
+      setPlayerPositions(gs.players.map((p: any) => p.position))
+    }
     if (gs.transactionLedger) setTransactionLedger(gs.transactionLedger)
     if (gs.tradeOffers) setTradeOffers(gs.tradeOffers)
     if (gs.turnTimer) setTurnTimer(gs.turnTimer)
+    if (gs.turnPurchasedProperties !== undefined) setTurnPurchasedProperties(gs.turnPurchasedProperties || [])
+    if (gs.turnBuildingsBuilt !== undefined) setTurnBuildingsBuilt(gs.turnBuildingsBuilt || [])
+    if (gs.activeLanding !== undefined) setActiveLanding(gs.activeLanding)
+    if (gs.currentTurnId !== undefined) setCurrentTurnId(gs.currentTurnId)
+    if (gs.rules) {
+      setEngineRules(gs.rules)
+    }
     if (gs.turnState === "GAME_OVER") {
       setScreen("gameover")
     }
@@ -7949,7 +8588,7 @@ export default function App() {
     })
 
     const unsubRoomClosed = multiplayerClient.onRoomClosed((reason) => {
-      showToast(`⚠️ ${reason}`)
+      showToast(reason)
       setScreen("menu")
       setGamePhase("LOBBY")
       setSettingsLocked(false)
@@ -7957,11 +8596,11 @@ export default function App() {
     })
 
     const unsubPlayerLeft = multiplayerClient.onPlayerLeft((pId, pName) => {
-      showToast(`🚪 ${pName} left the room.`)
+      showToast(`${pName} left the room.`)
     })
 
     const unsubKicked = multiplayerClient.onKicked((reason) => {
-      showToast(`🚫 ${reason || "You were kicked from the room."}`)
+      showToast(reason || "You were kicked from the room.")
       setScreen("menu")
       setGamePhase("LOBBY")
       setSettingsLocked(false)
@@ -7969,7 +8608,7 @@ export default function App() {
     })
 
     const unsubPlayerKicked = multiplayerClient.onPlayerKicked((pId, pName, reason) => {
-      showToast(`🥾 ${pName} was kicked from the room (${reason || "Host removed"}).`)
+      showToast(`${pName} was kicked from the room (${reason || "Host removed"}).`)
     })
 
     const unsubReq = multiplayerClient.onJoinRequest((req) => {
@@ -7977,7 +8616,7 @@ export default function App() {
         if (prev.some((r) => r.requestId === req.requestId)) return prev
         return [...prev, req]
       })
-      showToast(`🔔 Join request from ${req.name}!`)
+      showToast(`Join request from ${req.name}!`)
     })
 
     const unsubSnapReq = multiplayerClient.onSnapshot((snap) => {
@@ -7986,8 +8625,15 @@ export default function App() {
       }
     })
 
-    if (multiplayerClient.getRoomCode() && multiplayerClient.getSessionToken()) {
-      multiplayerClient.reconnect().catch(() => {})
+    if (multiplayerClient.getRoomCode() && (multiplayerClient.getSessionToken() || multiplayerClient.getReconnectToken())) {
+      multiplayerClient.reconnect().then((snap) => {
+        if (snap) {
+          const pid = multiplayerClient.getPlayerId()
+          if (pid !== null && pid !== undefined) {
+            setLocalPlayerId(pid)
+          }
+        }
+      }).catch(() => {})
     }
 
     return () => {
@@ -8027,7 +8673,7 @@ export default function App() {
       (p) => p.id !== id && p.connected !== false && !p.isLeft && p.color?.toLowerCase() === clean
     )
     if (isTaken) {
-      showToast(`⚠️ Color '${colorName}' is already taken by another player.`)
+      showToast(`Color '${colorName}' is already taken by another player.`)
       console.warn(`[Color] Selection '${newColor}' rejected: already taken by another player`)
       return
     }
@@ -8037,7 +8683,7 @@ export default function App() {
       .then((res) => {
         if (res && (res as any).success === false) {
           const errMsg = (res as any).error || `Color '${colorName}' is no longer available.`
-          showToast(`⚠️ ${errMsg}`)
+          showToast(errMsg)
           return
         }
         setStoredPlayerColor(id, clean)
@@ -8047,7 +8693,7 @@ export default function App() {
       })
       .catch((err: any) => {
         const errMsg = err?.message || `Color '${colorName}' is no longer available.`
-        showToast(`⚠️ ${errMsg}`)
+        showToast(errMsg)
       })
 
     try {
@@ -8057,9 +8703,10 @@ export default function App() {
 
   /** Start game: initialise engine with setup settings, permanently lock rules, reset all UI state. */
   const handleStartGame = async () => {
-    const authoritativeHostId = multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
-    if (localPlayerId !== authoritativeHostId) {
-      console.warn("Only host can start the game.")
+    const authoritativeHostId = multiplayerClient.getLatestSnapshot()?.actingHostPlayerId ?? multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
+    const isMultiplayerActive = Boolean(roomCode || multiplayerClient.getRoomCode())
+    if (isMultiplayerActive && localPlayerId !== authoritativeHostId) {
+      console.warn("Only the active host can start the game.")
       return
     }
 
@@ -8067,7 +8714,7 @@ export default function App() {
     const confirmedPlayers = players.filter((p) => p.connected !== false)
     if (confirmedPlayers.length < 2) {
       setStartGameError("At least 2 human players are required to start a match. Waiting for players to join with the room code.")
-      showToast("⚠️ Waiting for other players to join before starting!")
+      showToast("Waiting for other players to join before starting!")
       return
     }
 
@@ -8076,7 +8723,7 @@ export default function App() {
     if (emptyPlayer) {
       const msg = `Player ${emptyPlayer.id + 1} must enter a valid name before starting.`
       setStartGameError(msg)
-      showToast(`⚠️ ${msg}`)
+      showToast(msg)
       return
     }
 
@@ -8087,7 +8734,7 @@ export default function App() {
       if (!col) {
         const msg = `${p.name} must select a valid color.`
         setStartGameError(msg)
-        showToast(`⚠️ ${msg}`)
+        showToast(msg)
         return
       }
       if (colorUsage.has(col)) {
@@ -8095,7 +8742,7 @@ export default function App() {
         const colorName = colorDef ? colorDef.name : col
         const msg = `Cannot start game: Duplicate color '${colorName}' selected. Each player must choose a distinct color.`
         setStartGameError(msg)
-        showToast(`⚠️ ${msg}`)
+        showToast(msg)
         return
       }
       colorUsage.add(col)
@@ -8125,6 +8772,7 @@ export default function App() {
         playerCount: effectiveCount,
         timerEnabled: rules.timerEnabled ?? timerEnabled,
         timerSeconds: rules.timerSeconds ?? timerSeconds,
+        requireLandingToBuild: rules.requireLandingToBuild ?? false,
       }
       setPlayerCount(effectiveCount)
 
@@ -8169,6 +8817,11 @@ export default function App() {
         setTradeOffers(gameState.tradeOffers)
       }
 
+      setTurnPurchasedProperties(gameState.turnPurchasedProperties ?? [])
+      setTurnBuildingsBuilt(gameState.turnBuildingsBuilt ?? [])
+      setActiveLanding(gameState.activeLanding ?? null)
+      setCurrentTurnId(gameState.currentTurnId ?? 1)
+
       try {
         new BroadcastChannel("crownfall_sync").postMessage({ type: "START_GAME", rules: finalRules })
       } catch (_) {}
@@ -8194,7 +8847,7 @@ export default function App() {
       try {
         await multiplayerClient.kickPlayer(targetPlayer.id, "Host removed from lobby")
       } catch (err: any) {
-        showToast(`⚠️ Could not remove player: ${err?.message || "Error"}`)
+        showToast(`Could not remove player: ${err?.message || "Error"}`)
         return
       }
     }
@@ -8212,9 +8865,9 @@ export default function App() {
     const targetName = target?.name || `Player ${targetPlayerId + 1}`
     try {
       await multiplayerClient.kickPlayer(targetPlayerId, "Host kicked from match")
-      showToast(`🥾 Kicked ${targetName} from the match`)
+      showToast(`Kicked ${targetName} from the match`)
     } catch (err: any) {
-      showToast(`⚠️ Failed to kick player: ${err?.message || "Error"}`)
+      showToast(`Failed to kick player: ${err?.message || "Error"}`)
     }
   }
 
@@ -8245,6 +8898,14 @@ export default function App() {
       </div>
     )
   }
+
+  const isMultiplayerActive = Boolean(roomCode || multiplayerClient.getRoomCode())
+  const authoritativeHostId = multiplayerClient.getLatestSnapshot()?.actingHostPlayerId ?? multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0
+  const isEffectiveHost = Boolean(
+    isMultiplayerActive
+      ? (localPlayerId !== null && localPlayerId === authoritativeHostId)
+      : (localPlayerId === 0)
+  )
 
   if (screen === "menu") return <MenuScreen navigate={handleNavigate} />
 
@@ -8304,7 +8965,7 @@ export default function App() {
             rules={rules}
             onUpdateRules={handleUpdateRules}
             isGameStarted={gamePhase === "IN_PROGRESS"}
-            isHost={localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)}
+            isHost={isEffectiveHost}
             selectedProperty={CITY_PROPERTIES.bombay}
           />
         )}
@@ -8352,9 +9013,10 @@ export default function App() {
             setScreen("gameover")
           }}
           rules={rules}
+          setEngineRules={setEngineRules}
           onUpdateRules={handleUpdateRules}
           isGameStarted={gamePhase === "IN_PROGRESS"}
-          isHost={localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)}
+          isHost={isEffectiveHost}
           doublesRule={rules.doublesRuleEnabled ?? doublesRule}
           onStartGame={handleStartGame}
           connectionStatus={connectionStatus}
@@ -8366,6 +9028,14 @@ export default function App() {
           onKickPlayer={handleKickPlayerInGame}
           pendingRequests={pendingRequests}
           onAcceptJoinRequest={handleAcceptJoinRequest}
+          turnBuildingsBuilt={turnBuildingsBuilt}
+          setTurnBuildingsBuilt={setTurnBuildingsBuilt}
+          turnPurchasedProperties={turnPurchasedProperties}
+          setTurnPurchasedProperties={setTurnPurchasedProperties}
+          activeLanding={activeLanding}
+          setActiveLanding={setActiveLanding}
+          currentTurnId={currentTurnId}
+          setCurrentTurnId={setCurrentTurnId}
           onRejectJoinRequest={handleRejectJoinRequest}
         />
         {lobbyModal && (
@@ -8379,7 +9049,7 @@ export default function App() {
             rules={rules}
             onUpdateRules={handleUpdateRules}
             isGameStarted={gamePhase === "IN_PROGRESS"}
-            isHost={localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)}
+            isHost={isEffectiveHost}
             selectedProperty={CITY_PROPERTIES.bombay}
             onKickPlayer={handleKickPlayerInGame}
           />
@@ -8404,11 +9074,11 @@ export default function App() {
         navigate={handleNavigate}
         players={players}
         roomCode={roomCode || undefined}
-        isHost={localPlayerId === (multiplayerClient.getLatestSnapshot()?.hostPlayerId ?? 0)}
+        isHost={isEffectiveHost}
         onRematch={() => {
           if (multiplayerClient.getRoomCode()) {
             multiplayerClient.rematch().catch((err: any) => {
-              showToast(`⚠️ Rematch failed: ${err?.message || "Error"}`)
+              showToast(`Rematch failed: ${err?.message || "Error"}`)
             })
           } else {
             handleStartGame()

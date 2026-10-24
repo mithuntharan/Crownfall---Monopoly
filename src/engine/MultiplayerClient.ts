@@ -9,11 +9,13 @@ import { GameplayEventEntry } from "../components/GameplayEventLog"
 
 export interface MultiplayerPlayer {
   id: number
+  joinOrder?: number
   name: string
   color: string
   token: string
   isHuman: boolean
   isHost: boolean
+  isOriginalHost?: boolean
   connected: boolean
   money: number
   position: number
@@ -44,7 +46,9 @@ export interface RematchState {
 
 export interface MultiplayerRoomSnapshot {
   roomCode: string
-  hostPlayerId: number
+  hostPlayerId: number | null
+  actingHostPlayerId?: number | null
+  originalHostPlayerId?: number | null
   gamePhase: "LOBBY" | "IN_PROGRESS" | "GAME_OVER"
   settingsLocked: boolean
   rules: GameRules
@@ -163,6 +167,7 @@ export class MultiplayerClient {
   private roomCode: string | null = null
   private sessionToken: string | null = null
   private reconnectToken: string | null = null
+  private playerName: string | null = null
   private playerId: number | null = null
   private clientId: string = getOrCreateClientId()
   private status: ConnectionStatus = "disconnected"
@@ -185,6 +190,7 @@ export class MultiplayerClient {
   private roomClosedListeners: ((reason: string) => void)[] = []
   private kickedListeners: ((reason: string) => void)[] = []
   private playerKickedListeners: ((playerId: number, playerName: string, reason?: string) => void)[] = []
+  private hostChangeListeners: ((newHostId: number | null, originalHostId?: number, actingHostId?: number | null) => void)[] = []
   private pendingJoinRequestId: string | null = null
   private pendingRequests = new Map<
     string,
@@ -198,14 +204,22 @@ export class MultiplayerClient {
 
     // Attempt to load existing session and high-entropy reconnect token
     if (typeof window !== "undefined") {
-      this.roomCode = sessionStorage.getItem("crownfall_mp_room")
-      this.sessionToken = sessionStorage.getItem("crownfall_mp_token")
+      this.roomCode = sessionStorage.getItem("crownfall_mp_room") || localStorage.getItem("crownfall_last_room_code")
+      this.sessionToken =
+        sessionStorage.getItem("crownfall_mp_token") ||
+        (this.roomCode ? localStorage.getItem(`crownfall_session_${this.roomCode}`) : null) ||
+        null
+      this.playerName =
+        sessionStorage.getItem("crownfall_mp_player_name") ||
+        (this.roomCode ? localStorage.getItem(`crownfall_name_${this.roomCode}`) : null) ||
+        localStorage.getItem("crownfall_last_player_name")
       const pid = sessionStorage.getItem("crownfall_mp_pid")
       if (pid !== null) this.playerId = parseInt(pid, 10)
       if (this.roomCode) {
         this.reconnectToken =
           localStorage.getItem(`crownfall_reconnect_${this.roomCode}`) ||
-          sessionStorage.getItem("crownfall_mp_reconnect_token")
+          sessionStorage.getItem("crownfall_mp_reconnect_token") ||
+          localStorage.getItem("crownfall_last_reconnect_token")
       }
     }
   }
@@ -331,6 +345,13 @@ export class MultiplayerClient {
     }
   }
 
+  public onHostChange(cb: (newHostId: number | null, originalHostId?: number, actingHostId?: number | null) => void): () => void {
+    this.hostChangeListeners.push(cb)
+    return () => {
+      this.hostChangeListeners = this.hostChangeListeners.filter((l) => l !== cb)
+    }
+  }
+
   private setStatus(status: ConnectionStatus, message = "") {
     this.status = status
     this.statusMessage = message
@@ -341,10 +362,13 @@ export class MultiplayerClient {
     this.errorListeners.forEach((l) => l(err))
   }
 
-  private saveSession(roomCode: string, token: string, playerId: number, reconnectToken?: string) {
+  private saveSession(roomCode: string, token: string, playerId: number, reconnectToken?: string, playerName?: string) {
     this.roomCode = roomCode
     this.sessionToken = token
     this.playerId = playerId
+    if (playerName) {
+      this.playerName = playerName
+    }
     if (reconnectToken) {
       this.reconnectToken = reconnectToken
     }
@@ -352,6 +376,19 @@ export class MultiplayerClient {
       sessionStorage.setItem("crownfall_mp_room", roomCode)
       sessionStorage.setItem("crownfall_mp_token", token)
       sessionStorage.setItem("crownfall_mp_pid", String(playerId))
+      if (this.playerName) {
+        sessionStorage.setItem("crownfall_mp_player_name", this.playerName)
+        try {
+          localStorage.setItem(`crownfall_name_${roomCode}`, this.playerName)
+          localStorage.setItem("crownfall_last_player_name", this.playerName)
+        } catch (_) {}
+      }
+      try {
+        localStorage.setItem("crownfall_last_room_code", roomCode)
+        if (token) {
+          localStorage.setItem(`crownfall_session_${roomCode}`, token)
+        }
+      } catch (_) {}
       const rToken = this.reconnectToken
       if (rToken) {
         sessionStorage.setItem("crownfall_mp_reconnect_token", rToken)
@@ -463,7 +500,8 @@ export class MultiplayerClient {
       if (!data.ok) throw new Error(data.error || "Failed to create room.")
 
       this.latestSnapshot = data.snapshot
-      this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken)
+      this.playerName = hostName
+      this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken, hostName)
       this.connectWebSocket()
       return { roomCode: data.roomCode, playerId: data.playerId, snapshot: data.snapshot }
     } catch (e: any) {
@@ -529,7 +567,8 @@ export class MultiplayerClient {
 
       if (data.status === "ACCEPTED") {
         this.latestSnapshot = data.snapshot
-        this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken)
+        this.playerName = playerName
+        this.saveSession(data.roomCode, data.sessionToken, data.playerId, data.reconnectToken, playerName)
         this.connectWebSocket()
         return {
           status: "ACCEPTED",
@@ -658,13 +697,30 @@ export class MultiplayerClient {
   }
 
   public async reconnect(): Promise<MultiplayerRoomSnapshot | null> {
-    if (!this.roomCode) return null
-    if (!this.reconnectToken && typeof window !== "undefined") {
-      this.reconnectToken =
-        localStorage.getItem(`crownfall_reconnect_${this.roomCode}`) ||
-        sessionStorage.getItem("crownfall_mp_reconnect_token")
+    if (typeof window !== "undefined") {
+      if (!this.roomCode) {
+        this.roomCode =
+          sessionStorage.getItem("crownfall_mp_room") ||
+          localStorage.getItem("crownfall_last_room_code")
+      }
+      if (!this.playerName) {
+        this.playerName =
+          sessionStorage.getItem("crownfall_mp_player_name") ||
+          (this.roomCode ? localStorage.getItem(`crownfall_name_${this.roomCode}`) : null) ||
+          localStorage.getItem("crownfall_last_player_name")
+      }
+      if (!this.reconnectToken && this.roomCode) {
+        this.reconnectToken =
+          localStorage.getItem(`crownfall_reconnect_${this.roomCode}`) ||
+          sessionStorage.getItem("crownfall_mp_reconnect_token") ||
+          localStorage.getItem("crownfall_last_reconnect_token")
+      }
+      if (!this.sessionToken) {
+        this.sessionToken = sessionStorage.getItem("crownfall_mp_token")
+      }
     }
-    if (!this.sessionToken && !this.reconnectToken) return null
+    if (!this.roomCode) return null
+    if (!this.sessionToken && !this.reconnectToken && !this.playerName) return null
     try {
       const res = await fetch(`${this.httpBaseUrl}/api/multiplayer/room/reconnect`, {
         method: "POST",
@@ -673,12 +729,12 @@ export class MultiplayerClient {
           roomCode: this.roomCode,
           sessionToken: this.sessionToken,
           reconnectToken: this.reconnectToken,
+          playerName: this.playerName || undefined,
           clientId: this.clientId,
         }),
       })
       const data = await res.json()
       if (!data.ok) {
-        this.clearSession()
         return null
       }
       this.playerId = data.playerId
@@ -689,6 +745,7 @@ export class MultiplayerClient {
         this.sessionToken || data.sessionToken,
         data.playerId,
         this.reconnectToken || data.reconnectToken,
+        this.playerName || undefined,
       )
       this.latestSnapshot = data.snapshot
       this.connectWebSocket()
@@ -766,12 +823,24 @@ export class MultiplayerClient {
                 sessionStorage.setItem("crownfall_mp_pid", String(msg.player.id))
               }
             }
+            if (msg.player?.sessionToken && typeof msg.player.sessionToken === "string") {
+              this.sessionToken = msg.player.sessionToken
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("crownfall_mp_token", msg.player.sessionToken)
+                if (this.roomCode) {
+                  try {
+                    localStorage.setItem(`crownfall_session_${this.roomCode}`, msg.player.sessionToken)
+                  } catch (_) {}
+                }
+              }
+            }
             const syncToken = msg.player?.reconnectToken
             if (syncToken && typeof syncToken === "string") {
               this.reconnectToken = syncToken
               if (this.roomCode && typeof window !== "undefined") {
                 try {
                   localStorage.setItem(`crownfall_reconnect_${this.roomCode}`, syncToken)
+                  localStorage.setItem("crownfall_last_reconnect_token", syncToken)
                 } catch (_) {}
               }
             }
@@ -783,7 +852,9 @@ export class MultiplayerClient {
             window.clearTimeout(pending.timer)
             this.pendingRequests.delete(msg.requestId)
             if (msg.type === "ACTION_ERROR" || msg.type === "ERROR") {
-              pending.reject(new Error(msg.message || "Action failed."))
+              const err: any = new Error(msg.message || "Action failed.")
+              if (msg.reason) err.reason = msg.reason
+              pending.reject(err)
             } else {
               pending.resolve(msg)
             }
@@ -817,12 +888,22 @@ export class MultiplayerClient {
             msg.type === "PLAYER_UPDATED" ||
             msg.type === "PLAYER_JOINED" ||
             msg.type === "REMATCH_STARTED" ||
-            msg.type === "PLAYER_LEFT"
+            msg.type === "PLAYER_LEFT" ||
+            msg.type === "PLAYER_STATUS"
           ) {
             if (msg.snapshot) {
               this.latestSnapshot = msg.snapshot
               this.snapshotListeners.forEach((l) => l(msg.snapshot))
             }
+          } else if (msg.type === "HOST_CHANGED") {
+            if (msg.snapshot) {
+              this.latestSnapshot = msg.snapshot
+              this.snapshotListeners.forEach((l) => l(msg.snapshot))
+            }
+            const resolvedHostId = msg.newHostId ?? msg.actingHostPlayerId ?? null
+            this.hostChangeListeners.forEach((l) =>
+              l(resolvedHostId, msg.originalHostPlayerId, msg.actingHostPlayerId)
+            )
           } else if (msg.type === "JOIN_REQUEST") {
             if (msg.snapshot) {
               this.latestSnapshot = msg.snapshot
@@ -978,13 +1059,18 @@ export class MultiplayerClient {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionToken: this.sessionToken,
+        sessionToken: this.sessionToken || this.reconnectToken,
+        reconnectToken: this.reconnectToken,
         action: payload.action || msgType.toLowerCase(),
         ...payload,
       }),
     }).then(async (res) => {
       const data = await res.json()
-      if (!data.ok) throw new Error(data.error || "Action rejected.")
+      if (!data.ok) {
+        const err: any = new Error(data.error || "Action rejected.")
+        if (data.reason) err.reason = data.reason
+        throw err
+      }
       if (data.actionResult && (payload.action === "roll" || data.action === "roll")) {
         const rollEvt: RollEvent = {
           rollId: data.actionResult.rollId || `roll_${data.sequence || Date.now()}_${data.playerId}`,
@@ -1027,7 +1113,8 @@ export class MultiplayerClient {
             JSON.stringify({
               type: msgType,
               roomCode: this.roomCode,
-              sessionToken: this.sessionToken,
+              sessionToken: this.sessionToken || this.reconnectToken,
+              reconnectToken: this.reconnectToken,
               requestId,
               payload,
             }),

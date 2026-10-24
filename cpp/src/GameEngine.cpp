@@ -1,4 +1,5 @@
 #include "../include/GameEngine.h"
+#include "../include/BusinessData.h"
 #include <algorithm>
 #include <sstream>
 #include <chrono>
@@ -32,6 +33,15 @@ void GameEngine::startGame() {
     m_activePlayerIndex = 0;
     m_roundNumber = 1;
     m_consecutiveDoubles = 0;
+    m_currentTurnId = 1;
+    m_propertyPurchasedTurn.clear();
+    m_propertyPurchasedOwner.clear();
+    m_propertyBuildTurn.clear();
+    m_landingTurnId = -1;
+    m_landingPlayerId = -1;
+    m_landingPosition = -1;
+    m_landingPropertyId.clear();
+    m_landingActive = false;
     m_turnState = TurnState::WAITING_FOR_ROLL;
     m_turnStartedAt = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
@@ -231,6 +241,12 @@ void GameEngine::advanceTurn(bool extraTurn) {
     }
 
     m_consecutiveDoubles = 0; // Reset consecutive doubles when switching players
+    m_currentTurnId++;
+    m_landingActive = false;
+    m_landingTurnId = -1;
+    m_landingPosition = -1;
+    m_landingPropertyId.clear();
+    m_lastTurnResult = TurnResult{};
     int startIdx = m_activePlayerIndex;
     int nextIdx = (m_activePlayerIndex + 1) % m_players.size();
     size_t attempts = 0;
@@ -705,6 +721,21 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         }
     }
 
+    const auto& finalSpace = spaces[player.position];
+    if (finalSpace.type == SpaceType::City && !player.inJail && !player.inRestHouse) {
+        m_landingTurnId = m_currentTurnId;
+        m_landingPlayerId = player.id;
+        m_landingPosition = player.position;
+        m_landingPropertyId = finalSpace.propertyId;
+        m_landingActive = true;
+    } else {
+        m_landingTurnId = -1;
+        m_landingPlayerId = -1;
+        m_landingPosition = player.position;
+        m_landingPropertyId.clear();
+        m_landingActive = false;
+    }
+
     bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail);
     result.extraTurnGranted = extra;
     m_lastTurnResult = result;
@@ -847,6 +878,8 @@ bool GameEngine::buyCurrentProperty(int playerId) {
 
     player.money -= price;
     player.ownedProperties.push_back(space.propertyId);
+    m_propertyPurchasedTurn[space.propertyId] = m_currentTurnId;
+    m_propertyPurchasedOwner[space.propertyId] = playerId;
     m_lastTurnResult.eligibleToBuy = false;
     addLogEntry(playerId, "buy", player.name + " purchased " + space.name + " for ₹" + std::to_string(price) + ".", -price);
     recordTransaction("PURCHASE", player.name + " purchased " + space.name + " for ₹" + std::to_string(price) + ".", price, playerId, -1, space.propertyId);
@@ -879,42 +912,160 @@ bool GameEngine::declinePropertyPurchase(int playerId) {
     return true;
 }
 
-bool GameEngine::buildHouseOrHotel(int playerId, const std::string& propertyId) {
-    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
-    if (!m_devMode && playerId != m_activePlayerIndex) return false;
+bool GameEngine::buildHouseOrHotel(int playerId, const std::string& propertyId, std::string& outError, std::string& outReasonCode) {
+    outError.clear();
+    outReasonCode.clear();
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) {
+        outReasonCode = "NOT_PLAYERS_TURN";
+        outError = "Invalid player ID.";
+        return false;
+    }
+    if (!m_devMode && playerId != m_activePlayerIndex) {
+        outReasonCode = "NOT_PLAYERS_TURN";
+        outError = "It is not your turn.";
+        return false;
+    }
     Player& player = m_players[playerId];
+    if (player.isBankrupt) {
+        outReasonCode = "NOT_PLAYERS_TURN";
+        outError = "Player is bankrupt.";
+        return false;
+    }
+    if (player.money < 0) {
+        outReasonCode = "INSUFFICIENT_FUNDS";
+        outError = "Player is in debt. Resolve debt before building.";
+        return false;
+    }
 
-    // Check requireLandingToBuild (false by default for anywhere-building)
-    const auto& spaces = BusinessData::getBoardSpaces();
-    const auto& space = spaces[player.position];
-    if (m_rules.requireLandingToBuild && space.propertyId != propertyId) return false;
+    // Mode A requires player to have landed during this turn (WAITING_FOR_ACTION or EXTRA_TURN).
+    // Mode B allows building at any time during active logical turn (WAITING_FOR_ROLL, WAITING_FOR_ACTION, or EXTRA_TURN).
+    if (!m_devMode) {
+        if (m_rules.requireLandingToBuild) {
+            if (m_turnState != TurnState::WAITING_FOR_ACTION && m_turnState != TurnState::EXTRA_TURN) {
+                outReasonCode = "MODE_A_MUST_LAND_HERE";
+                outError = "Land on this property during your turn to build.";
+                return false;
+            }
+        } else {
+            if (m_turnState != TurnState::WAITING_FOR_ROLL &&
+                m_turnState != TurnState::WAITING_FOR_ACTION &&
+                m_turnState != TurnState::EXTRA_TURN) {
+                outReasonCode = "NOT_PLAYERS_TURN";
+                outError = "Cannot build at this time.";
+                return false;
+            }
+        }
+    }
+
+    // Mandatory landing decisions (e.g. pending purchase) must be resolved if past roll
+    if (m_turnState != TurnState::WAITING_FOR_ROLL && m_lastTurnResult.eligibleToBuy) {
+        outReasonCode = "NOT_PLAYERS_TURN";
+        outError = "Must resolve pending property purchase before building.";
+        return false;
+    }
 
     auto city = BusinessData::getCityPropertyById(propertyId);
-    if (!city) return false;
+    if (!city) {
+        outReasonCode = "NOT_PROPERTY_OWNER";
+        outError = "Invalid city property ID.";
+        return false;
+    }
 
     // Player must actually own this specific property
     bool ownsProperty = false;
     for (const auto& owned : player.ownedProperties) {
         if (owned == propertyId) { ownsProperty = true; break; }
     }
-    if (!ownsProperty) return false;
-
-    int currentBuildings = player.buildings[propertyId];
-    if (currentBuildings >= 4) return false; // Already hotel
-
-    // Check affordability
-    if (player.money < city->buildingCost) return false;
+    if (!ownsProperty) {
+        outReasonCode = "NOT_PROPERTY_OWNER";
+        outError = "You do not own this property.";
+        return false;
+    }
 
     // A mortgaged property must never be eligible for construction
-    if (player.mortgages[propertyId]) return false;
+    if (player.mortgages[propertyId]) {
+        outReasonCode = "PROPERTY_MORTGAGED";
+        outError = "Cannot build on a mortgaged property.";
+        return false;
+    }
+
+    // SHARED INVARIANT:
+    // When a player purchases or acquires a property during logical turn T,
+    // the server must reject every attempt by that player to construct a building on that property during turn T.
+    auto pTurnIt = m_propertyPurchasedTurn.find(propertyId);
+    auto pOwnerIt = m_propertyPurchasedOwner.find(propertyId);
+    if (pTurnIt != m_propertyPurchasedTurn.end() && pTurnIt->second == m_currentTurnId) {
+        if (pOwnerIt == m_propertyPurchasedOwner.end() || pOwnerIt->second == playerId) {
+            outReasonCode = "PROPERTY_PURCHASED_THIS_TURN";
+            outError = "You must wait until your next turn to build on this property.";
+            return false;
+        }
+    }
+
+    if (m_rules.requireLandingToBuild) {
+        // MODE A — Build When You Land:
+        // Player must land on the exact property during the current logical turn
+        if (!m_landingActive || m_landingTurnId != m_currentTurnId || m_landingPlayerId != playerId || m_landingPropertyId != propertyId) {
+            outReasonCode = "MODE_A_MUST_LAND_HERE";
+            outError = "Land on this property during your turn to build.";
+            return false;
+        }
+
+        const auto& spaces = BusinessData::getBoardSpaces();
+        if (player.position != m_landingPosition || player.position < 0 || player.position >= static_cast<int>(spaces.size()) || spaces[player.position].propertyId != propertyId) {
+            outReasonCode = "MODE_A_PLAYER_NOT_ON_PROPERTY";
+            outError = "You must be on this property to build.";
+            return false;
+        }
+    } else {
+        // MODE B — Build From Anywhere:
+        // Maximum of one successful additional building action per property during current logical turn
+        auto bIt = m_propertyBuildTurn.find(propertyId);
+        if (bIt != m_propertyBuildTurn.end() && bIt->second == m_currentTurnId) {
+            outReasonCode = "MODE_B_BUILD_ALLOWANCE_USED";
+            outError = "You have already built on this property this turn.";
+            return false;
+        }
+    }
+
+    int currentBuildings = player.buildings[propertyId];
+    if (currentBuildings >= 4) {
+        outReasonCode = "CONSTRUCTION_LIMIT_REACHED";
+        outError = "Maximum construction limit reached (Hotel).";
+        return false;
+    }
+
+    // Check affordability
+    if (player.money < city->buildingCost) {
+        outReasonCode = "INSUFFICIENT_FUNDS";
+        outError = "Insufficient funds to construct building (cost: ₹" + std::to_string(city->buildingCost) + ", cash: ₹" + std::to_string(player.money) + ").";
+        return false;
+    }
 
     player.money -= city->buildingCost;
     player.buildings[propertyId]++;
     player.constructionCount++;
+
+    if (!m_rules.requireLandingToBuild) {
+        // In Mode B: consume allowance atomically upon successful construction
+        m_propertyBuildTurn[propertyId] = m_currentTurnId;
+    }
+
     std::string bLabel = (player.buildings[propertyId] == 4) ? "Hotel" : (std::to_string(player.buildings[propertyId]) + " House(s)");
     addLogEntry(playerId, "build", player.name + " built on " + city->name + " (" + bLabel + ") for ₹" + std::to_string(city->buildingCost) + ".", -city->buildingCost);
     recordTransaction("CONSTRUCTION", player.name + " built " + bLabel + " on " + city->name + " for ₹" + std::to_string(city->buildingCost) + ".", city->buildingCost, playerId, -1, propertyId);
     return true;
+}
+
+bool GameEngine::buildHouseOrHotel(int playerId, const std::string& propertyId, std::string& outError) {
+    std::string dummyReason;
+    return buildHouseOrHotel(playerId, propertyId, outError, dummyReason);
+}
+
+bool GameEngine::buildHouseOrHotel(int playerId, const std::string& propertyId) {
+    std::string dummyErr;
+    std::string dummyReason;
+    return buildHouseOrHotel(playerId, propertyId, dummyErr, dummyReason);
 }
 
 bool GameEngine::sellHouseOrHotel(int playerId, const std::string& propertyId) {
@@ -1022,6 +1173,9 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
     );
     player.mortgages.erase(propertyId);
     player.buildings.erase(propertyId);
+    m_propertyPurchasedTurn.erase(propertyId);
+    m_propertyPurchasedOwner.erase(propertyId);
+    m_propertyBuildTurn.erase(propertyId);
     player.money += netCashProceeds;
     outSellPrice = netCashProceeds;
 
@@ -1314,6 +1468,9 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
             std::remove(sender.ownedProperties.begin(), sender.ownedProperties.end(), propId),
             sender.ownedProperties.end());
         receiver.ownedProperties.push_back(propId);
+        m_propertyPurchasedTurn[propId] = m_currentTurnId;
+        m_propertyPurchasedOwner[propId] = receiver.id;
+        m_propertyBuildTurn.erase(propId);
         if (sender.mortgages[propId]) {
             receiver.mortgages[propId] = true;
             sender.mortgages.erase(propId);
@@ -1326,6 +1483,9 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
             std::remove(receiver.ownedProperties.begin(), receiver.ownedProperties.end(), propId),
             receiver.ownedProperties.end());
         sender.ownedProperties.push_back(propId);
+        m_propertyPurchasedTurn[propId] = m_currentTurnId;
+        m_propertyPurchasedOwner[propId] = sender.id;
+        m_propertyBuildTurn.erase(propId);
         if (receiver.mortgages[propId]) {
             sender.mortgages[propId] = true;
             receiver.mortgages.erase(propId);
@@ -1399,6 +1559,9 @@ bool GameEngine::resignPlayer(int playerId, std::string& outError) {
     for (const auto& prop : player.ownedProperties) {
         player.buildings[prop] = 0;
         player.mortgages[prop] = false;
+        m_propertyPurchasedTurn.erase(prop);
+        m_propertyPurchasedOwner.erase(prop);
+        m_propertyBuildTurn.erase(prop);
     }
     player.ownedProperties.clear();
     player.buildings.clear();
@@ -1435,6 +1598,7 @@ std::string GameEngine::exportStateJson() const {
     ss << "{\n";
     ss << "  \"roundNumber\": " << m_roundNumber << ",\n";
     ss << "  \"activePlayerIndex\": " << m_activePlayerIndex << ",\n";
+    ss << "  \"currentTurnId\": " << m_currentTurnId << ",\n";
     ss << "  \"turnState\": \"" << turnStateToString(m_turnState) << "\",\n";
     ss << "  \"gameStarted\": " << (m_gameStarted ? "true" : "false") << ",\n";
     ss << "  \"gamePhase\": \"" << (m_gameStarted ? "IN_PROGRESS" : "LOBBY") << "\",\n";
@@ -1443,6 +1607,8 @@ std::string GameEngine::exportStateJson() const {
     ss << "  \"devMode\": " << (m_devMode ? "true" : "false") << ",\n";
     ss << "  \"lastDice\": [" << m_lastDice1 << ", " << m_lastDice2 << "],\n";
     ss << "  \"rules\": {\n";
+    ss << "    \"requireLandingToBuild\": " << (m_rules.requireLandingToBuild ? "true" : "false") << ",\n";
+    ss << "    \"buildingRule\": \"" << (m_rules.requireLandingToBuild ? "land" : "anywhere") << "\",\n";
     ss << "    \"doublesRuleEnabled\": " << (m_rules.doublesRuleEnabled ? "true" : "false") << ",\n";
     ss << "    \"maxPlayers\": " << m_rules.maxPlayers << ",\n";
     ss << "    \"minPlayers\": " << m_rules.minPlayers << ",\n";
@@ -1450,6 +1616,35 @@ std::string GameEngine::exportStateJson() const {
     ss << "    \"buildingRefundPercentage\": " << m_rules.buildingRefundPercentage << ",\n";
     ss << "    \"passStartBonus\": " << m_rules.passStartBonus << ",\n";
     ss << "    \"defaultStartingMoney\": " << m_rules.defaultStartingMoney << "\n";
+    ss << "  },\n";
+    ss << "  \"turnBuildingsBuilt\": [";
+    {
+        bool firstB = true;
+        for (const auto& kv : m_propertyBuildTurn) {
+            if (kv.second == m_currentTurnId) {
+                if (!firstB) ss << ", ";
+                ss << "\"" << escapeJson(kv.first) << "\"";
+                firstB = false;
+            }
+        }
+    }
+    ss << "],\n";
+    ss << "  \"turnPurchasedProperties\": [";
+    {
+        bool firstP = true;
+        for (const auto& kv : m_propertyPurchasedTurn) {
+            if (kv.second == m_currentTurnId) {
+                if (!firstP) ss << ", ";
+                ss << "\"" << escapeJson(kv.first) << "\"";
+                firstP = false;
+            }
+        }
+    }
+    ss << "],\n";
+    ss << "  \"activeLanding\": {\n";
+    ss << "    \"propertyId\": \"" << escapeJson(m_landingPropertyId) << "\",\n";
+    ss << "    \"position\": " << m_landingPosition << ",\n";
+    ss << "    \"isActive\": " << (m_landingActive ? "true" : "false") << "\n";
     ss << "  },\n";
     ss << "  \"turnTimer\": {\n";
     ss << "    \"enabled\": " << (m_rules.timerEnabled ? "true" : "false") << ",\n";

@@ -318,7 +318,7 @@ export function TurnOverviewDrawer({
                               transition: "all 0.15s ease",
                             }}
                           >
-                            🥾 KICK
+                            KICK
                           </button>
                         )}
                       </div>

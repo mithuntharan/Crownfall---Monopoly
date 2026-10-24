@@ -47,6 +47,10 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       transactionLedger: [],
       tradeOffers: [],
       rules: snap?.rules,
+      currentTurnId: snap?.gameState?.currentTurnId ?? 1,
+      turnPurchasedProperties: snap?.gameState?.turnPurchasedProperties ?? [],
+      turnBuildingsBuilt: snap?.gameState?.turnBuildingsBuilt ?? [],
+      activeLanding: snap?.gameState?.activeLanding,
       players: (snap?.players || []).map((p, idx) => ({
         id: p.id,
         name: p.name,
@@ -63,6 +67,11 @@ export class MultiplayerEngineAdapter implements IGameEngine {
         ownedProperties: p.ownedProperties,
         buildings: p.buildings,
         mortgages: p.mortgages,
+        isHost: p.isHost,
+        isOriginalHost: p.isOriginalHost,
+        joinOrder: p.joinOrder,
+        connected: p.connected,
+        isLeft: p.isLeft,
       })),
     }
   }
@@ -112,46 +121,80 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     return { result, state }
   }
 
-  async buyCurrentProperty(_playerId: number): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.buyProperty()
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async buyCurrentProperty(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.buyProperty()
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Purchase failed." }
+    }
   }
 
-  async declinePropertyPurchase(_playerId: number): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.declineProperty()
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async declinePropertyPurchase(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.declineProperty()
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Decline failed." }
+    }
   }
 
   async endTurn(_playerId: number): Promise<{ state: GameState }> {
-    const res = await multiplayerClient.endTurn()
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { state }
+    try {
+      const res = await multiplayerClient.endTurn()
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { state }
+    } catch (_) {
+      return { state: this.getFallbackState() }
+    }
   }
 
-  async buildHouseOrHotel(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.buildBuilding(propertyId)
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async buildHouseOrHotel(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState; error?: string; reason?: string }> {
+    try {
+      const res = await multiplayerClient.buildBuilding(propertyId)
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error, reason: res?.reason }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Building request rejected.", reason: err?.reason }
+    }
   }
 
-  async sellHouseOrHotel(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.sellBuilding(propertyId)
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async sellHouseOrHotel(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.sellBuilding(propertyId)
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Sell request rejected." }
+    }
   }
 
-  async mortgageProperty(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.mortgageProperty(propertyId)
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async mortgageProperty(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.mortgageProperty(propertyId)
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Mortgage request rejected." }
+    }
   }
 
-  async unmortgageProperty(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState }> {
-    const res = await multiplayerClient.unmortgageProperty(propertyId)
-    const state = res?.snapshot?.gameState || this.getFallbackState()
-    return { success: true, state }
+  async unmortgageProperty(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.unmortgageProperty(propertyId)
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = res?.snapshot?.gameState || this.getFallbackState()
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Unmortgage request rejected." }
+    }
   }
 
   async sellProperty(

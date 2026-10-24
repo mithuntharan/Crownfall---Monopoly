@@ -33,6 +33,8 @@ export interface EnginePlayer {
   connected?: boolean
   isLeft?: boolean
   isHost?: boolean
+  isOriginalHost?: boolean
+  joinOrder?: number
 }
 
 export interface TurnResult {
@@ -107,6 +109,7 @@ export interface GameRules {
   doublesRuleEnabled?: boolean
   passStartBonus?: number // 1500
   requireLandingToBuild?: boolean
+  buildingRule?: "land" | "anywhere"
   baseRentDoublesForSet?: boolean
   unmortgageInterestRatePercent?: number
   buildingRefundPercentage?: number
@@ -134,6 +137,7 @@ export type GamePhase = "LOBBY" | "IN_PROGRESS" | "GAME_OVER"
 export interface GameState {
   roundNumber: number
   activePlayerIndex: number
+  currentTurnId?: number
   turnState: TurnState
   gameStarted: boolean
   gamePhase?: GamePhase
@@ -145,6 +149,13 @@ export interface GameState {
   activityLog?: ActivityLogEntry[]
   transactionLedger?: TransactionRecord[]
   tradeOffers?: TradeOffer[]
+  turnBuildingsBuilt?: string[]
+  turnPurchasedProperties?: string[]
+  activeLanding?: {
+    propertyId: string
+    position: number
+    isActive: boolean
+  }
   rules?: GameRules
   players: EnginePlayer[]
 }
@@ -186,6 +197,8 @@ export interface IGameEngine {
   buildHouseOrHotel(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState
+    error?: string
+    reason?: string
   }>
   sellHouseOrHotel(playerId: number, propertyId: string): Promise<{
     success: boolean

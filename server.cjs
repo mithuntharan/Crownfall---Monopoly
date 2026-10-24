@@ -18,10 +18,10 @@ const { server, PORT, HOST, rooms } = require('./scripts/multiplayer_server.cjs'
 if (!server.listening) {
   server.listen(PORT, HOST, () => {
     console.log(`\n================================================================`);
-    console.log(`👑 Crownfall Monopoly (.io Game Server) is LIVE!`);
-    console.log(`🌐 Web & API URL:   http://${HOST}:${PORT}`);
-    console.log(`⚡ WebSocket URL:   ws://${HOST}:${PORT}`);
-    console.log(`🎮 Port:            ${PORT}`);
+    console.log(`Crownfall Monopoly (.io Game Server) is LIVE!`);
+    console.log(`Web & API URL:   http://${HOST}:${PORT}`);
+    console.log(`WebSocket URL:   ws://${HOST}:${PORT}`);
+    console.log(`Port:            ${PORT}`);
     console.log(`================================================================\n`);
   });
 }

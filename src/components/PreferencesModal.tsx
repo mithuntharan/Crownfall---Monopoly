@@ -14,6 +14,7 @@ interface PreferencesModalProps {
   onUpdateRules?: (rules: Partial<GameRules>) => Promise<{ success: boolean; error?: string }>
   isGameStarted?: boolean
   isHost?: boolean
+  roomCode?: string
   close: () => void
 }
 
@@ -24,6 +25,7 @@ export function PreferencesModal({
   onUpdateRules,
   isGameStarted = false,
   isHost = true,
+  roomCode,
   close,
 }: PreferencesModalProps) {
   const [activeTab, setActiveTab] = useState<"appearance" | "gameplay" | "host">(
@@ -33,17 +35,20 @@ export function PreferencesModal({
   const [localRules, setLocalRules] = useState<Partial<GameRules>>({
     defaultStartingMoney: rules?.defaultStartingMoney ?? 25000,
     doublesRuleEnabled: rules?.doublesRuleEnabled ?? true,
+    requireLandingToBuild: rules?.requireLandingToBuild ?? false,
     maxPlayers: rules?.maxPlayers ?? 4,
     timerEnabled: rules?.timerEnabled ?? false,
     timerSeconds: rules?.timerSeconds ?? 60,
   })
   const [saveStatus, setSaveStatus] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
 
   const lastSyncedRulesRef = useRef<string>(
     JSON.stringify({
       defaultStartingMoney: rules?.defaultStartingMoney ?? 25000,
       doublesRuleEnabled: rules?.doublesRuleEnabled ?? true,
+      requireLandingToBuild: rules?.requireLandingToBuild ?? false,
       maxPlayers: rules?.maxPlayers ?? 4,
       timerEnabled: rules?.timerEnabled ?? false,
       timerSeconds: rules?.timerSeconds ?? 60,
@@ -57,6 +62,9 @@ export function PreferencesModal({
     const incomingNormalized = {
       defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
+      requireLandingToBuild: rules.requireLandingToBuild !== undefined
+        ? Boolean(rules.requireLandingToBuild)
+        : (rules.buildingRule === "land" || (rules as any).buildingMode === "land" || (rules as any).buildingRules === "land"),
       maxPlayers: rules.maxPlayers ?? 4,
       timerEnabled: rules.timerEnabled ?? false,
       timerSeconds: rules.timerSeconds ?? 60,
@@ -74,7 +82,10 @@ export function PreferencesModal({
   const updateHostRule = <K extends keyof GameRules>(key: K, val: GameRules[K]) => {
     if (isGameStarted || !isHost) return
     isUserInteractingRef.current = true
-    const updated = { ...localRules, [key]: val }
+    const updated: any = { ...localRules, [key]: val }
+    if (key === "requireLandingToBuild") {
+      updated.buildingRule = val ? "land" : "anywhere"
+    }
     setLocalRules(updated)
     setSaveStatus(null)
 
@@ -92,6 +103,7 @@ export function PreferencesModal({
             lastSyncedRulesRef.current = JSON.stringify({
               defaultStartingMoney: updated.defaultStartingMoney ?? 25000,
               doublesRuleEnabled: updated.doublesRuleEnabled ?? true,
+              requireLandingToBuild: updated.requireLandingToBuild ?? false,
               maxPlayers: updated.maxPlayers ?? 4,
               timerEnabled: updated.timerEnabled ?? false,
               timerSeconds: updated.timerSeconds ?? 60,
@@ -132,6 +144,7 @@ export function PreferencesModal({
         lastSyncedRulesRef.current = JSON.stringify({
           defaultStartingMoney: localRules.defaultStartingMoney ?? 25000,
           doublesRuleEnabled: localRules.doublesRuleEnabled ?? true,
+          requireLandingToBuild: localRules.requireLandingToBuild ?? false,
           maxPlayers: localRules.maxPlayers ?? 4,
           timerEnabled: localRules.timerEnabled ?? false,
           timerSeconds: localRules.timerSeconds ?? 60,
@@ -181,7 +194,7 @@ export function PreferencesModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            <span>⚙️</span> GAME SETTINGS &amp; CONFIGURATION
+            GAME SETTINGS &amp; CONFIGURATION
           </strong>
           <button onClick={close} aria-label="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -216,7 +229,7 @@ export function PreferencesModal({
               textAlign: "center",
             }}
           >
-            🎨 APPEARANCE
+            APPEARANCE
           </button>
           <button
             onClick={() => setActiveTab("gameplay")}
@@ -233,7 +246,7 @@ export function PreferencesModal({
               textAlign: "center",
             }}
           >
-            🎮 GAMEPLAY
+            GAMEPLAY
           </button>
           <button
             onClick={() => setActiveTab("host")}
@@ -250,7 +263,7 @@ export function PreferencesModal({
               textAlign: "center",
             }}
           >
-            👑 HOST SETTINGS
+            HOST SETTINGS
           </button>
         </div>
 
@@ -260,11 +273,11 @@ export function PreferencesModal({
             /* ── SECTION A: APPEARANCE ── */
             <>
               {/* Reduced Motion */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Reduced Motion</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Reduced Motion</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Minimizes token glide effects and tumbling animations.
                     </p>
                   </div>
@@ -272,6 +285,7 @@ export function PreferencesModal({
                     className={`toggle ${prefs.reducedMotion ? "on" : ""}`}
                     onClick={() => updatePref("reducedMotion", !prefs.reducedMotion)}
                     aria-label="Toggle reduced motion"
+                    style={{ flexShrink: 0 }}
                   >
                     <span />
                   </button>
@@ -279,11 +293,11 @@ export function PreferencesModal({
               </div>
 
               {/* Layout Diagnostics */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Layout Diagnostics Banner</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Layout Diagnostics Banner</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Shows viewport dimensions and text-fit debugging info.
                     </p>
                   </div>
@@ -291,6 +305,7 @@ export function PreferencesModal({
                     className={`toggle ${prefs.layoutDiagnostics ? "on" : ""}`}
                     onClick={() => updatePref("layoutDiagnostics", !prefs.layoutDiagnostics)}
                     aria-label="Toggle layout diagnostics"
+                    style={{ flexShrink: 0 }}
                   >
                     <span />
                   </button>
@@ -303,10 +318,10 @@ export function PreferencesModal({
             /* ── SECTION B: GAMEPLAY SETTINGS ── */
             <>
               {/* Animation Speed */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <strong style={{ fontSize: "13px", color: "#fff" }}>Animation Speed</strong>
-                  <span style={{ fontSize: "11px", color: "var(--gold-300)", fontWeight: 700, textTransform: "uppercase" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "6px", width: "100%", minWidth: 0 }}>
+                  <strong style={{ fontSize: "13px", color: "#fff", minWidth: 0, flex: "1 1 auto", overflowWrap: "break-word", wordBreak: "break-word" }}>Animation Speed</strong>
+                  <span style={{ fontSize: "11px", color: "var(--gold-300)", fontWeight: 700, textTransform: "uppercase", flexShrink: 0 }}>
                     {prefs.animationSpeed}
                   </span>
                 </div>
@@ -326,18 +341,18 @@ export function PreferencesModal({
                         cursor: "pointer",
                       }}
                     >
-                      {speed === "slow" ? "🐢 Slow" : speed === "normal" ? "⚡ Normal" : "🚀 Fast"}
+                      {speed === "slow" ? "Slow" : speed === "normal" ? "Normal" : "Fast"}
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Sound Effects */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Sound Effects &amp; Audio</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Sound Effects &amp; Audio</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Audio cues for dice, property purchase, rent, and building.
                     </p>
                   </div>
@@ -348,14 +363,15 @@ export function PreferencesModal({
                       testAudio()
                     }}
                     aria-label="Toggle sound"
+                    style={{ flexShrink: 0 }}
                   >
                     <span />
                   </button>
                 </div>
 
                 {prefs.soundEffects && (
-                  <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
-                    <small style={{ fontSize: "11px", color: "var(--text-muted)" }}>Volume:</small>
+                  <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px", width: "100%", minWidth: 0 }}>
+                    <small style={{ fontSize: "11px", color: "var(--text-muted)", flexShrink: 0 }}>Volume:</small>
                     <input
                       type="range"
                       min={0}
@@ -366,9 +382,9 @@ export function PreferencesModal({
                         updatePref("masterVolume", val)
                         audioSystem.setMasterVolume(val)
                       }}
-                      style={{ flex: 1, accentColor: "var(--gold)" }}
+                      style={{ flex: 1, minWidth: 0, accentColor: "var(--gold)" }}
                     />
-                    <strong style={{ fontSize: "11px", color: "var(--gold-300)", width: "32px", textAlign: "right" }}>
+                    <strong style={{ fontSize: "11px", color: "var(--gold-300)", width: "32px", textAlign: "right", flexShrink: 0 }}>
                       {prefs.masterVolume}%
                     </strong>
                   </div>
@@ -376,11 +392,11 @@ export function PreferencesModal({
               </div>
 
               {/* Haptic Feedback */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Haptic Vibration</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Haptic Vibration</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Tactile response on mobile devices for rolls and transactions.
                     </p>
                   </div>
@@ -391,6 +407,7 @@ export function PreferencesModal({
                       testHaptic()
                     }}
                     aria-label="Toggle haptic feedback"
+                    style={{ flexShrink: 0 }}
                   >
                     <span />
                   </button>
@@ -402,6 +419,79 @@ export function PreferencesModal({
           {activeTab === "host" && (
             /* ── SECTION C: HOST SETTINGS ── */
             <>
+              {/* Feature 2A: Persistent Room / Game Code Display (Always visible) */}
+              <div
+                style={{
+                  background: "linear-gradient(135deg, rgba(200, 155, 69, 0.15) 0%, rgba(0, 0, 0, 0.45) 100%)",
+                  border: "1.5px solid var(--gold, #c89b45)",
+                  borderRadius: "8px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", color: "var(--gold-300, #f6d89b)", textTransform: "uppercase" }}>
+                      Match Room Code
+                    </span>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted, #9ca3af)", marginTop: "2px" }}>
+                      {isGameStarted
+                        ? "Active Match Code — share to allow disconnected players to rejoin"
+                        : "Share this code with players to join before match start"}
+                    </div>
+                  </div>
+                  {roomCode && (
+                    <button
+                      onClick={() => {
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(roomCode)
+                          setCopiedCode(true)
+                          setTimeout(() => setCopiedCode(false), 2000)
+                        }
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid var(--gold)",
+                        background: copiedCode ? "rgba(16, 185, 129, 0.25)" : "rgba(200, 155, 69, 0.2)",
+                        color: copiedCode ? "#34d399" : "var(--gold-bright, #ffd57e)",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        transition: "all 0.2s ease",
+                      }}
+                      title="Copy room code to clipboard"
+                    >
+                      <span>{copiedCode ? "COPIED!" : "COPY CODE"}</span>
+                    </button>
+                  )}
+                </div>
+                <div
+                  style={{
+                    background: "rgba(0, 0, 0, 0.45)",
+                    border: "1px solid rgba(200, 155, 69, 0.35)",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    fontFamily: "'Courier New', Courier, monospace",
+                    fontSize: "20px",
+                    fontWeight: 800,
+                    letterSpacing: "0.22em",
+                    color: "var(--gold-bright, #ffd57e)",
+                    textAlign: "center",
+                    textShadow: "0 0 12px rgba(200, 155, 69, 0.6)",
+                    userSelect: "all",
+                  }}
+                >
+                  {roomCode || "LOCAL MATCH (OFFLINE)"}
+                </div>
+              </div>
+
               {/* Host Status Banner */}
               {isGameStarted ? (
                 <div
@@ -417,7 +507,6 @@ export function PreferencesModal({
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "16px" }}>🔒</span>
                   <div>
                     <strong>Settings Locked — Game in Progress</strong>
                     <div style={{ fontSize: "11px", opacity: 0.9 }}>
@@ -439,7 +528,6 @@ export function PreferencesModal({
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "16px" }}>👑</span>
                   <div>
                     <strong>Host Controlled Rules</strong>
                     <div style={{ fontSize: "11px", opacity: 0.9 }}>
@@ -461,7 +549,6 @@ export function PreferencesModal({
                     gap: "8px",
                   }}
                 >
-                  <span style={{ fontSize: "16px" }}>👑</span>
                   <div>
                     <strong>Lobby Configuration Phase (Host Controls Active)</strong>
                     <div style={{ fontSize: "11px", opacity: 0.9 }}>
@@ -472,15 +559,15 @@ export function PreferencesModal({
               )}
 
               {/* Maximum Players */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Maximum Players</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Maximum Players</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Capacity limit for this game room (2 to 6).
                     </p>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                     <button
                       disabled={isGameStarted || !isHost || (localRules.maxPlayers ?? 4) <= 2}
                       onClick={() => updateHostRule("maxPlayers", Math.max(2, (localRules.maxPlayers ?? 4) - 1))}
@@ -523,15 +610,15 @@ export function PreferencesModal({
               </div>
 
               {/* Starting Money */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Starting Capital</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Starting Capital</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       Cash awarded upon completing the first board rotation.
                     </p>
                   </div>
-                  <strong style={{ color: "var(--gold-300)", fontSize: "13px" }}>
+                  <strong style={{ color: "var(--gold-300)", fontSize: "13px", flexShrink: 0 }}>
                     ₹{(localRules.defaultStartingMoney ?? 25000).toLocaleString()}
                   </strong>
                 </div>
@@ -569,12 +656,96 @@ export function PreferencesModal({
                 </div>
               </div>
 
+              {/* Building Rules (Authoritative Mode Selection) */}
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ marginBottom: "10px", width: "100%", minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", overflowWrap: "break-word", wordBreak: "break-word" }}>Building Rules</strong>
+                    <span style={{ fontSize: "10.5px", color: "var(--gold-300)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {localRules.requireLandingToBuild ? "Build Mode A — Land to Build" : "Build Mode B — Build From Anywhere"}
+                    </span>
+                  </div>
+                </div>
+                {/* Segmented Control */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "6px",
+                    background: "rgba(0, 0, 0, 0.4)",
+                    padding: "4px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-subtle)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={isGameStarted || !isHost}
+                    onClick={() => updateHostRule("requireLandingToBuild", true)}
+                    style={{
+                      padding: "8px 6px",
+                      borderRadius: "4px",
+                      border: localRules.requireLandingToBuild
+                        ? "1.5px solid var(--gold, #c89b45)"
+                        : "1px solid transparent",
+                      background: localRules.requireLandingToBuild
+                        ? "linear-gradient(135deg, rgba(200, 155, 69, 0.3) 0%, rgba(200, 155, 69, 0.15) 100%)"
+                        : "transparent",
+                      color: localRules.requireLandingToBuild ? "var(--gold-300, #ffd57e)" : "var(--text-muted)",
+                      fontWeight: 700,
+                      fontSize: "11.5px",
+                      cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
+                      opacity: isGameStarted || !isHost ? 0.5 : 1,
+                      textAlign: "center",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    Build Mode A — Land to Build
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isGameStarted || !isHost}
+                    onClick={() => updateHostRule("requireLandingToBuild", false)}
+                    style={{
+                      padding: "8px 6px",
+                      borderRadius: "4px",
+                      border: !localRules.requireLandingToBuild
+                        ? "1.5px solid var(--gold, #c89b45)"
+                        : "1px solid transparent",
+                      background: !localRules.requireLandingToBuild
+                        ? "linear-gradient(135deg, rgba(200, 155, 69, 0.3) 0%, rgba(200, 155, 69, 0.15) 100%)"
+                        : "transparent",
+                      color: !localRules.requireLandingToBuild ? "var(--gold-300, #ffd57e)" : "var(--text-muted)",
+                      fontWeight: 700,
+                      fontSize: "11.5px",
+                      cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
+                      opacity: isGameStarted || !isHost ? 0.5 : 1,
+                      textAlign: "center",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    Build Mode B — Build From Anywhere
+                  </button>
+                </div>
+                <div style={{ marginTop: "8px", fontSize: "11px", color: "var(--gold-bright, #ffd57e)", background: "rgba(200,155,69,0.08)", border: "1px solid rgba(200,155,69,0.18)", borderRadius: "4px", padding: "6px 8px", lineHeight: 1.35, overflowWrap: "break-word", wordBreak: "break-word" }}>
+                  {localRules.requireLandingToBuild ? (
+                    <>
+                      <strong>Build Mode A — Land to Build:</strong> Build on a property you already own when you land on it. You can build multiple times while you remain there during that turn.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Build Mode B — Build From Anywhere:</strong> Build on eligible properties from anywhere on the board, but only once per property per turn.
+                    </>
+                  )}
+                </div>
+              </div>
+
               {/* Doubles & Extra Turns */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Doubles &amp; Extra Turns</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Doubles &amp; Extra Turns</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       {localRules.doublesRuleEnabled
                         ? "Classic rule: Matching dice award extra roll; 3 consecutive doubles sent to Jail."
                         : "Single roll: Matching dice do NOT award an extra turn."}
@@ -587,7 +758,7 @@ export function PreferencesModal({
                       updateHostRule("doublesRuleEnabled", !localRules.doublesRuleEnabled)
                     }
                     aria-label="Toggle doubles rule"
-                    style={{ opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
+                    style={{ flexShrink: 0, opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
                   >
                     <span />
                   </button>
@@ -595,11 +766,11 @@ export function PreferencesModal({
               </div>
 
               {/* Turn Timer */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <div>
-                    <strong style={{ fontSize: "13px", color: "#fff" }}>Turn Timer</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "8px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Turn Timer</strong>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
                       {localRules.timerEnabled
                         ? `Time limit active (${localRules.timerSeconds}s per turn)`
                         : "No time limit"}
@@ -612,7 +783,7 @@ export function PreferencesModal({
                       updateHostRule("timerEnabled", !localRules.timerEnabled)
                     }
                     aria-label="Toggle turn timer"
-                    style={{ opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
+                    style={{ flexShrink: 0, opacity: isGameStarted || !isHost ? 0.4 : 1, cursor: isGameStarted || !isHost ? "not-allowed" : "pointer" }}
                   >
                     <span />
                   </button>

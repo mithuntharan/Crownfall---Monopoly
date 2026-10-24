@@ -144,7 +144,7 @@ export function DiceRollHistory({
                     gap: "8px",
                   }}
                 >
-                  <span>🎲</span> DICE ROLL HISTORY
+                  DICE ROLL HISTORY
                 </strong>
                 <span style={{ fontSize: "10.5px", color: "rgba(255,255,255,0.7)" }}>
                   Authoritative recorded rolls · Human & Bots

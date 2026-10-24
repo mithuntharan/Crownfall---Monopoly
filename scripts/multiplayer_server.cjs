@@ -147,12 +147,28 @@ const AVAILABLE_COLORS = [
 ];
 
 const EMPTY_ROOM_TIMEOUT_MS = parseInt(process.env.EMPTY_ROOM_TIMEOUT_MS || String(10 * 60 * 1000), 10); // Exactly 10 minutes default
-const DISCONNECT_GRACE_PERIOD_MS = parseInt(process.env.DISCONNECT_GRACE_PERIOD_MS || '90000', 10); // 90 seconds default grace period
+const DISCONNECT_GRACE_PERIOD_MS = parseInt(process.env.DISCONNECT_GRACE_PERIOD_MS || '300000', 10); // 5 minutes default grace period
+
+function normalizeIp(ip) {
+  if (!ip) return '';
+  let str = String(ip).trim();
+  if (str.startsWith('::ffff:')) str = str.slice(7);
+  if (str === '::1') str = '127.0.0.1';
+  return str;
+}
+
+function ipsMatch(ip1, ip2) {
+  if (!ip1 || !ip2) return false;
+  return normalizeIp(ip1) === normalizeIp(ip2);
+}
 
 class Room {
   constructor(roomCode, hostName = 'Host', hostColor = 'saffron', rules = {}, hostClientId = null) {
     this.roomCode = roomCode;
+    this.originalHostPlayerId = 0;
+    this.actingHostPlayerId = 0;
     this.hostPlayerId = 0;
+    this.nextJoinOrder = 1;
     this.gamePhase = 'LOBBY'; // 'LOBBY' | 'IN_PROGRESS' | 'GAME_OVER'
     this.settingsLocked = false;
     this.createdAt = Date.now();
@@ -173,6 +189,7 @@ class Room {
       minPlayers: 2,
       timerEnabled: rules.timerEnabled ?? false,
       timerSeconds: rules.timerSeconds ?? 60,
+      requireLandingToBuild: rules.requireLandingToBuild ?? false,
     };
 
     const hostToken = crypto.randomBytes(16).toString('hex');
@@ -180,11 +197,13 @@ class Room {
     this.players = [
       {
         id: 0,
+        joinOrder: 0,
         name: hostName.trim() || 'Player 1',
         color: hostColor || 'saffron',
         token: '1',
         isHuman: true,
         isHost: true,
+        isOriginalHost: true,
         connected: true,
         sessionToken: hostToken,
         reconnectToken: hostReconnectToken,
@@ -274,9 +293,82 @@ class Room {
   }
 
   hasActiveHost() {
-    if (this.hostPlayerId === null || this.hostPlayerId === undefined) return false;
-    const host = this.getPlayerById(this.hostPlayerId);
-    return Boolean(host && host.connected);
+    if (this.actingHostPlayerId === null || this.actingHostPlayerId === undefined) return false;
+    const host = this.getPlayerById(this.actingHostPlayerId);
+    return Boolean(host && host.connected && !host.isLeft);
+  }
+
+  resolveActingHost(reason = '') {
+    const prevActingHostId = this.actingHostPlayerId;
+    const origHost = (this.originalHostPlayerId !== null && this.originalHostPlayerId !== undefined)
+      ? this.getPlayerById(this.originalHostPlayerId)
+      : null;
+    const isOrigHostEligible = Boolean(
+      origHost && origHost.connected && !origHost.isLeft && !origHost.kickedByHost
+    );
+
+    let newActingHostId = null;
+    if (isOrigHostEligible) {
+      newActingHostId = this.originalHostPlayerId;
+    } else {
+      // Original host is not eligible. Check if current acting host remains eligible (avoiding unnecessary flip-flopping)
+      const currentActing = (this.actingHostPlayerId !== null && this.actingHostPlayerId !== undefined)
+        ? this.getPlayerById(this.actingHostPlayerId)
+        : null;
+      const isCurrentActingEligible = Boolean(
+        currentActing &&
+        currentActing.connected &&
+        !currentActing.isLeft &&
+        !currentActing.kickedByHost &&
+        currentActing.id !== this.originalHostPlayerId
+      );
+
+      if (isCurrentActingEligible && reason !== 'disconnect_acting') {
+        newActingHostId = currentActing.id;
+      } else {
+        // Select next eligible, currently connected player according to room join order,
+        // prioritizing the earliest-joined connected player who joined after the original host.
+        const origJoinOrder = origHost ? (origHost.joinOrder ?? 0) : 0;
+        const eligible = this.players.filter(p => p.connected && !p.isLeft && !p.kickedByHost && p.id !== this.originalHostPlayerId);
+        const afterOrig = eligible
+          .filter(p => (p.joinOrder ?? p.id) > origJoinOrder)
+          .sort((a, b) => (a.joinOrder ?? a.id) - (b.joinOrder ?? b.id));
+
+        if (afterOrig.length > 0) {
+          newActingHostId = afterOrig[0].id;
+        } else if (eligible.length > 0) {
+          // If no player joined after, wrap around to connected players who joined before
+          eligible.sort((a, b) => (a.joinOrder ?? a.id) - (b.joinOrder ?? b.id));
+          newActingHostId = eligible[0].id;
+        } else {
+          newActingHostId = null;
+        }
+      }
+    }
+
+    this.actingHostPlayerId = newActingHostId;
+    this.hostPlayerId = newActingHostId;
+
+    for (const p of this.players) {
+      p.isHost = (newActingHostId !== null && p.id === newActingHostId);
+      p.isOriginalHost = (this.originalHostPlayerId !== null && p.id === this.originalHostPlayerId);
+    }
+
+    if (newActingHostId !== prevActingHostId) {
+      const newActingPlayer = newActingHostId !== null ? this.getPlayerById(newActingHostId) : null;
+      console.log(`[MULTIPLAYER SERVER] Room ${this.roomCode}: Host role updated. Acting host: ${newActingHostId} (${newActingPlayer?.name || 'none'}), Original host: ${this.originalHostPlayerId}. Reason: ${reason}`);
+      broadcastToRoom(this, {
+        type: 'HOST_CHANGED',
+        newHostId: newActingHostId,
+        actingHostPlayerId: newActingHostId,
+        originalHostPlayerId: this.originalHostPlayerId,
+        newHostName: newActingPlayer ? newActingPlayer.name : null,
+        reason,
+        snapshot: this.getSnapshot(),
+      });
+    }
+
+    return newActingHostId;
   }
 
   handlePlayerDisconnect(player, clientIp = null) {
@@ -286,23 +378,9 @@ class Room {
     player.disconnectIp = clientIp || player.lastIp || null;
     this.touch();
 
-    // If host disconnected, assign next connected confirmed human player as host
-    if (player.id === this.hostPlayerId) {
-      player.isHost = false;
-      const nextHost = this.players.find(p => p.connected && !p.isLeft && p.id !== player.id);
-      if (nextHost) {
-        nextHost.isHost = true;
-        this.hostPlayerId = nextHost.id;
-        broadcastToRoom(this, {
-          type: 'HOST_CHANGED',
-          newHostId: nextHost.id,
-          newHostName: nextHost.name,
-          snapshot: this.getSnapshot(),
-        });
-      } else {
-        this.hostPlayerId = null;
-      }
-    }
+    // Determine if the disconnected player was the acting host
+    const wasActingHost = (player.id === this.actingHostPlayerId);
+    this.resolveActingHost(wasActingHost ? 'disconnect_acting' : 'disconnect');
 
     // If zero connected confirmed players remain, begin 10-minute empty room countdown
     const connectedCount = this.players.filter(p => p.connected && !p.isLeft).length;
@@ -312,41 +390,68 @@ class Room {
   }
 
   findRecoverablePlayer({ reconnectToken, sessionToken, clientId, name, clientIp } = {}) {
+    const now = Date.now();
+
     // 1. High-entropy Reconnect Token (Highest Priority - Bound to player/room)
     if (reconnectToken) {
-      const p = this.players.find(pl => pl.reconnectToken === reconnectToken && !pl.isLeft);
-      if (p) return p;
+      const p = this.players.find(pl => pl.reconnectToken === reconnectToken);
+      if (p) {
+        if (p.kickedByHost) return null;
+        if (p.disconnectedAt && (now - p.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) {
+          console.warn(`[MULTIPLAYER SERVER] Reconnect token rejected: Grace period expired for player '${p.name}'.`);
+          return null;
+        }
+        return p;
+      }
     }
 
     // 2. Authoritative Session Token match
     if (sessionToken) {
-      const p = this.players.find(pl => pl.sessionToken === sessionToken && !pl.isLeft);
-      if (p) return p;
+      const p = this.players.find(pl => pl.sessionToken === sessionToken);
+      if (p) {
+        if (p.kickedByHost) return null;
+        if (p.disconnectedAt && (now - p.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) {
+          return null;
+        }
+        return p;
+      }
     }
 
     // 3. Client ID match
     if (clientId) {
-      const p = this.players.find(pl => pl.clientId === clientId && !pl.isLeft);
-      if (p) return p;
+      const p = this.players.find(pl => pl.clientId === clientId);
+      if (p && !p.kickedByHost) {
+        if (clientIp && (p.lastIp || p.disconnectIp)) {
+          if (!ipsMatch(clientIp, p.lastIp) && !ipsMatch(clientIp, p.disconnectIp)) {
+            return null;
+          }
+        }
+        if (p.disconnectedAt && (now - p.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) {
+          return null;
+        }
+        return p;
+      }
     }
 
-    // 4. Safe Constrained Same-IP + Name Fallback:
-    // Only applied when no token is available, for disconnected slots within the grace period,
-    // where name AND client IP match unambiguously. Never displaces an active player.
+    // 4. Safe Constrained Same-IP + Normalized Player Name Matching:
+    // Allows players who lost storage or refreshed from the same client IP
+    // to rejoin the same active game into their original seat.
     if (name && clientIp) {
       const cleanName = name.trim().toLowerCase();
-      const now = Date.now();
-      const candidates = this.players.filter(p =>
-        !p.connected &&
-        !p.isLeft &&
-        p.name &&
-        p.name.trim().toLowerCase() === cleanName &&
-        (p.disconnectIp === clientIp || p.lastIp === clientIp) &&
-        p.disconnectedAt &&
-        (now - p.disconnectedAt <= DISCONNECT_GRACE_PERIOD_MS)
-      );
+      const candidates = this.players.filter(p => {
+        if (p.kickedByHost) return false;
+        if (!p.name || p.name.trim().toLowerCase() !== cleanName) return false;
+        // Verify client IP matches original session
+        const ipMatches = ipsMatch(clientIp, p.disconnectIp) || ipsMatch(clientIp, p.lastIp);
+        if (!ipMatches) return false;
+        // Never displace an actively connected player with a healthy socket
+        if (p.connected && p.socket && !p.socket.destroyed) return false;
+        // Verify within grace period
+        if (p.disconnectedAt && (now - p.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) return false;
+        return true;
+      });
       if (candidates.length === 1) {
-        console.log(`[MULTIPLAYER SERVER] Recovered disconnected player '${candidates[0].name}' (id: ${candidates[0].id}) via constrained same-IP+name fallback.`);
+        console.log(`[MULTIPLAYER SERVER] Recovered seat for player '${candidates[0].name}' (id: ${candidates[0].id}) in room ${this.roomCode} via IP + name matching.`);
         return candidates[0];
       }
     }
@@ -372,9 +477,16 @@ class Room {
 
     existingPlayer.connected = true;
     existingPlayer.isLeft = false;
+    existingPlayer.kickedByHost = false;
     existingPlayer.disconnectedAt = null;
     existingPlayer.disconnectIp = null;
     existingPlayer.lastSeen = Date.now();
+    if (!existingPlayer.sessionToken) {
+      existingPlayer.sessionToken = crypto.randomBytes(16).toString('hex');
+    }
+    if (!existingPlayer.reconnectToken) {
+      existingPlayer.reconnectToken = crypto.randomBytes(32).toString('hex');
+    }
     if (clientIp) existingPlayer.lastIp = clientIp;
     if (newClientId) existingPlayer.clientId = newClientId;
 
@@ -391,6 +503,9 @@ class Room {
     this.cancelEmptyExpiration();
     this.touch();
 
+    // Reconcile authoritative host role (restores original host if reconnecting)
+    this.resolveActingHost('reconnect');
+
     broadcastToRoom(this, {
       type: 'PLAYER_STATUS',
       playerId: existingPlayer.id,
@@ -406,6 +521,8 @@ class Room {
       sessionToken: existingPlayer.sessionToken,
       reconnectToken: existingPlayer.reconnectToken,
       isHost: existingPlayer.isHost,
+      originalHostPlayerId: this.originalHostPlayerId,
+      actingHostPlayerId: this.actingHostPlayerId,
       snapshot: this.getSnapshot(),
       reclaimed: true,
     };
@@ -445,6 +562,18 @@ class Room {
 
     // 2. New player checks: validate room phase and capacity
     if (this.gamePhase !== 'LOBBY') {
+      const sameNamePlayer = this.players.find(p => p.name && p.name.trim().toLowerCase() === cleanName.toLowerCase());
+      if (sameNamePlayer) {
+        if (sameNamePlayer.kickedByHost) {
+          throw new Error('You were removed from this room by the host and cannot rejoin this match.');
+        }
+        if (sameNamePlayer.disconnectedAt && (Date.now() - sameNamePlayer.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) {
+          throw new Error(`The reconnection grace period for player '${sameNamePlayer.name}' has expired.`);
+        }
+        if (clientIp && !ipsMatch(clientIp, sameNamePlayer.disconnectIp) && !ipsMatch(clientIp, sameNamePlayer.lastIp)) {
+          throw new Error(`Reconnection rejected: client IP does not match original player session for '${sameNamePlayer.name}'.`);
+        }
+      }
       throw new Error('Game already in progress in this room.');
     }
     const activePlayerCount = this.players.filter(p => !p.isLeft).length;
@@ -472,17 +601,22 @@ class Room {
     // Join Game when the room exists but has no active host:
     // The first player successfully admitted becomes the host.
     if (!this.hasActiveHost()) {
-      const player = this.addPlayer(cleanName || 'Player 1', preferredColor, clientId);
-      player.isHost = true;
-      this.hostPlayerId = player.id;
+      const player = this.addPlayer(cleanName || 'Player 1', preferredColor, clientId, clientIp);
       this.cancelEmptyExpiration();
       this.touch();
+      this.resolveActingHost('admit_when_no_active_host');
+      if (this.originalHostPlayerId === null || this.originalHostPlayerId === undefined) {
+        this.originalHostPlayerId = player.id;
+        player.isOriginalHost = true;
+      }
       return {
         status: 'ACCEPTED',
         roomCode: this.roomCode,
         playerId: player.id,
         sessionToken: player.sessionToken,
-        isHost: true,
+        isHost: player.isHost,
+        originalHostPlayerId: this.originalHostPlayerId,
+        actingHostPlayerId: this.actingHostPlayerId,
         snapshot: this.getSnapshot(),
       };
     }
@@ -506,6 +640,7 @@ class Room {
       name: cleanName || 'Guest Player',
       color: chosenColor,
       clientId: clientId || null,
+      clientIp: clientIp || null,
       requestedAt: Date.now(),
       status: 'PENDING',
       socket: requesterSocket || null,
@@ -539,7 +674,7 @@ class Room {
       throw new Error('Room has expired.');
     }
     const hostPlayer = this.getPlayerByToken(hostSessionToken);
-    if (!hostPlayer || hostPlayer.id !== this.hostPlayerId) {
+    if (!hostPlayer || this.actingHostPlayerId === null || hostPlayer.id !== this.actingHostPlayerId) {
       throw new Error('Unauthorized: only the active room host can approve or reject join requests.');
     }
 
@@ -577,7 +712,7 @@ class Room {
       }
 
       // Authoritative admission
-      const player = this.addPlayer(joinReq.name, joinReq.color, joinReq.clientId);
+      const player = this.addPlayer(joinReq.name, joinReq.color, joinReq.clientId, joinReq.clientIp);
       joinReq.status = 'ACCEPTED';
       joinReq.playerId = player.id;
       joinReq.sessionToken = player.sessionToken;
@@ -643,7 +778,7 @@ class Room {
     }
   }
 
-  addPlayer(name, preferredColor, clientId = null) {
+  addPlayer(name, preferredColor, clientId = null, clientIp = null) {
     if (this.gamePhase !== 'LOBBY') {
       throw new Error('Game already in progress in this room.');
     }
@@ -667,18 +802,20 @@ class Room {
     const reconnectToken = crypto.randomBytes(32).toString('hex');
     const player = {
       id: nextId,
+      joinOrder: this.nextJoinOrder++,
       name: safeName,
       color: chosenColor,
       token: String(nextId + 1),
       isHuman: true,
       isHost: false,
+      isOriginalHost: false,
       connected: true,
       sessionToken,
       reconnectToken,
       clientId: clientId || null,
       disconnectedAt: null,
       disconnectIp: null,
-      lastIp: null,
+      lastIp: clientIp || null,
       socket: null,
       lastSeen: Date.now(),
     };
@@ -691,7 +828,7 @@ class Room {
 
   getPlayerByToken(token) {
     if (!token) return null;
-    return this.players.find(p => p.sessionToken === token) || null;
+    return this.players.find(p => p.sessionToken === token || p.reconnectToken === token) || null;
   }
 
   getPlayerById(id) {
@@ -733,7 +870,7 @@ class Room {
     if (this.settingsLocked || this.gamePhase === 'IN_PROGRESS') {
       throw new Error('Rules are permanently locked for this match.');
     }
-    if (requesterId !== this.hostPlayerId && requesterId !== 0) {
+    if (this.actingHostPlayerId === null || requesterId !== this.actingHostPlayerId) {
       throw new Error('Only the host can modify table rules.');
     }
     const defaultStartingMoney = newRules.defaultStartingMoney ?? newRules.startingMoney;
@@ -764,6 +901,17 @@ class Room {
     if (newRules.timerSeconds !== undefined) {
       this.rules.timerSeconds = parseInt(newRules.timerSeconds, 10) || 60;
     }
+    if (newRules.requireLandingToBuild !== undefined) {
+      this.rules.requireLandingToBuild = Boolean(newRules.requireLandingToBuild);
+    }
+    if (newRules.buildingRule !== undefined || newRules.buildingMode !== undefined || newRules.buildingRules !== undefined) {
+      const modeVal = String(newRules.buildingRule ?? newRules.buildingMode ?? newRules.buildingRules);
+      if (modeVal === 'land' || modeVal === 'WhenYouLand' || modeVal === 'ModeA' || modeVal === 'modeA' || modeVal === 'A') {
+        this.rules.requireLandingToBuild = true;
+      } else if (modeVal === 'anywhere' || modeVal === 'Anywhere' || modeVal === 'ModeB' || modeVal === 'modeB' || modeVal === 'B') {
+        this.rules.requireLandingToBuild = false;
+      }
+    }
     if (this.gameState) {
       this.gameState.rules = { ...this.rules };
     }
@@ -772,7 +920,7 @@ class Room {
 
   async startGame(requesterId) {
     return this.enqueueAction(async () => {
-      if (requesterId !== this.hostPlayerId) {
+      if (this.actingHostPlayerId === null || requesterId !== this.actingHostPlayerId) {
         throw new Error('Only the host can start the game.');
       }
       if (this.gamePhase === 'IN_PROGRESS') {
@@ -798,14 +946,23 @@ class Room {
       }
 
       // Set effective player list with deterministic IDs, maintaining host at ID 0 and preserving object references
+      const hostIdx = confirmed.findIndex(p => p.id === requesterId);
+      if (hostIdx > 0) {
+        const [actingP] = confirmed.splice(hostIdx, 1);
+        confirmed.unshift(actingP);
+      }
       this.players = confirmed;
       this.players.forEach((p, idx) => {
         p.id = idx;
+        p.joinOrder = (idx === 0) ? 0 : (p.joinOrder !== undefined && p.joinOrder !== null ? p.joinOrder : idx);
         p.token = p.token || String(idx + 1);
         p.isHuman = true;
         p.isHost = (idx === 0);
+        p.isOriginalHost = (p.isOriginalHost || idx === 0);
         p.isLeft = false;
       });
+      this.originalHostPlayerId = 0;
+      this.actingHostPlayerId = 0;
       this.hostPlayerId = 0;
 
       // Adjust effective player count while preserving configured maxPlayers capacity limit
@@ -848,6 +1005,7 @@ class Room {
         doublesRuleEnabled: this.rules.doublesRuleEnabled ?? true,
         timerEnabled: this.rules.timerEnabled ?? false,
         timerSeconds: this.rules.timerSeconds ?? 60,
+        requireLandingToBuild: this.rules.requireLandingToBuild ?? false,
         devMode: false,
         inLobby: false,
         startGame: true,
@@ -893,7 +1051,7 @@ class Room {
       }
 
       // Authoritative turn validation for turn-restricted actions
-      const turnRestricted = ['roll', 'buy', 'decline', 'endTurn'];
+      const turnRestricted = ['roll', 'buy', 'decline', 'endTurn', 'build'];
       if (turnRestricted.includes(action)) {
         if (!this.gameState || this.gameState.activePlayerIndex !== playerId) {
           const activeName = this.players[this.gameState?.activePlayerIndex]?.name || `Player ${(this.gameState?.activePlayerIndex ?? 0) + 1}`;
@@ -948,7 +1106,9 @@ class Room {
           playerName: player.name,
           description: `Action rejected: ${errMsg}`,
         });
-        throw new Error(errMsg);
+        const err = new Error(errMsg);
+        if (res?.reason) err.reason = res.reason;
+        throw err;
       }
 
       this.setGameState(res.state);
@@ -1413,7 +1573,7 @@ class Room {
           playerName: winner.name,
           playerColor: winner.color,
           sequenceNumber: seq,
-          description: `👑 GAME OVER! ${winner.name} is victorious!`,
+          description: `GAME OVER! ${winner.name} is victorious!`,
         });
       }
     }
@@ -1449,7 +1609,7 @@ class Room {
 
   async rematch(requesterId) {
     return this.enqueueAction(async () => {
-      if (requesterId !== this.hostPlayerId) {
+      if (this.actingHostPlayerId === null || requesterId !== this.actingHostPlayerId) {
         throw new Error('Only the host can initiate a rematch.');
       }
       if (this.isRematching) {
@@ -1474,13 +1634,23 @@ class Room {
         this.rematchState.readyPlayers.clear();
 
         // Only retain eligible connected players for the new match, mutating in-place to preserve socket references
+        const hostIndex = eligible.findIndex(p => p.id === requesterId);
+        if (hostIndex > 0) {
+          const [hostPlayer] = eligible.splice(hostIndex, 1);
+          eligible.unshift(hostPlayer);
+        }
         this.players = eligible;
         this.players.forEach((p, idx) => {
           p.id = idx;
+          p.joinOrder = idx;
           p.isHost = (idx === 0);
+          p.isOriginalHost = (idx === 0);
           p.isLeft = false;
         });
+        this.originalHostPlayerId = 0;
+        this.actingHostPlayerId = 0;
         this.hostPlayerId = 0;
+        this.nextJoinOrder = eligible.length;
 
         const snapshot = await this.startGame(this.hostPlayerId);
         return snapshot;
@@ -1506,23 +1676,21 @@ class Room {
       }
       player.connected = false;
       player.isLeft = true;
+      player.kickedByHost = false;
+      player.disconnectedAt = Date.now();
+      player.disconnectIp = player.lastIp || null;
       this.touch();
 
-      // If host left, transfer host authority to next eligible remaining player
-      if (player.id === this.hostPlayerId) {
-        player.isHost = false;
-        const nextHost = this.players.find(p => p.connected && !p.isLeft && p.id !== player.id);
-        if (nextHost) {
-          nextHost.isHost = true;
-          this.hostPlayerId = nextHost.id;
-          broadcastToRoom(this, {
-            type: 'HOST_CHANGED',
-            newHostId: nextHost.id,
-            newHostName: nextHost.name,
-            snapshot: this.getSnapshot(),
-          });
-        } else {
-          this.hostPlayerId = null;
+      // If host left, resolve host authority to next eligible remaining player
+      const wasOriginalHost = (player.id === this.originalHostPlayerId);
+      const wasActingHost = (player.id === this.actingHostPlayerId);
+      this.resolveActingHost(wasActingHost ? 'disconnect_acting' : 'leave');
+
+      // If original host intentionally left, they permanently surrender original host ownership
+      if (wasOriginalHost) {
+        this.originalHostPlayerId = this.actingHostPlayerId;
+        for (const p of this.players) {
+          p.isOriginalHost = (this.originalHostPlayerId !== null && p.id === this.originalHostPlayerId);
         }
       }
 
@@ -1593,7 +1761,7 @@ class Room {
   async kickPlayer(requesterPlayerId, targetPlayerId, reason = 'Kicked by host') {
     return this.enqueueAction(async () => {
       if (requesterPlayerId !== null && requesterPlayerId !== undefined) {
-        if (requesterPlayerId !== this.hostPlayerId) {
+        if (this.actingHostPlayerId === null || requesterPlayerId !== this.actingHostPlayerId) {
           throw new Error('Only the room host can kick players.');
         }
       }
@@ -1604,7 +1772,7 @@ class Room {
         throw new Error(`Player with ID ${targetPlayerId} not found in room.`);
       }
 
-      if (requesterPlayerId !== null && player.id === this.hostPlayerId) {
+      if (requesterPlayerId !== null && player.id === this.actingHostPlayerId) {
         throw new Error('Host cannot kick themselves.');
       }
 
@@ -1621,24 +1789,29 @@ class Room {
           player.socket.destroy();
         } catch (_) {}
       }
+      const isExplicitHostKick = (requesterPlayerId !== null && requesterPlayerId !== undefined && requesterPlayerId === this.actingHostPlayerId);
       player.socket = null;
       player.connected = false;
       player.isLeft = true;
+      player.kickedByHost = isExplicitHostKick;
+      player.kickedAt = Date.now();
+      player.kickReason = reason;
+      player.disconnectedAt = Date.now();
+      player.disconnectIp = player.lastIp || null;
       this.touch();
+
+      const wasOriginalHost = (player.id === this.originalHostPlayerId);
+      const wasActingHost = (player.id === this.actingHostPlayerId);
 
       // If in lobby, remove player from list entirely
       if (this.gamePhase === 'LOBBY') {
         this.players = this.players.filter(p => p.id !== player.id);
 
-        // If host was removed (e.g. server auto-kick from another room)
-        if (player.id === this.hostPlayerId) {
-          player.isHost = false;
-          const nextHost = this.players.find(p => p.connected && !p.isLeft);
-          if (nextHost) {
-            nextHost.isHost = true;
-            this.hostPlayerId = nextHost.id;
-          } else {
-            this.hostPlayerId = null;
+        this.resolveActingHost(wasActingHost ? 'disconnect_acting' : 'kick');
+        if (wasOriginalHost) {
+          this.originalHostPlayerId = this.actingHostPlayerId;
+          for (const p of this.players) {
+            p.isOriginalHost = (this.originalHostPlayerId !== null && p.id === this.originalHostPlayerId);
           }
         }
 
@@ -1657,6 +1830,15 @@ class Room {
         });
 
         return { ok: true, message: `Player ${player.name} removed from lobby.`, snapshot: this.getSnapshot() };
+      }
+
+      // If game IN_PROGRESS, resolve host role if needed
+      this.resolveActingHost(wasActingHost ? 'disconnect_acting' : 'kick');
+      if (wasOriginalHost) {
+        this.originalHostPlayerId = this.actingHostPlayerId;
+        for (const p of this.players) {
+          p.isOriginalHost = (this.originalHostPlayerId !== null && p.id === this.originalHostPlayerId);
+        }
       }
 
       // If game IN_PROGRESS:
@@ -1711,7 +1893,9 @@ class Room {
   getSnapshot() {
     return {
       roomCode: this.roomCode,
-      hostPlayerId: this.hostPlayerId,
+      hostPlayerId: this.actingHostPlayerId ?? this.hostPlayerId,
+      actingHostPlayerId: this.actingHostPlayerId,
+      originalHostPlayerId: this.originalHostPlayerId,
       gamePhase: this.gamePhase,
       settingsLocked: this.settingsLocked,
       rules: this.rules,
@@ -1731,11 +1915,13 @@ class Room {
         const engP = this.gameState?.players?.find(ep => ep.id === p.id);
         return {
           id: p.id,
+          joinOrder: p.joinOrder,
           name: p.name,
           color: p.color,
           token: p.token,
           isHuman: p.isHuman,
-          isHost: p.isHost,
+          isHost: Boolean(p.isHost),
+          isOriginalHost: Boolean(this.originalHostPlayerId !== null && p.id === this.originalHostPlayerId),
           connected: p.connected,
           isLeft: Boolean(p.isLeft),
           money: engP ? engP.money : this.rules.defaultStartingMoney,
@@ -1995,7 +2181,7 @@ function handleWsConnection(socket, req, head = null) {
           await handleClientMessage(msg, socket, (rm, pl) => {
             currentRoom = rm;
             currentPlayer = pl;
-          }, clientIp);
+          }, clientIp, () => ({ currentRoom, currentPlayer }));
         } catch (e) {
           console.error('[WS PARSE ERROR]:', e);
         }
@@ -2023,7 +2209,7 @@ function handleWsConnection(socket, req, head = null) {
   });
 }
 
-async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0.1') {
+async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0.1', getContext = null) {
   const { type, roomCode, sessionToken, payload, requestId, clientId } = msg;
 
   if (type === 'PING') {
@@ -2114,9 +2300,21 @@ async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0
     room.cancelEmptyExpiration();
     bindContext(room, player);
 
+    // Resolve acting host on WebSocket reconnection (restores original host if reconnecting)
+    room.resolveActingHost('reconnect');
+
     socket.write(encodeWsTextFrame(JSON.stringify({
       type: 'INIT_SNAPSHOT',
-      player: { id: player.id, name: player.name, color: player.color, isHost: player.isHost, reconnectToken: player.reconnectToken },
+      yourPlayerId: player.id,
+      player: {
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        isHost: player.isHost,
+        isOriginalHost: player.isOriginalHost,
+        reconnectToken: player.reconnectToken,
+        sessionToken: player.sessionToken,
+      },
       snapshot: room.getSnapshot(),
       requestId,
     })));
@@ -2155,7 +2353,14 @@ async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0
     return;
   }
 
-  const player = room.getPlayerByToken(sessionToken);
+  const token = sessionToken || msg.reconnectToken || payload?.reconnectToken || payload?.sessionToken;
+  let player = room.getPlayerByToken(token);
+  if (!player && getContext) {
+    const ctx = getContext();
+    if (ctx && ctx.currentPlayer && ctx.currentRoom === room) {
+      player = ctx.currentPlayer;
+    }
+  }
   if (!player) {
     socket.write(encodeWsTextFrame(JSON.stringify({ type: 'ERROR', message: 'Unauthorized session.', requestId })));
     return;
@@ -2246,6 +2451,7 @@ async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0
     socket.write(encodeWsTextFrame(JSON.stringify({
       type: 'ACTION_ERROR',
       message: err.message || 'Action failed.',
+      reason: err.reason || null,
       requestId,
     })));
   }
@@ -2551,8 +2757,10 @@ const server = http.createServer((req, res) => {
         return rejectRateLimit(res, 'RECONNECT', clientIp, rateCheck);
       }
       const { roomCode, sessionToken, reconnectToken, playerName, clientId } = payload;
-      const room = rooms.get((roomCode || '').trim().toUpperCase());
-      if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
+      const cleanCode = (roomCode || '').trim().toUpperCase();
+      const room = rooms.get(cleanCode);
+      if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired. Check the room code and try again.' });
+      if (room.gamePhase === 'GAME_OVER') return sendJson(res, 410, { ok: false, error: 'This match has already ended.' });
       const player = room.findRecoverablePlayer({
         reconnectToken,
         sessionToken,
@@ -2560,7 +2768,22 @@ const server = http.createServer((req, res) => {
         name: playerName,
         clientIp,
       });
-      if (!player) return sendJson(res, 401, { ok: false, error: 'Invalid or expired reconnect credentials.' });
+      if (!player) {
+        const cleanName = (playerName || '').trim().toLowerCase();
+        const existing = room.players.find(p => p.name && p.name.trim().toLowerCase() === cleanName);
+        if (existing) {
+          if (existing.kickedByHost) {
+            return sendJson(res, 403, { ok: false, error: 'You were removed from this room by the host and cannot rejoin this match.' });
+          }
+          if (existing.disconnectedAt && (Date.now() - existing.disconnectedAt > DISCONNECT_GRACE_PERIOD_MS)) {
+            return sendJson(res, 410, { ok: false, error: `The reconnection grace period for player '${existing.name}' has expired.` });
+          }
+          if (clientIp && !ipsMatch(clientIp, existing.disconnectIp) && !ipsMatch(clientIp, existing.lastIp)) {
+            return sendJson(res, 403, { ok: false, error: 'Reconnection rejected: client IP does not match the original player session.' });
+          }
+        }
+        return sendJson(res, 401, { ok: false, error: 'Invalid or expired reconnect credentials. Check room code and player name.' });
+      }
       const reclaimResult = room.reclaimPlayerSession(player, null, clientIp, clientId);
       return sendJson(res, 200, {
         ok: true,
@@ -2586,7 +2809,8 @@ const server = http.createServer((req, res) => {
       const roomCode = actionMatch[1].toUpperCase();
       const room = rooms.get(roomCode);
       if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
-      const player = room.getPlayerByToken(payload.sessionToken);
+      const token = payload.sessionToken || payload.reconnectToken;
+      const player = room.getPlayerByToken(token);
       if (!player) return sendJson(res, 401, { ok: false, error: 'Unauthorized.' });
 
       const actionRateKey = `player_${player.sessionToken || player.id}`;
@@ -2632,7 +2856,7 @@ const server = http.createServer((req, res) => {
         });
         return sendJson(res, 200, { ok: true, ...result });
       } catch (err) {
-        return sendJson(res, 400, { ok: false, error: err.message });
+        return sendJson(res, 400, { ok: false, error: err.message, reason: err.reason || null });
       }
     }
 
@@ -2643,7 +2867,7 @@ const server = http.createServer((req, res) => {
       const room = rooms.get(roomCode);
       if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
       const hostPlayer = room.getPlayerByToken(payload.sessionToken);
-      if (!hostPlayer || hostPlayer.id !== room.hostPlayerId) {
+      if (!hostPlayer || room.actingHostPlayerId === null || hostPlayer.id !== room.actingHostPlayerId) {
         return sendJson(res, 403, { ok: false, error: 'Only the host can kick players.' });
       }
       try {
@@ -2663,7 +2887,7 @@ const server = http.createServer((req, res) => {
       const room = rooms.get(roomCode);
       if (!room || room.isExpired) return sendJson(res, 404, { ok: false, error: 'Room not found or has expired.' });
       const hostPlayer = room.getPlayerByToken(payload.sessionToken);
-      if (!hostPlayer || (hostPlayer.id !== room.hostPlayerId && hostPlayer.id !== 0)) {
+      if (!hostPlayer || room.actingHostPlayerId === null || hostPlayer.id !== room.actingHostPlayerId) {
         return sendJson(res, 403, { ok: false, error: 'Only the host can modify match rules.' });
       }
       try {

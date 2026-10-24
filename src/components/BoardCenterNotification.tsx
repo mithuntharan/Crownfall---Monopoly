@@ -42,44 +42,13 @@ export const BoardCenterNotification: React.FC<BoardCenterNotificationProps> = (
 }) => {
   if (!notification) return null
 
-  const getIcon = (type: BoardCenterNotificationItem["type"]) => {
-    switch (type) {
-      case "PURCHASE":
-        return "🏛️"
-      case "DECLINE":
-        return "❌"
-      case "CHANCE":
-        return "📜"
-      case "CHEST":
-        return "🎁"
-      case "RENT":
-        return "💰"
-      case "JAIL":
-        return "⚖️"
-      case "CLUB":
-        return "👑"
-      case "REST":
-        return "☕"
-      case "START_PASS":
-        return "🚩"
-      case "BUILD_HOUSE":
-        return "🏠"
-      case "BUILD_HOTEL":
-        return "🏨"
-      case "DESTROY_HOUSE":
-        return "🔨"
-      case "DESTROY_HOTEL":
-        return "💥"
-      case "TAX":
-        return "💸"
-      case "ERROR":
-        return "⚠️"
-      default:
-        return "⚜️"
-    }
+  const getIcon = (_type: BoardCenterNotificationItem["type"]) => {
+    return ""
   }
 
-  const icon = notification.icon || getIcon(notification.type)
+  const icon = notification.icon && !/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(notification.icon)
+    ? notification.icon
+    : getIcon(notification.type)
   const isError = notification.type === "ERROR"
   const badgeClass = isError ? "badge-error" : `badge-${notification.type.toLowerCase()}`
 
@@ -92,7 +61,7 @@ export const BoardCenterNotification: React.FC<BoardCenterNotificationProps> = (
       title="Click to dismiss notification"
     >
       <div className={`board-center-notification-card ${badgeClass}`}>
-        <span className="notification-icon">{icon}</span>
+        {icon ? <span className="notification-icon">{icon}</span> : null}
         <span className="notification-message" title={notification.message}>
           {notification.message}
         </span>

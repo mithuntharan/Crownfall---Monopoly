@@ -59,7 +59,7 @@ export function StandingsModal({
         <div className="sheet-handle" />
         <div className="modal-header">
           <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span>🏆</span> LIVE STANDINGS & LEADERBOARD
+            LIVE STANDINGS & LEADERBOARD
           </strong>
           <button onClick={close} aria-label="Close">
             <svg
@@ -115,7 +115,7 @@ export function StandingsModal({
                     <span
                       className={`standings-rank-pill rank-${Math.min(rank, 4)}`}
                     >
-                      {rank === 1 ? "👑" : `#${rank}`}
+                      {`#${rank}`}
                     </span>
                     <div className="standings-player-info">
                       <div className="standings-name-row">
@@ -202,7 +202,7 @@ export function StandingsModal({
                       className="standings-inspect-btn"
                       onClick={() => onInspectPortfolio(player.id)}
                     >
-                      💼 INSPECT PORTFOLIO
+                      INSPECT PORTFOLIO
                     </button>
                   )}
                   {isHost && isMultiplayer && player.id !== localPlayerId && !player.isBankrupt && (
@@ -229,7 +229,7 @@ export function StandingsModal({
                         transition: "all 0.15s ease",
                       }}
                     >
-                      🥾 KICK PLAYER
+                      KICK PLAYER
                     </button>
                   )}
                 </div>

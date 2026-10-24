@@ -42,6 +42,15 @@ export class LocalGameEngine implements IGameEngine {
   private txIdCounter = 1
   private lastDice: [number, number] = [0, 0]
   private lastTurnResult: TurnResult | null = null
+  private currentTurnId = 1
+  private propertyPurchasedTurn: Record<string, number> = {}
+  private propertyPurchasedOwner: Record<string, number> = {}
+  private propertyBuildTurn: Record<string, number> = {}
+  private landingActive = false
+  private landingTurnId = -1
+  private landingPlayerId = -1
+  private landingPosition = -1
+  private landingPropertyId = ""
 
   private recordTransaction(
     type: string,
@@ -181,10 +190,34 @@ export class LocalGameEngine implements IGameEngine {
       if (rules.maxPlayers !== undefined) {
         this.rules.maxPlayers = rules.maxPlayers
       }
+      if (rules.requireLandingToBuild !== undefined) {
+        this.rules.requireLandingToBuild = rules.requireLandingToBuild
+      }
+      if (rules.unmortgageInterestRatePercent !== undefined) {
+        this.rules.unmortgageInterestRatePercent = rules.unmortgageInterestRatePercent
+      }
+      if (rules.buildingRefundPercentage !== undefined) {
+        this.rules.buildingRefundPercentage = rules.buildingRefundPercentage
+      }
+      if (rules.baseRentDoublesForSet !== undefined) {
+        this.rules.baseRentDoublesForSet = rules.baseRentDoublesForSet
+      }
+      if (rules.passStartBonus !== undefined) {
+        this.rules.passStartBonus = rules.passStartBonus
+      }
     }
     this.gamePhase = "IN_PROGRESS"
     this.settingsLocked = true
     this.gameStarted = true
+    this.currentTurnId = 1
+    this.propertyPurchasedTurn = {}
+    this.propertyPurchasedOwner = {}
+    this.propertyBuildTurn = {}
+    this.landingActive = false
+    this.landingTurnId = -1
+    this.landingPlayerId = -1
+    this.landingPosition = -1
+    this.landingPropertyId = ""
 
     const configs =
       playerConfigs && playerConfigs.length >= 2
@@ -494,10 +527,7 @@ export class LocalGameEngine implements IGameEngine {
       if (player.isHuman) {
         this.turnState = "WAITING_FOR_ACTION"
       } else {
-        this.activePlayerIndex =
-          (this.activePlayerIndex + 1) % this.players.length
-        if (this.activePlayerIndex === 0) this.roundNumber++
-        this.turnState = "WAITING_FOR_ROLL"
+        this.advanceTurn(false)
       }
       return { result: res, state: await this.getState() }
     }
@@ -555,10 +585,7 @@ export class LocalGameEngine implements IGameEngine {
         if (player.isHuman) {
           this.turnState = "WAITING_FOR_ACTION"
         } else {
-          this.activePlayerIndex =
-            (this.activePlayerIndex + 1) % this.players.length
-          if (this.activePlayerIndex === 0) this.roundNumber++
-          this.turnState = "WAITING_FOR_ROLL"
+          this.advanceTurn(false)
         }
         return { result: res, state: await this.getState() }
       }
@@ -580,10 +607,7 @@ export class LocalGameEngine implements IGameEngine {
         if (player.isHuman) {
           this.turnState = "WAITING_FOR_ACTION"
         } else {
-          this.activePlayerIndex =
-            (this.activePlayerIndex + 1) % this.players.length
-          if (this.activePlayerIndex === 0) this.roundNumber++
-          this.turnState = "WAITING_FOR_ROLL"
+          this.advanceTurn(false)
         }
         return { result: res, state: await this.getState() }
       }
@@ -838,6 +862,21 @@ export class LocalGameEngine implements IGameEngine {
       }
     }
 
+    const finalSpace = BOARD_SPACES[player.position]
+    if (finalSpace && finalSpace.type === "city" && !player.inJail && !player.inRestHouse) {
+      this.landingTurnId = this.currentTurnId
+      this.landingPlayerId = player.id
+      this.landingPosition = player.position
+      this.landingPropertyId = finalSpace.propertyId || ""
+      this.landingActive = true
+    } else {
+      this.landingTurnId = -1
+      this.landingPlayerId = -1
+      this.landingPosition = player.position
+      this.landingPropertyId = ""
+      this.landingActive = false
+    }
+
     // Turn advancement if no extra turn from doubles
     const extra = Boolean(
       this.rules.doublesRuleEnabled &&
@@ -853,10 +892,7 @@ export class LocalGameEngine implements IGameEngine {
     } else if (player.isHuman) {
       this.turnState = "WAITING_FOR_ACTION"
     } else {
-      this.turnState = "TURN_COMPLETE"
-      this.activePlayerIndex =
-        (this.activePlayerIndex + 1) % this.players.length
-      if (this.activePlayerIndex === 0) this.roundNumber++
+      this.advanceTurn(false)
     }
 
     res.extraTurnGranted = extra
@@ -901,6 +937,8 @@ export class LocalGameEngine implements IGameEngine {
 
     player.money -= price
     player.ownedProperties.push(space.propertyId!)
+    this.propertyPurchasedTurn[space.propertyId!] = this.currentTurnId
+    this.propertyPurchasedOwner[space.propertyId!] = playerId
     this.recordTransaction(
       "PURCHASE",
       `${player.name} purchased ${space.name} for ₹${price.toLocaleString()}.`,
@@ -955,6 +993,11 @@ export class LocalGameEngine implements IGameEngine {
   private advanceTurn(extraTurn: boolean = false) {
     if (!extraTurn) {
       this.consecutiveDoubles = 0
+      this.currentTurnId++
+      this.landingActive = false
+      this.landingTurnId = -1
+      this.landingPosition = -1
+      this.landingPropertyId = ""
       this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length
       if (this.activePlayerIndex === 0) this.roundNumber++
       this.turnState = "WAITING_FOR_ROLL"
@@ -993,35 +1036,108 @@ export class LocalGameEngine implements IGameEngine {
   async buildHouseOrHotel(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState
+    error?: string
+    reason?: string
   }> {
     if (playerId < 0 || playerId >= this.players.length) {
-      return { success: false, state: await this.getState() }
+      return { success: false, state: await this.getState(), error: "Invalid player ID.", reason: "NOT_PLAYERS_TURN" }
+    }
+    if (!this.devMode && playerId !== this.activePlayerIndex) {
+      return { success: false, state: await this.getState(), error: "It is not your turn.", reason: "NOT_PLAYERS_TURN" }
     }
     const player = this.players[playerId]
-
-    const space = BOARD_SPACES[player.position]
-    if (this.rules.requireLandingToBuild && space.propertyId !== propertyId) {
-      return { success: false, state: await this.getState() }
+    if (player.isBankrupt) {
+      return { success: false, state: await this.getState(), error: "Player is bankrupt.", reason: "NOT_PLAYERS_TURN" }
+    }
+    if (player.money < 0) {
+      return { success: false, state: await this.getState(), error: "Player is in debt. Resolve debt before building.", reason: "INSUFFICIENT_FUNDS" }
+    }
+    if (!this.devMode) {
+      if (this.rules.requireLandingToBuild) {
+        if (this.turnState !== "WAITING_FOR_ACTION" && this.turnState !== "EXTRA_TURN") {
+          return { success: false, state: await this.getState(), error: "Land on this property during your turn to build.", reason: "MODE_A_MUST_LAND_HERE" }
+        }
+      } else {
+        if (
+          this.turnState !== "WAITING_FOR_ROLL" &&
+          this.turnState !== "WAITING_FOR_ACTION" &&
+          this.turnState !== "EXTRA_TURN"
+        ) {
+          return { success: false, state: await this.getState(), error: "Cannot build at this time.", reason: "NOT_PLAYERS_TURN" }
+        }
+      }
+    }
+    if (this.turnState !== "WAITING_FOR_ROLL" && this.lastTurnResult?.eligibleToBuy) {
+      return { success: false, state: await this.getState(), error: "Must resolve pending property purchase before building.", reason: "NOT_PLAYERS_TURN" }
     }
 
     const city = CITY_PROPERTIES[propertyId]
-    if (!city || !player.ownedProperties.includes(propertyId)) {
-      return { success: false, state: await this.getState() }
+    if (!city) {
+      return { success: false, state: await this.getState(), error: "Invalid city property ID.", reason: "NOT_PROPERTY_OWNER" }
+    }
+    if (!player.ownedProperties.includes(propertyId)) {
+      return { success: false, state: await this.getState(), error: "You do not own this property.", reason: "NOT_PROPERTY_OWNER" }
+    }
+
+    if (player.mortgages[propertyId]) {
+      return { success: false, state: await this.getState(), error: "Cannot build on a mortgaged property.", reason: "PROPERTY_MORTGAGED" }
+    }
+
+    // Purchase-turn restriction: Cannot build on a property during its purchase turn
+    if (
+      this.propertyPurchasedTurn[propertyId] === this.currentTurnId &&
+      (this.propertyPurchasedOwner[propertyId] === undefined || this.propertyPurchasedOwner[propertyId] === playerId)
+    ) {
+      return {
+        success: false,
+        state: await this.getState(),
+        error: "You must wait until your next turn to build on this property.",
+        reason: "PROPERTY_PURCHASED_THIS_TURN",
+      }
+    }
+
+    if (this.rules.requireLandingToBuild) {
+      // Mode A: Build When You Land
+      if (!this.landingActive || this.landingTurnId !== this.currentTurnId || this.landingPlayerId !== playerId || this.landingPropertyId !== propertyId) {
+        return { success: false, state: await this.getState(), error: "Land on this property during your turn to build.", reason: "MODE_A_MUST_LAND_HERE" }
+      }
+      const space = BOARD_SPACES[player.position]
+      if (player.position !== this.landingPosition || !space || space.propertyId !== propertyId) {
+        return { success: false, state: await this.getState(), error: "You must be on this property to build.", reason: "MODE_A_PLAYER_NOT_ON_PROPERTY" }
+      }
+    } else {
+      // Mode B: Build From Anywhere (1 build per property per turn)
+      if (this.propertyBuildTurn[propertyId] === this.currentTurnId) {
+        return {
+          success: false,
+          state: await this.getState(),
+          error: "You have already built on this property this turn.",
+          reason: "MODE_B_BUILD_ALLOWANCE_USED",
+        }
+      }
     }
 
     const currentBuildings = player.buildings[propertyId] || 0
     if (currentBuildings >= 4) {
-      return { success: false, state: await this.getState() }
+      return { success: false, state: await this.getState(), error: "Maximum construction limit reached (Hotel).", reason: "CONSTRUCTION_LIMIT_REACHED" }
     }
 
-    // A mortgaged property must never be eligible for construction
-    if (player.money < city.buildingCost || player.mortgages[propertyId]) {
-      return { success: false, state: await this.getState() }
+    if (player.money < city.buildingCost) {
+      return {
+        success: false,
+        state: await this.getState(),
+        error: `Insufficient funds to construct building (cost: ₹${city.buildingCost.toLocaleString()}, cash: ₹${player.money.toLocaleString()}).`,
+        reason: "INSUFFICIENT_FUNDS",
+      }
     }
 
     player.money -= city.buildingCost
     player.buildings[propertyId] = currentBuildings + 1
     player.constructionCount = (player.constructionCount || 0) + 1
+    if (!this.rules.requireLandingToBuild) {
+      this.propertyBuildTurn[propertyId] = this.currentTurnId
+    }
+
     const bLabel =
       player.buildings[propertyId] === 4
         ? "Hotel"
@@ -1213,6 +1329,9 @@ export class LocalGameEngine implements IGameEngine {
     player.ownedProperties = player.ownedProperties.filter((id) => id !== propertyId)
     delete player.mortgages[propertyId]
     delete player.buildings[propertyId]
+    delete this.propertyPurchasedTurn[propertyId]
+    delete this.propertyPurchasedOwner[propertyId]
+    delete this.propertyBuildTurn[propertyId]
     player.money += netSellProceeds
 
     const desc = isMortgaged
@@ -1253,6 +1372,18 @@ export class LocalGameEngine implements IGameEngine {
         remainingSeconds: remaining,
       },
       rules: { ...this.rules },
+      currentTurnId: this.currentTurnId,
+      turnBuildingsBuilt: Object.entries(this.propertyBuildTurn)
+        .filter(([_, tId]) => tId === this.currentTurnId)
+        .map(([propId]) => propId),
+      turnPurchasedProperties: Object.entries(this.propertyPurchasedTurn)
+        .filter(([_, tId]) => tId === this.currentTurnId)
+        .map(([propId]) => propId),
+      activeLanding: {
+        propertyId: this.landingPropertyId,
+        position: this.landingPosition,
+        isActive: this.landingActive,
+      },
       activityLog: [...this.activityLog],
       transactionLedger: [...this.transactionLedger],
       tradeOffers: [...this.tradeOffers],
@@ -1412,6 +1543,9 @@ export class LocalGameEngine implements IGameEngine {
     for (const p of offer.senderPropertyIds) {
       sender.ownedProperties = sender.ownedProperties.filter((x) => x !== p)
       receiver.ownedProperties.push(p)
+      this.propertyPurchasedTurn[p] = this.currentTurnId
+      this.propertyPurchasedOwner[p] = receiver.id
+      delete this.propertyBuildTurn[p]
       if (sender.mortgages[p]) {
         receiver.mortgages[p] = true
         delete sender.mortgages[p]
@@ -1420,6 +1554,9 @@ export class LocalGameEngine implements IGameEngine {
     for (const p of offer.receiverPropertyIds) {
       receiver.ownedProperties = receiver.ownedProperties.filter((x) => x !== p)
       sender.ownedProperties.push(p)
+      this.propertyPurchasedTurn[p] = this.currentTurnId
+      this.propertyPurchasedOwner[p] = sender.id
+      delete this.propertyBuildTurn[p]
       if (receiver.mortgages[p]) {
         sender.mortgages[p] = true
         delete receiver.mortgages[p]
@@ -1505,6 +1642,9 @@ export class LocalGameEngine implements IGameEngine {
     for (const prop of player.ownedProperties) {
       player.buildings[prop] = 0
       player.mortgages[prop] = false
+      delete this.propertyPurchasedTurn[prop]
+      delete this.propertyPurchasedOwner[prop]
+      delete this.propertyBuildTurn[prop]
     }
     player.ownedProperties = []
     player.buildings = {}
