@@ -11,7 +11,8 @@ interface FinancialInsightsModalProps {
   isHost?: boolean
   isMultiplayer?: boolean
   onKickPlayer?: (playerId: number) => void
-  close: () => void
+  close?: () => void
+  isEmbedded?: boolean
 }
 
 export function FinancialInsightsModal({
@@ -21,7 +22,8 @@ export function FinancialInsightsModal({
   isHost = false,
   isMultiplayer = false,
   onKickPlayer,
-  close,
+  close = () => {},
+  isEmbedded = false,
 }: FinancialInsightsModalProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number>(localPlayerId)
   const [activeTab, setActiveTab] = useState<"overview" | "player_detail">("overview")
@@ -143,32 +145,19 @@ export function FinancialInsightsModal({
     return Object.values(groups).filter((g) => g.total > 0)
   }, [player])
 
-  return (
-    <div className="modal-backdrop" onMouseDown={close}>
-      <section
-        className="modal-sheet financial-insights-modal"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: "760px",
-          width: "min(760px, 95vw)",
-          maxHeight: "min(92vh, 92dvh)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div className="sheet-handle" />
-        <div className="modal-header">
-          <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            AUTHORITATIVE INSIGHTS &amp; FINANCIAL ANALYSIS
-          </strong>
-          <button onClick={close} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Navigation Tabs */}
+  const insightsBody = (
+    <div
+      className="financial-insights-body"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+        flex: 1,
+        overflow: "hidden",
+      }}
+    >
+      {/* Navigation Tabs */}
         <div
           style={{
             display: "flex",
@@ -614,6 +603,38 @@ export function FinancialInsightsModal({
             </>
           )}
         </div>
+    </div>
+  )
+
+  if (isEmbedded) {
+    return insightsBody
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={close}>
+      <section
+        className="modal-sheet financial-insights-modal"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: "760px",
+          width: "min(760px, 95vw)",
+          maxHeight: "min(92vh, 92dvh)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div className="sheet-handle" />
+        <div className="modal-header">
+          <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
+            AUTHORITATIVE INSIGHTS &amp; FINANCIAL ANALYSIS
+          </strong>
+          <button onClick={close} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {insightsBody}
       </section>
     </div>
   )

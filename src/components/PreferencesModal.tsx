@@ -292,25 +292,6 @@ export function PreferencesModal({
                 </div>
               </div>
 
-              {/* Layout Diagnostics */}
-              <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px", boxSizing: "border-box", width: "100%", minWidth: 0 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
-                  <div style={{ minWidth: 0, flex: "1 1 auto" }}>
-                    <strong style={{ fontSize: "13px", color: "#fff", display: "block", overflowWrap: "break-word", wordBreak: "break-word" }}>Layout Diagnostics Banner</strong>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: "2px 0 0", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
-                      Shows viewport dimensions and text-fit debugging info.
-                    </p>
-                  </div>
-                  <button
-                    className={`toggle ${prefs.layoutDiagnostics ? "on" : ""}`}
-                    onClick={() => updatePref("layoutDiagnostics", !prefs.layoutDiagnostics)}
-                    aria-label="Toggle layout diagnostics"
-                    style={{ flexShrink: 0 }}
-                  >
-                    <span />
-                  </button>
-                </div>
-              </div>
             </>
           )}
 

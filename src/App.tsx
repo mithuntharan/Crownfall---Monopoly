@@ -35,11 +35,8 @@ type PlayerColor = string
 import CrownfallErrorBoundary from "./components/CrownfallErrorBoundary"
 import PlayerPuck from "./components/PlayerPuck"
 import { calculatePlayerPortfolio } from "./engine/portfolioUtils"
-import TransactionLedgerModal, {
-  EVENT_LOG_CATEGORIES,
-  matchEventCategory,
-  type EventLogCategory,
-} from "./components/TransactionLedgerModal"
+import TransactionLedgerModal from "./components/TransactionLedgerModal"
+import GameInfoModal, { type GameInfoTab } from "./components/GameInfoModal"
 import StandingsModal from "./components/StandingsModal"
 import { TradeModal } from "./components/TradeModal"
 import { QuickChatWidget } from "./components/QuickChatWidget"
@@ -49,7 +46,13 @@ import PropertyLandmarkArtwork from "./components/PropertyLandmarkArtwork"
 import { TimelineReplayModal } from "./components/TimelineReplayModal"
 import { FinancialInsightsModal } from "./components/FinancialInsightsModal"
 import { PreferencesModal } from "./components/PreferencesModal"
-import { GameplayEventLog, type GameplayEventEntry } from "./components/GameplayEventLog"
+import {
+  GameplayEventLog,
+  type GameplayEventEntry,
+  EVENT_LOG_CATEGORIES,
+  matchGameplayEventCategory as matchEventCategory,
+  type EventLogCategory,
+} from "./components/GameplayEventLog"
 import { DiceRollHistory, type DiceRollRecord } from "./components/DiceRollHistory"
 import {
   multiplayerClient,
@@ -111,6 +114,8 @@ type Modal =
   | "confirm_end_session"
   | "confirm_resign"
   | "confirm_quit_game"
+  | "kick_player"
+  | "game_info"
 
 type RentInfo = {
   propertyName: string
@@ -3711,6 +3716,75 @@ function GameModal({
     )
   }
 
+  if (type === "kick_player") {
+    const kickablePlayers = (players || []).filter(
+      (p) => p.id !== localPlayerId && !p.isBankrupt,
+    )
+    return (
+      <ModalShell title="KICK PLAYER" close={close}>
+        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <p style={{ color: "var(--ink-soft)", fontSize: "12px", margin: 0, lineHeight: 1.4 }}>
+            Select a player to remove from this match. This action cannot be undone.
+          </p>
+          {kickablePlayers.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "18px 0", color: "var(--text-muted)", fontSize: "13px" }}>
+              No other active players available to kick.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {kickablePlayers.map((target) => (
+                <div
+                  key={target.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border-subtle)",
+                    background: "rgba(0, 0, 0, 0.04)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span
+                      style={{
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        backgroundColor: getPlayerColorHex(target.color),
+                      }}
+                    />
+                    <strong style={{ fontSize: "13px", color: "var(--ink)" }}>{target.name}</strong>
+                    <span style={{ fontSize: "11px", color: "var(--ink-soft)" }}>
+                      (₹{target.money.toLocaleString()})
+                    </span>
+                  </div>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to kick ${target.name}?`)) {
+                        onKickPlayer?.(target.id)
+                        close()
+                      }
+                    }}
+                    style={{ padding: "4px 10px", fontSize: "11px" }}
+                  >
+                    Kick
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+            <Button variant="ghost" onClick={close}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </ModalShell>
+    )
+  }
+
   if (type === "activity_log") {
     return (
       <TransactionLedgerModal
@@ -5152,7 +5226,8 @@ function GameScreen({
         setActiveTradePopup(offer)
         const popTimer = setTimeout(() => {
           setActiveTradePopup(null)
-          setModal("trade")
+          setGameInfoInitialTab("trade")
+          setGameInfoOpen(true)
         }, 1200)
         return () => clearTimeout(popTimer)
       }
@@ -5257,8 +5332,9 @@ function GameScreen({
   const [diceHistoryList, setDiceHistoryList] = useState<DiceRollRecord[]>([])
   const [diceHistoryOpen, setDiceHistoryOpen] = useState<boolean>(false)
 
-  // ── SIDE ACTION PANEL ──
-  const [sideActionsOpen, setSideActionsOpen] = useState<boolean>(false)
+  // ── COMBINED INFORMATION PANEL (Game Info: Ledger, Trade, Events) ──
+  const [gameInfoOpen, setGameInfoOpen] = useState<boolean>(false)
+  const [gameInfoInitialTab, setGameInfoInitialTab] = useState<GameInfoTab>("ledger")
   const engineRules = rules ?? null
   const setEngineRules = useCallback(
     (newRules: Partial<GameRules> | ((prev: GameRules) => GameRules)) => {
@@ -5277,7 +5353,36 @@ function GameScreen({
 
   const addGameplayEvent = (entry: GameplayEventEntry) => {
     effectiveSetEventLogList((prev) => {
+      // 1. Direct ID match
       if (prev.some((e) => e.id === entry.id)) return prev
+
+      // 2. Authoritative identity deduplication: prevent repeated effects, multiple producers, or network replays from duplicating the same event
+      const isDuplicate = prev.some((e) => {
+        const sameType = (e.type || "").toUpperCase() === (entry.type || "").toUpperCase()
+        const samePlayer = e.playerId !== undefined && e.playerId === entry.playerId
+        if (!sameType || !samePlayer) return false
+
+        // Matching sequence numbers
+        if (e.sequenceNumber !== undefined && entry.sequenceNumber !== undefined) {
+          return e.sequenceNumber === entry.sequenceNumber
+        }
+
+        // Matching property for BUY or DECLINE
+        if (e.propertyId && entry.propertyId && e.propertyId === entry.propertyId) {
+          return Math.abs(e.timestamp - entry.timestamp) < 4000
+        }
+
+        // Close timestamp window (2.5s) for action events of same type & player
+        if (Math.abs(e.timestamp - entry.timestamp) < 2500) {
+          const typeUpper = e.type.toUpperCase()
+          if (["ROLL_MOVE", "ROLL", "BUY", "DECLINE", "START_PASS", "TAX", "JAIL", "CLUB", "REST", "TURN_CHANGE"].includes(typeUpper)) {
+            return true
+          }
+        }
+        return false
+      })
+      if (isDuplicate) return prev
+
       return [entry, ...prev].slice(0, 100)
     })
   }
@@ -5634,9 +5739,13 @@ interface ActivePurchaseOpportunity {
         if (res.state.turnState === "EXTRA_TURN") {
           setHasRolledThisTurn(false)
         }
-        const buyMsg = `${buyer.name} bought ${pendingPurchase.propertyName} for Rs${pendingPurchase.purchasePrice.toLocaleString()}.`
+        const buyMsg = `${buyer.name} bought ${pendingPurchase.propertyName} for ₹${pendingPurchase.purchasePrice.toLocaleString()}.`
+        const engineBuyId = res.state.activityLog && res.state.activityLog.length > 0
+          ? [...res.state.activityLog].reverse().find((l) => (l.type === "buy" || l.type === "BUY") && l.playerId === buyerId)?.id
+          : undefined
+        const stableBuyId = engineBuyId !== undefined ? `engine_buy_${engineBuyId}` : `buy_${buyerId}_${pendingPurchase.propertyId}_${Date.now()}`
         addGameplayEvent({
-          id: `buy_${Date.now()}_${buyerId}_${pendingPurchase.propertyId}`,
+          id: stableBuyId,
           type: "BUY",
           timestamp: Date.now(),
           playerId: buyerId,
@@ -5727,6 +5836,74 @@ interface ActivePurchaseOpportunity {
     }
   }
 
+  const handleCreateTradeOffer = async (
+    receiverId: number,
+    senderProps: string[],
+    senderCash: number,
+    receiverProps: string[],
+    receiverCash: number,
+  ) => {
+    if (!defaultEngine.createTradeOffer) return false
+    const res = await defaultEngine.createTradeOffer(localPlayerId, receiverId, senderProps, senderCash, receiverProps, receiverCash)
+    if (res.success) {
+      const targetPlayer = (players || []).find((p) => p.id === receiverId)
+      const isBot = !targetPlayer?.isHuman
+      if (isBot && res.tradeId && defaultEngine.acceptTradeOffer) {
+        const acceptRes = await defaultEngine.acceptTradeOffer(res.tradeId, receiverId)
+        if (acceptRes.success) {
+          if (setPlayers) setPlayers(acceptRes.state.players)
+          if (setTradeOffers) setTradeOffers(acceptRes.state.tradeOffers || [])
+          try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+          showToast(`TRADE ACCEPTED BY ${targetPlayer?.name || "BOT"}!`)
+          return true
+        }
+      }
+      if (setPlayers) setPlayers(res.state.players)
+      if (setTradeOffers) setTradeOffers(res.state.tradeOffers || [])
+      try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+      showToast("TRADE PROPOSED")
+      return true
+    }
+    return false
+  }
+
+  const handleAcceptTradeOffer = async (tradeId: string) => {
+    if (!defaultEngine.acceptTradeOffer) return false
+    const res = await defaultEngine.acceptTradeOffer(tradeId, localPlayerId)
+    if (res.success) {
+      if (setPlayers) setPlayers(res.state.players)
+      if (setTradeOffers) setTradeOffers(res.state.tradeOffers || [])
+      try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+      showToast("TRADE ACCEPTED & EXECUTED")
+      return true
+    }
+    return false
+  }
+
+  const handleRejectTradeOffer = async (tradeId: string) => {
+    if (!defaultEngine.rejectTradeOffer) return false
+    const res = await defaultEngine.rejectTradeOffer(tradeId, localPlayerId)
+    if (res.success) {
+      if (setTradeOffers) setTradeOffers(res.state.tradeOffers || [])
+      try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+      showToast("TRADE REJECTED")
+      return true
+    }
+    return false
+  }
+
+  const handleCancelTradeOffer = async (tradeId: string) => {
+    if (!defaultEngine.cancelTradeOffer) return false
+    const res = await defaultEngine.cancelTradeOffer(tradeId, localPlayerId)
+    if (res.success) {
+      if (setTradeOffers) setTradeOffers(res.state.tradeOffers || [])
+      try { new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" }) } catch (_) {}
+      showToast("TRADE CANCELLED")
+      return true
+    }
+    return false
+  }
+
   const handleManualEndTurn = async () => {
     if (!canEndTurn || isEndingTurnRef.current) return
     if (activePlayer.money < 0) {
@@ -5813,8 +5990,12 @@ interface ActivePurchaseOpportunity {
           if (res.state.currentTurnId !== undefined) {
             setCurrentTurnId(res.state.currentTurnId)
           }
+          const engineBuyId = res.state.activityLog && res.state.activityLog.length > 0
+            ? [...res.state.activityLog].reverse().find((l) => (l.type === "buy" || l.type === "BUY") && l.playerId === botId)?.id
+            : undefined
+          const stableBuyId = engineBuyId !== undefined ? `engine_buy_${engineBuyId}` : `bot_buy_${botId}_${prop.id}_${Date.now()}`
           addGameplayEvent({
-            id: `bot_buy_${Date.now()}_${botId}_${prop.id}`,
+            id: stableBuyId,
             type: "BUY",
             timestamp: Date.now(),
             playerId: botId,
@@ -5822,7 +6003,7 @@ interface ActivePurchaseOpportunity {
             propertyId: prop.id,
             propertyName: prop.name,
             amount: price,
-            description: `${bot.name} bought ${prop.name} for Rs${price.toLocaleString()}.`,
+            description: `${bot.name} bought ${prop.name} for ₹${price.toLocaleString()}.`,
           })
           addBoardNotification({
             id: `board_bot_buy_${Date.now()}_${botId}_${prop.id}`,
@@ -5940,7 +6121,7 @@ interface ActivePurchaseOpportunity {
             let changed = false
             for (const b of buyLogs) {
               const eventId = `engine_buy_${b.id}`
-              if (!next.some((e) => e.id === eventId || (e.playerId === b.playerId && e.description === b.description))) {
+              if (!next.some((e) => e.id === eventId || (e.playerId === b.playerId && (e.description === b.description || (e.type?.toUpperCase() === "BUY" && Math.abs(e.timestamp - b.timestamp) < 4000))))) {
                 next.push({
                   id: eventId,
                   type: "BUY",
@@ -6090,7 +6271,8 @@ interface ActivePurchaseOpportunity {
       })
 
       addGameplayEvent({
-        id: `move_${Date.now()}_${remotePlayerId}_${evt.newPosition}`,
+        id: evt.rollId ? `move_${evt.rollId}` : `move_${Date.now()}_${remotePlayerId}_${evt.newPosition}`,
+        sequenceNumber: evt.sequence,
         type: "ROLL_MOVE",
         timestamp: Date.now(),
         playerId: remotePlayerId,
@@ -6504,18 +6686,7 @@ interface ActivePurchaseOpportunity {
               buyerMoney,
               canAfford: true,
             })
-            const buyLogMsg = `${buyer?.name || "Player"} landed on ${prop.name} (Price: ₹${prop.purchasePrice.toLocaleString()}).`
-            addGameplayEvent({
-              id: `purchase_option_${Date.now()}_${result.playerId}`,
-              type: "BUY",
-              timestamp: Date.now(),
-              playerId: result.playerId,
-              playerName: buyer?.name || "Player",
-              propertyId: prop.id,
-              propertyName: prop.name,
-              amount: prop.purchasePrice,
-              description: buyLogMsg,
-            })
+            // Purchase option is offered via board center pendingPurchase without polluting event log as a purchase before decision
           } else {
             // Cannot afford at landing: do NOT open buying card, show concise non-blocking message
             setPendingPurchase(null)
@@ -6995,54 +7166,97 @@ interface ActivePurchaseOpportunity {
   return (
     <main className="game-screen">
       <div className="game-topbar">
-        <div className="brand-button">
-          <Logo compact />
-        </div>
-        <div className="turn-count">
-          <small>ROUND</small>
-          <strong>{String(roundNumber).padStart(2, "0")}</strong>
-        </div>
-        <div
-          className="current-turn-status-badge"
-          style={!isGameStarted ? { background: "rgba(200, 155, 69, 0.15)", borderColor: "var(--gold)" } : {}}
-          title={!isGameStarted ? "Pre-Game Lobby Phase — Match not started" : `Active Player: ${activePlayer.name} · ${activePlayerPhaseText}`}
-        >
-          <div className="status-player-row">
+        <div className="game-topbar-player-section">
+          <div
+            className="turn-timer-badge topbar-player-badge"
+            title={`Playing as ${players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}`}
+          >
             <span
               className="status-color-dot"
-              style={{ backgroundColor: !isGameStarted ? "var(--gold)" : getPlayerColorHex(activePlayer.color) }}
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: getPlayerColorHex(players[localPlayerId]?.color || "saffron"),
+                display: "inline-block",
+                marginRight: "6px",
+                flexShrink: 0,
+              }}
             />
-            <span className="status-player-name">{!isGameStarted ? "PRE-GAME LOBBY" : activePlayer.name}</span>
-            <span className="status-player-cash">{!isGameStarted ? "NOT STARTED" : `Rs${activePlayer.money.toLocaleString()}`}</span>
+            <span className="topbar-player-label">PLAYING AS:</span>
+            <strong className="topbar-player-name">
+              {players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}
+            </strong>
           </div>
-          <span className="status-phase-pill" style={!isGameStarted ? { color: "var(--gold-300)" } : {}}>
-            {!isGameStarted ? (isHost ? "READY FOR HOST TO START" : "WAITING FOR HOST TO START") : activePlayerPhaseText}
-          </span>
         </div>
-        {isEffectiveHost && (
+
+        <div className="game-topbar-actions">
+          {/* Navigation: Game Info */}
           <button
-            className="end-session-topbar-btn"
-            onClick={() => setModal("confirm_end_session")}
-            title="Host Controls: End Game Session"
+            type="button"
+            className="topbar-action-btn game-info-btn"
+            onClick={() => {
+              setGameInfoInitialTab("ledger")
+              setGameInfoOpen(true)
+            }}
+            title="Open Game Info: Ledger, Trade, Events & Insights"
           >
-            End Game
+            <Icon name="ledger" size={13} />
+            <span>GAME INFO</span>
+            {pendingTradesCount > 0 && (
+              <span className="topbar-btn-badge alert">{pendingTradesCount}</span>
+            )}
           </button>
-        )}
-        <div
-          className="turn-timer-badge"
-          title={`Playing as ${players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}`}
-          style={{ fontSize: "9px" }}
-        >
-          {players[localPlayerId]?.name || `P${localPlayerId + 1}`}
+
+          <span className="topbar-actions-divider" aria-hidden="true" />
+
+          {/* Consequential: Kick (Host only) */}
+          {isEffectiveHost && (
+            <button
+              type="button"
+              className="topbar-action-btn kick-btn"
+              onClick={() => setModal("kick_player")}
+              title="Host Controls: Manage and Kick Players"
+            >
+              <span>KICK</span>
+            </button>
+          )}
+
+          {/* Consequential: Resign */}
+          <button
+            type="button"
+            className="topbar-action-btn resign-btn"
+            onClick={() => setModal("confirm_resign")}
+            title="Surrender & Resign Match"
+          >
+            <span>RESIGN</span>
+          </button>
+
+          {/* Consequential: End Game (Host only) */}
+          {isEffectiveHost && (
+            <button
+              type="button"
+              className="topbar-action-btn end-session-btn"
+              onClick={() => setModal("confirm_end_session")}
+              title="Host Controls: End Game Session"
+            >
+              <span>END GAME</span>
+            </button>
+          )}
+
+          <span className="topbar-actions-divider" aria-hidden="true" />
+
+          {/* Navigation: Settings */}
+          <button
+            type="button"
+            className="icon-button game-menu"
+            onClick={() => setModal("preferences")}
+            aria-label="Settings"
+            title="Game Settings & Preferences"
+          >
+            <Icon name="gear" />
+          </button>
         </div>
-        <button
-          className="icon-button game-menu"
-          onClick={() => setModal("preferences")}
-          aria-label="Settings"
-          title="Game Settings & Preferences"
-        >
-          <Icon name="gear" />
-        </button>
       </div>
 
       {/* Prominent Authoritative Room Code Display (Feature 1B) */}
@@ -7133,7 +7347,10 @@ interface ActivePurchaseOpportunity {
             isHumanTurn={isHumanTurn}
             stepDuration={currentStepDuration}
             recentEvents={effectiveEventLogList}
-            onOpenFullLog={() => setEventLogOpen(true)}
+            onOpenFullLog={() => {
+              setGameInfoInitialTab("events")
+              setGameInfoOpen(true)
+            }}
           />
         </div>
 
@@ -7177,7 +7394,10 @@ interface ActivePurchaseOpportunity {
 
           <PlayerStrip
             players={players}
-            openPlayers={() => setModal("insights")}
+            openPlayers={() => {
+              setGameInfoInitialTab("insights")
+              setGameInfoOpen(true)
+            }}
             activePlayerIndex={activePlayerIndex}
             playerPositions={playerPositions}
             isHost={isEffectiveHost}
@@ -7354,7 +7574,10 @@ interface ActivePurchaseOpportunity {
                 <button
                   type="button"
                   className="btn-trade-settle"
-                  onClick={() => setModal("trade")}
+                  onClick={() => {
+                    setGameInfoInitialTab("trade")
+                    setGameInfoOpen(true)
+                  }}
                   style={{
                     flex: 1,
                     minHeight: "38px",
@@ -7619,140 +7842,8 @@ interface ActivePurchaseOpportunity {
             )}
           </section>
 
-          <div className="desktop-actions-strip">
-            <button
-              className="desktop-action-btn"
-              onClick={() => setModal("trade")}
-              title="Trade properties with other players"
-            >
-              <Icon name="handshake" size={14} /> TRADE
-              {pendingTradesCount > 0 && <span className="action-pill-count">{pendingTradesCount}</span>}
-            </button>
-            <button
-              className="desktop-action-btn"
-              onClick={() => setModal("activity_log")}
-              title="Financial Ledger & Turn History"
-            >
-              <Icon name="ledger" size={14} /> LEDGER
-              {transactionLedger.length > 0 && <span className="action-pill-count">{transactionLedger.length}</span>}
-            </button>
-            <button
-              className="desktop-action-btn"
-              onClick={() => setEventLogOpen(true)}
-              title="Open Event Log"
-            >
-              <Icon name="scroll" size={14} /> EVENTS
-            </button>
-            <button
-              className="desktop-action-btn"
-              onClick={() => setModal("insights")}
-              title="Strategy & Financial Insights"
-            >
-              <Icon name="chart" size={14} /> INSIGHTS
-            </button>
-            {isEffectiveHost && (
-              <button
-                className="desktop-action-btn host-kick-action-btn"
-                onClick={() => setModal("insights")}
-                title="Host Control: Manage and kick players"
-                style={{
-                  background: "rgba(239, 68, 68, 0.15)",
-                  borderColor: "rgba(239, 68, 68, 0.4)",
-                  color: "#fca5a5",
-                }}
-              >
-                KICK
-              </button>
-            )}
-            <button
-              className="desktop-action-btn resign-action-btn"
-              onClick={() => setModal("confirm_resign")}
-              title="Resign / Surrender Match"
-              style={{ color: "#fca5a5" }}
-            >
-              RESIGN
-            </button>
-          </div>
         </div>
       </div>
-
-      {/* Side Action Panel */}
-      {sideActionsOpen && (
-        <div className="side-actions-backdrop" onClick={() => setSideActionsOpen(false)} />
-      )}
-      <div className={`side-actions-panel ${sideActionsOpen ? "open" : ""}`}>
-        <div className="side-actions-header">
-          <span>ACTIONS</span>
-          <button className="side-actions-close" onClick={() => setSideActionsOpen(false)} aria-label="Close panel">✕</button>
-        </div>
-        <button
-          className="side-action-btn"
-          onClick={() => { setEventLogOpen(true); setSideActionsOpen(false) }}
-          title="Open Gameplay Event Log"
-        >
-          <Icon name="scroll" size={16} />
-          <span>EVENT LOG</span>
-          {effectiveEventLogList.length > 0 && <span className="side-action-badge">{effectiveEventLogList.length}</span>}
-        </button>
-        {/* 👥 TURNS removed per Section 5 cleanup */}
-        <button
-          className="side-action-btn"
-          onClick={() => { setModal("trade"); setSideActionsOpen(false) }}
-          title="Property Trading & Negotiation"
-          style={{ position: "relative" }}
-        >
-          <Icon name="handshake" size={16} />
-          <span>TRADE</span>
-          {pendingTradesCount > 0 && <span className="side-action-badge alert">{pendingTradesCount}</span>}
-        </button>
-        <div className="side-actions-divider" />
-        <button
-          className="side-action-btn"
-          onClick={() => { setModal("activity_log"); setSideActionsOpen(false) }}
-          title="Financial Ledger & Turn Log"
-        >
-          <Icon name="ledger" size={16} />
-          <span>LEDGER</span>
-          {transactionLedger.length > 0 && <span className="side-action-badge">{transactionLedger.length}</span>}
-        </button>
-        <button
-          className="side-action-btn"
-          onClick={() => { setModal("insights"); setSideActionsOpen(false) }}
-          title="Strategy & Financial Insights"
-        >
-          <Icon name="chart" size={16} />
-          <span>INSIGHTS</span>
-        </button>
-        {isEffectiveHost && (
-          <button
-            className="side-action-btn"
-            onClick={() => { setModal("insights"); setSideActionsOpen(false) }}
-            title="Host Control: Kick Players"
-            style={{ color: "#fca5a5" }}
-          >
-            <span>KICK PLAYER</span>
-          </button>
-        )}
-        <button
-          className="side-action-btn"
-          onClick={() => { setModal("confirm_resign"); setSideActionsOpen(false) }}
-          title="Resign / Surrender Match"
-          style={{ color: "#fca5a5" }}
-        >
-          <span>RESIGN</span>
-        </button>
-      </div>
-      {/* Side Panel Toggle Button */}
-      <button
-        className={`side-actions-toggle ${sideActionsOpen ? "open" : ""}`}
-        onClick={() => setSideActionsOpen((v) => !v)}
-        aria-label="Toggle action menu"
-        title="Open Action Menu"
-      >
-        {pendingTradesCount > 0 && <span className="toggle-alert-dot" />}
-        <span>{sideActionsOpen ? "✕" : "☰"}</span>
-        <span className="toggle-label">{sideActionsOpen ? "CLOSE" : "MENU"}</span>
-      </button>
       {modal && (
         <GameModal
           type={modal}
@@ -7806,6 +7897,24 @@ interface ActivePurchaseOpportunity {
         localPlayer={players[localPlayerId] || players[0]}
         soundEnabled={preferences?.soundEffects ?? true}
       />
+      <GameInfoModal
+        isOpen={gameInfoOpen}
+        initialTab={gameInfoInitialTab}
+        onClose={() => setGameInfoOpen(false)}
+        transactionLedger={transactionLedger}
+        players={players}
+        localPlayerId={localPlayerId}
+        tradeOffers={tradeOffers}
+        onCreateOffer={handleCreateTradeOffer}
+        onAcceptOffer={handleAcceptTradeOffer}
+        onRejectOffer={handleRejectTradeOffer}
+        onCancelOffer={handleCancelTradeOffer}
+        events={effectiveEventLogList}
+        onClearEvents={() => effectiveSetEventLogList([])}
+        isHost={isEffectiveHost}
+        isMultiplayer={Boolean(roomCode || multiplayerClient.getRoomCode())}
+        onKickPlayer={onKickPlayer}
+      />
       <GameplayEventLog
         isOpen={eventLogOpen}
         onClose={() => setEventLogOpen(false)}
@@ -7824,7 +7933,8 @@ interface ActivePurchaseOpportunity {
           role="alert"
           onClick={() => {
             setActiveTradePopup(null)
-            setModal("trade")
+            setGameInfoInitialTab("trade")
+            setGameInfoOpen(true)
           }}
           style={{
             position: "fixed",

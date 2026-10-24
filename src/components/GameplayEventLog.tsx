@@ -22,6 +22,7 @@ export interface GameplayEventLogProps {
   onClose?: () => void
   events: GameplayEventEntry[]
   onClear?: () => void
+  isEmbedded?: boolean
 }
 
 export type EventLogCategory =
@@ -200,7 +201,7 @@ const TYPE_CONFIG: Record<
   error: { label: "ERROR", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
 }
 
-export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear }: GameplayEventLogProps) {
+export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear, isEmbedded = false }: GameplayEventLogProps) {
   const handleToggle = onClose || onToggle || (() => {})
   const [activeCategory, setActiveCategory] = useState<EventLogCategory>("ALL")
 
@@ -272,104 +273,15 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
     }
   }, [displayedEvents.length, activeCategory])
 
-  return (
-    <>
-      {isOpen && (
-        <div
-          className="modal-backdrop"
-          onClick={handleToggle}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 70,
-            background: "rgba(15, 23, 42, 0.6)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px 10px",
-          }}
-        >
-          <div
-            className="event-log-card"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "580px",
-              maxWidth: "min(580px, 96vw)",
-              maxHeight: "calc(100dvh - 24px)",
-              height: "min(640px, calc(100dvh - 24px))",
-              background: "linear-gradient(180deg, #fefdfb 0%, #f7f3ea 100%)",
-              border: "1.5px solid var(--gold, #b45309)",
-              borderRadius: "14px",
-              boxShadow: "0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(0,0,0,0.08)",
-              display: "flex",
-              flexDirection: "column",
-              color: "#0f172a",
-              fontFamily: "'DM Sans', sans-serif",
-              overflow: "hidden",
-            }}
-          >
-            {/* Header */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderBottom: "1.5px solid rgba(180, 130, 40, 0.3)",
-                padding: "12px 18px",
-                background: "#f4ede0",
-                flexShrink: 0,
-              }}
-            >
-              <div>
-                <strong
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: "17px",
-                    fontWeight: 800,
-                    color: "#451a03",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  CROWNFALL CHRONICLE · EVENT LOG
-                </strong>
-                <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px", fontWeight: 500 }}>
-                  Authoritative chronological game events · Oldest to newest
-                </span>
-              </div>
-              <button
-                onClick={handleToggle}
-                aria-label="Close event log"
-                style={{
-                  background: "rgba(0, 0, 0, 0.05)",
-                  border: "1px solid rgba(180, 130, 40, 0.35)",
-                  borderRadius: "50%",
-                  width: "30px",
-                  height: "30px",
-                  color: "#475569",
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  transition: "all 0.15s ease",
-                }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* 8 Category Tabs Bar */}
-            <div
-              className="event-log-tabs-bar"
-              style={{
-                display: "flex",
-                gap: "6px",
-                overflowX: "auto",
+  const eventLogBody = (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      {/* 8 Category Tabs Bar */}
+      <div
+        className="event-log-tabs-bar"
+        style={{
+          display: "flex",
+          gap: "6px",
+          overflowX: "auto",
                 padding: "8px 12px",
                 background: "#ede5d5",
                 borderBottom: "1px solid rgba(180, 130, 40, 0.25)",
@@ -617,10 +529,109 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                 Showing {displayedEvents.length} of {deduplicatedEvents.length} events
               </span>
             </div>
+    </div>
+  )
+
+  if (isEmbedded) {
+    return eventLogBody
+  }
+
+  if (!isOpen) {
+    return null
+  }
+
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={handleToggle}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(15, 23, 42, 0.6)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px 10px",
+      }}
+    >
+      <div
+        className="event-log-card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "580px",
+          maxWidth: "min(580px, 96vw)",
+          maxHeight: "calc(100dvh - 24px)",
+          height: "min(640px, calc(100dvh - 24px))",
+          background: "linear-gradient(180deg, #fefdfb 0%, #f7f3ea 100%)",
+          border: "1.5px solid var(--gold, #b45309)",
+          borderRadius: "14px",
+          boxShadow: "0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(0,0,0,0.08)",
+          display: "flex",
+          flexDirection: "column",
+          color: "#0f172a",
+          fontFamily: "'DM Sans', sans-serif",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1.5px solid rgba(180, 130, 40, 0.3)",
+            padding: "12px 18px",
+            background: "#f4ede0",
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <strong
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: "17px",
+                fontWeight: 800,
+                color: "#451a03",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                letterSpacing: "0.02em",
+              }}
+            >
+              CROWNFALL CHRONICLE · EVENT LOG
+            </strong>
+            <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px", fontWeight: 500 }}>
+              Authoritative chronological game events · Oldest to newest
+            </span>
           </div>
+          <button
+            onClick={handleToggle}
+            aria-label="Close event log"
+            style={{
+              background: "rgba(0, 0, 0, 0.05)",
+              border: "1px solid rgba(180, 130, 40, 0.35)",
+              borderRadius: "50%",
+              width: "30px",
+              height: "30px",
+              color: "#475569",
+              display: "grid",
+              placeItems: "center",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 700,
+              transition: "all 0.15s ease",
+            }}
+          >
+            ✕
+          </button>
         </div>
-      )}
-    </>
+
+        {eventLogBody}
+      </div>
+    </div>
   )
 }
 

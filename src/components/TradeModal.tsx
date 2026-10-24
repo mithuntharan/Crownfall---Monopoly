@@ -19,6 +19,7 @@ interface TradeModalProps {
   onRejectOffer: (tradeId: string) => Promise<boolean>
   onCancelOffer: (tradeId: string) => Promise<boolean>
   close: () => void
+  isEmbedded?: boolean
 }
 
 export function TradeModal({
@@ -30,6 +31,7 @@ export function TradeModal({
   onRejectOffer,
   onCancelOffer,
   close,
+  isEmbedded = false,
 }: TradeModalProps) {
   const localPlayer = players.find((p) => p.id === localPlayerId) || players[0]
   const otherPlayers = players.filter((p) => p.id !== localPlayer.id && !p.isBankrupt)
@@ -172,30 +174,13 @@ export function TradeModal({
     return "#c89b45"
   }
 
-  return (
-    <div className="modal-backdrop" onMouseDown={close}>
-      <section
-        className="modal-sheet trade-modal"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{ maxWidth: "680px", width: "min(680px, 95vw)", maxHeight: "min(90vh, 90dvh)", display: "flex", flexDirection: "column" }}
-      >
-        <div className="sheet-handle" />
-        <div className="modal-header">
-          <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
-            PROPERTY TRADING &amp; NEGOTIATION
-          </strong>
-          <button onClick={close} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Tab switch */}
-        <div style={{ display: "flex", gap: "8px", padding: "8px 16px", background: "rgba(0,0,0,0.2)", borderBottom: "1px solid var(--border-subtle)" }}>
-          <button
-            className={`tab-btn ${activeTab === "create" ? "active" : ""}`}
-            onClick={() => setActiveTab("create")}
+  const tradeBody = (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+      {/* Tab switch */}
+      <div style={{ display: "flex", gap: "8px", padding: "8px 16px", background: "rgba(0,0,0,0.2)", borderBottom: "1px solid var(--border-subtle)" }}>
+        <button
+          className={`tab-btn ${activeTab === "create" ? "active" : ""}`}
+          onClick={() => setActiveTab("create")}
             style={{
               flex: 1,
               padding: "8px 12px",
@@ -717,7 +702,34 @@ export function TradeModal({
             </div>
           )}
         </div>
+    </div>
+  )
+
+  if (isEmbedded) {
+    return tradeBody
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={close}>
+      <section
+        className="modal-sheet trade-modal"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ maxWidth: "680px", width: "min(680px, 95vw)", maxHeight: "min(90vh, 90dvh)", display: "flex", flexDirection: "column" }}
+      >
+        <div className="sheet-handle" />
+        <div className="modal-header">
+          <strong style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--gold-300)" }}>
+            PROPERTY TRADING &amp; NEGOTIATION
+          </strong>
+          <button onClick={close} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {tradeBody}
       </section>
     </div>
   )
 }
+

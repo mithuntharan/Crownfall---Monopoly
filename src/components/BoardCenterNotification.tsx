@@ -18,6 +18,7 @@ export interface BoardCenterNotificationItem {
     | "DESTROY_HOTEL"
     | "TAX"
     | "ERROR"
+    | "WARNING"
     | "INFO"
   category: string
   message: string

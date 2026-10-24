@@ -71,7 +71,8 @@ export const BoardCenterRecentEvents: React.FC<BoardCenterRecentEventsProps> = (
   const recentEvents = useMemo(() => {
     if (!events || events.length === 0) return []
 
-    const seen = new Set<string>()
+    const seenIds = new Set<string | number>()
+    const seenActionKeys = new Set<string>()
     const deduped: GameplayEventEntry[] = []
 
     // Sort all events newest first
@@ -83,11 +84,27 @@ export const BoardCenterRecentEvents: React.FC<BoardCenterRecentEventsProps> = (
     })
 
     for (const evt of sorted) {
-      const key = `${evt.id}_${evt.type}_${evt.description}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        deduped.push(evt)
+      if (seenIds.has(evt.id)) continue
+
+      // Canonical logical action key to deduplicate multiple representations of the same event
+      const normType = (evt.type || "").toUpperCase().trim()
+      const pId = evt.playerId !== undefined ? evt.playerId : "sys"
+      const propKey = evt.propertyId || evt.propertyName || ""
+
+      let actionKey: string
+      if (evt.sequenceNumber !== undefined) {
+        actionKey = `seq_${evt.sequenceNumber}_${pId}_${normType}`
+      } else {
+        // 3-second time bucket deduplicates client optimistic events and engine sync events
+        const timeBucket = Math.floor((evt.timestamp || 0) / 3000)
+        actionKey = `${normType}_${pId}_${propKey}_${timeBucket}`
       }
+
+      if (seenActionKeys.has(actionKey)) continue
+
+      seenIds.add(evt.id)
+      seenActionKeys.add(actionKey)
+      deduped.push(evt)
       if (deduped.length >= 5) break
     }
 

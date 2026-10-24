@@ -1172,7 +1172,7 @@ class Room {
     };
 
     if (action === 'roll' && res) {
-      // 1. Dice Roll (TURNS_DICE)
+      // 1. Dice Roll (TURNS_DICE & MOVEMENT)
       this.addEvent({
         id: `ev_roll_${now}_${player.id}_${seq}`,
         type: 'ROLL_MOVE',
@@ -1183,19 +1183,6 @@ class Room {
         playerColor: player.color,
         sequenceNumber: seq,
         description: `${player.name} rolled [${res.dice1}, ${res.dice2}] = ${res.diceTotal}${res.isDouble ? ' (DOUBLES!)' : ''} and moved to ${res.spaceName}.`,
-      });
-
-      // 2. Token Movement (MOVEMENT_LOCATIONS)
-      this.addEvent({
-        id: `ev_move_${now}_${player.id}_${seq}`,
-        type: 'ROLL_MOVE',
-        category: 'MOVEMENT_LOCATIONS',
-        timestamp: now,
-        playerId: player.id,
-        playerName: player.name,
-        playerColor: player.color,
-        sequenceNumber: seq,
-        description: `${player.name} moved to space #${res.newPosition}: ${res.spaceName}.`,
       });
 
       // 3. Start Crossing: First rotation capital or pass start bonus (RENT_PAYMENTS)
@@ -1580,7 +1567,7 @@ class Room {
   }
 
   addEvent(event) {
-    if (this.eventLog.some(e => e.id === event.id)) return;
+    if (this.eventLog.some(e => e.id === event.id || (e.sequenceNumber !== undefined && event.sequenceNumber !== undefined && e.sequenceNumber === event.sequenceNumber && e.playerId === event.playerId && e.type === event.type))) return;
     this.eventLog.push(event);
     if (this.eventLog.length > 200) {
       this.eventLog.shift();

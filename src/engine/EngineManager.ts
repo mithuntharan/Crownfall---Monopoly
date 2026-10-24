@@ -130,6 +130,8 @@ export class EngineManager implements IGameEngine {
   async buildHouseOrHotel(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState
+    error?: string
+    reason?: string
   }> {
     const engine = await this.getActiveEngine()
     return engine.buildHouseOrHotel(playerId, propertyId)
