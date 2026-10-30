@@ -2052,6 +2052,130 @@ function BoardSpaceLabel({
   )
 }
 
+// ─── ANIMATED CASH TRANSFERS & BALANCE ────────────────────────────────────────
+
+function AnimatedBalance({
+  value,
+  duration = 800,
+  reducedMotion = false,
+}: {
+  value: number
+  duration?: number
+  reducedMotion?: boolean
+}) {
+  const [displayVal, setDisplayVal] = useState(value)
+  const prevValRef = useRef(value)
+  const animRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (reducedMotion || prevValRef.current === value) {
+      setDisplayVal(value)
+      prevValRef.current = value
+      return
+    }
+
+    const startVal = prevValRef.current
+    const targetVal = value
+    const startTime = performance.now()
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(1, elapsed / duration)
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
+      const current = Math.round(startVal + (targetVal - startVal) * ease)
+      setDisplayVal(current)
+
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(tick)
+      } else {
+        setDisplayVal(targetVal)
+        prevValRef.current = targetVal
+      }
+    }
+
+    animRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+    }
+  }, [value, duration, reducedMotion])
+
+  return <span>₹{displayVal.toLocaleString()}</span>
+}
+
+export interface ActiveCashTransfer {
+  id: string
+  amount: number
+  type: string
+  payerId: number
+  payerName: string
+  payerColor: string
+  recipientId: number
+  recipientName: string
+  recipientColor: string
+  isBank: boolean
+  timestamp: number
+}
+
+function CashTransfersOverlay({
+  transfers,
+  reducedMotion = false,
+}: {
+  transfers: ActiveCashTransfer[]
+  reducedMotion?: boolean
+}) {
+  if (!transfers || transfers.length === 0) return null
+
+  return (
+    <div className="cash-transfers-overlay" aria-live="polite" aria-atomic="true">
+      {transfers.map((t) => {
+        const isP2P = !t.isBank && t.recipientId >= 0
+        const typeUp = t.type.toUpperCase()
+        const isIncome = typeUp.includes("REWARD") || typeUp.includes("PASS") || typeUp.includes("MORTGAGE") || typeUp.includes("REFUND")
+        
+        let pillClass = "cash-transfer-pill p2p"
+        if (!isP2P) {
+          pillClass = isIncome ? "cash-transfer-pill bank-income" : "cash-transfer-pill bank-expense"
+        }
+
+        return (
+          <div
+            key={t.id}
+            className={pillClass}
+            style={reducedMotion ? { animation: "none" } : undefined}
+          >
+            {isP2P ? (
+              <>
+                <span className="transfer-type-tag" style={{ color: "#b45309", fontWeight: 800 }}>TRANSFER</span>
+                <span style={{ color: "#1e2024", fontWeight: 700 }}>₹{t.amount.toLocaleString()}</span>
+                <span style={{ opacity: 0.4, color: "#686d76" }}>•</span>
+                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
+                <span style={{ color: "var(--gold, #b45309)" }}>➔</span>
+                <span style={{ color: getPlayerColorHex(t.recipientColor), fontWeight: 700 }}>{t.recipientName}</span>
+              </>
+            ) : isIncome ? (
+              <>
+                <span className="transfer-type-tag" style={{ color: "#059669", fontWeight: 800 }}>PAYOUT</span>
+                <span style={{ color: "#047857", fontWeight: 800 }}>+₹{t.amount.toLocaleString()}</span>
+                <span style={{ opacity: 0.4, color: "#686d76" }}>•</span>
+                <span className="bank-party-label" style={{ color: "#1e2024", fontWeight: 700 }}>Bank ➔</span>
+                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
+              </>
+            ) : (
+              <>
+                <span className="transfer-type-tag" style={{ color: "#be123c", fontWeight: 800 }}>PAYMENT</span>
+                <span style={{ color: "#9f1239", fontWeight: 800 }}>-₹{t.amount.toLocaleString()}</span>
+                <span style={{ opacity: 0.4, color: "#686d76" }}>•</span>
+                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
+                <span className="bank-party-label" style={{ color: "#1e2024", fontWeight: 700 }}>➔ Bank</span>
+              </>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── BOARD ────────────────────────────────────────────────────────────────────
 
 function Board({
@@ -2073,6 +2197,9 @@ function Board({
   stepDuration = 180,
   recentEvents = [],
   onOpenFullLog,
+  selectedPlayerIdHighlight,
+  selectedPropertyIdHighlight,
+  landingHighlightTileIndex,
 }: {
   onSelectSpace: (space: BoardSpaceDefinition) => void
   playerPositions: number[]
@@ -2092,6 +2219,9 @@ function Board({
   stepDuration?: number
   recentEvents?: GameplayEventEntry[]
   onOpenFullLog?: () => void
+  selectedPlayerIdHighlight?: number | null
+  selectedPropertyIdHighlight?: string | null
+  landingHighlightTileIndex?: number | null
 }) {
   const [boardWidth, setBoardWidth] = useState<number>(() => {
     if (typeof window !== "undefined") {
@@ -2253,6 +2383,19 @@ function Board({
             ? players.find((p) => p.ownedProperties.includes(space.propertyId!))
             : null
 
+          const isOwnerHighlighted =
+            selectedPlayerIdHighlight !== null &&
+            selectedPlayerIdHighlight !== undefined &&
+            propertyOwner?.id === selectedPlayerIdHighlight
+
+          const isPropertyHighlighted = Boolean(
+            selectedPropertyIdHighlight && space.propertyId === selectedPropertyIdHighlight,
+          )
+
+          const isLandingHighlighted = landingHighlightTileIndex === space.index
+
+          const highlightClass = `${isOwnerHighlighted ? "is-owner-highlighted" : ""} ${isPropertyHighlighted ? "is-property-highlighted" : ""} ${isLandingHighlighted ? "is-landing-highlighted" : ""}`.trim()
+
           const isMortgaged =
             space.propertyId && propertyOwner
               ? !!propertyOwner.mortgages[space.propertyId]
@@ -2266,7 +2409,7 @@ function Board({
           return (
             <button
               key={space.index}
-              className={`board-space ${spaceClass} side-${space.side}`}
+              className={`board-space ${spaceClass} side-${space.side} ${highlightClass}`}
               style={{
                 gridRow: pos.row,
 
@@ -2275,10 +2418,20 @@ function Board({
                 ...(space.colorGroup !== "NONE"
                   ? getPropertyThemeStyle(space.colorGroup)
                   : {}),
+
+                ...(isOwnerHighlighted && propertyOwner
+                  ? { ["--highlight-owner-color" as any]: getPlayerColorHex(propertyOwner.color) }
+                  : {}),
               }}
               onClick={() => onSelectSpace(space)}
               aria-label={`${space.name} (Index ${space.index})`}
             >
+              {propertyOwner && (
+                <div
+                  className="tile-ownership-ring"
+                  aria-hidden="true"
+                />
+              )}
               {isCity && space.colorGroup !== "NONE" && <span className="space-band" />}
               <BoardSpaceLabel
                 space={space}
@@ -2357,6 +2510,9 @@ function PlayerStrip({
   isMultiplayer = false,
   localPlayerId,
   onKickPlayer,
+  selectedPlayerIdHighlight,
+  onToggleSelectPlayerHighlight,
+  reducedMotion = false,
 }: {
   players: EnginePlayer[]
   openPlayers: () => void
@@ -2366,12 +2522,16 @@ function PlayerStrip({
   isMultiplayer?: boolean
   localPlayerId?: number
   onKickPlayer?: (playerId: number) => void
+  selectedPlayerIdHighlight?: number | null
+  onToggleSelectPlayerHighlight?: (playerId: number) => void
+  reducedMotion?: boolean
 }) {
   return (
     <section className="player-strip">
       <div className="player-strip-inner">
         {players.map((player, idx) => {
           const isActive = idx === activePlayerIndex
+          const isHighlightSelected = selectedPlayerIdHighlight === player.id
           const pos = playerPositions[idx] || 0
           const space = BOARD_SPACES[pos]
           const propCount = player.ownedProperties?.length ?? 0
@@ -2389,7 +2549,10 @@ function PlayerStrip({
           return (
             <div
               key={player.id}
-              className={`ps-player ${isActive ? "ps-active" : ""} ${statusClass}`}
+              className={`ps-player ${isActive ? "ps-active" : ""} ${isHighlightSelected ? "ps-selected-highlight" : ""} ${statusClass}`}
+              onClick={() => onToggleSelectPlayerHighlight?.(player.id)}
+              style={{ cursor: "pointer" }}
+              title={`Click to ${isHighlightSelected ? "clear highlight" : "highlight properties on board"}`}
             >
               <Token player={player} active={isActive} />
               <div className="ps-info">
@@ -2423,7 +2586,9 @@ function PlayerStrip({
                     </button>
                   )}
                 </div>
-                <div className="ps-balance">₹{player.money.toLocaleString()}</div>
+                <div className="ps-balance">
+                  <AnimatedBalance value={player.money} reducedMotion={reducedMotion} />
+                </div>
                 <div className="ps-meta">
                   <span className="ps-pos" title={`At ${space?.name ?? pos}`}>#{pos}</span>
                   {propCount > 0 && (
@@ -2964,10 +3129,10 @@ function PropertyVisual({
             <span
               className="owner-badge"
               style={{
-                background: "rgba(30, 41, 59, 0.88)",
-                color: "#f8fafc",
-                borderColor: ownerColor ? getPlayerColorHex(ownerColor) : "rgba(200, 155, 69, 0.6)",
-                boxShadow: ownerColor ? `0 0 7px 1.5px ${getPlayerColorHex(ownerColor)}88` : "0 0 6px rgba(0,0,0,0.2)",
+                background: "rgba(253, 250, 244, 0.94)",
+                color: "#1e2024",
+                borderColor: ownerColor ? getPlayerColorHex(ownerColor) : "rgba(180, 130, 40, 0.45)",
+                boxShadow: ownerColor ? `0 0 7px 1.5px ${getPlayerColorHex(ownerColor)}88` : "0 2px 8px rgba(60, 50, 40, 0.08)",
               }}
             >
               OWNED BY {ownerName.toUpperCase()}{buildingCount > 0 ? ` (${buildingCount >= 4 ? "HOTEL" : `${buildingCount} ${buildingCount === 1 ? "HOUSE" : "HOUSES"}`})` : ""}
@@ -5095,6 +5260,76 @@ function GameScreen({
   const [localSecondsRemaining, setLocalSecondsRemaining] =
     useState<number>(timerSeconds)
 
+  // ── SMART BOARD HIGHLIGHTING STATE ──
+  const [selectedPlayerIdHighlight, setSelectedPlayerIdHighlight] = useState<number | null>(null)
+  const [selectedPropertyIdHighlight, setSelectedPropertyIdHighlight] = useState<string | null>(null)
+  const [landingHighlight, setLandingHighlight] = useState<{ tileIndex: number; id: number } | null>(null)
+  const destinationTimerRef = useRef<any>(null)
+
+  const triggerLandingHighlight = useCallback((tileIndex: number) => {
+    if (destinationTimerRef.current) {
+      clearTimeout(destinationTimerRef.current)
+    }
+    setLandingHighlight({
+      tileIndex,
+      id: Date.now(),
+    })
+    destinationTimerRef.current = setTimeout(() => {
+      setLandingHighlight(null)
+    }, 2200)
+  }, [])
+
+  // ── ANIMATED CASH TRANSFERS FROM AUTHORITATIVE LEDGER ──
+  const seenTxIdsRef = useRef<Set<string>>(new Set())
+  const [activeCashTransfers, setActiveCashTransfers] = useState<ActiveCashTransfer[]>([])
+
+  useEffect(() => {
+    if (!transactionLedger || transactionLedger.length === 0) return
+    if (seenTxIdsRef.current.size === 0) {
+      for (const tx of transactionLedger) {
+        seenTxIdsRef.current.add(tx.id)
+      }
+      return
+    }
+
+    const newTxs = transactionLedger.filter((tx) => !seenTxIdsRef.current.has(tx.id))
+    if (newTxs.length === 0) return
+
+    for (const tx of newTxs) {
+      seenTxIdsRef.current.add(tx.id)
+    }
+
+    const toAnimate = newTxs.slice(-3)
+    const transfers: ActiveCashTransfer[] = toAnimate.map((tx) => {
+      const payer = players.find((p) => p.id === tx.primaryPlayerId)
+      const recipient = tx.counterpartyPlayerId >= 0 ? players.find((p) => p.id === tx.counterpartyPlayerId) : null
+      return {
+        id: tx.id,
+        amount: tx.amount,
+        type: tx.type,
+        payerId: tx.primaryPlayerId,
+        payerName: payer?.name || "Player",
+        payerColor: payer?.color || "#c89b45",
+        recipientId: tx.counterpartyPlayerId,
+        recipientName: recipient?.name || (tx.counterpartyPlayerId === -1 ? "Bank" : "Player"),
+        recipientColor: recipient?.color || "#ffd700",
+        isBank: tx.counterpartyPlayerId === -1,
+        timestamp: Date.now(),
+      }
+    })
+
+    setActiveCashTransfers((prev) => [...prev, ...transfers])
+  }, [transactionLedger, players])
+
+  useEffect(() => {
+    if (activeCashTransfers.length === 0) return
+    const timer = setTimeout(() => {
+      const now = Date.now()
+      setActiveCashTransfers((prev) => prev.filter((t) => now - t.timestamp < 2400))
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [activeCashTransfers])
+
   // ── BOARD-CENTRE EVENT NOTIFICATIONS QUEUE (Part 2) ──
   const [boardNotificationQueue, setBoardNotificationQueue] = useState<BoardCenterNotificationItem[]>([])
   const [currentBoardNotification, setCurrentBoardNotification] = useState<BoardCenterNotificationItem | null>(null)
@@ -5323,6 +5558,7 @@ interface ActivePurchaseOpportunity {
       targetPos: number,
       stepsToWalk: number,
       isStraightToJail: boolean = false,
+      isFinalStage: boolean = true,
     ) => {
       const currentGen = ++movementGenerationRef.current
 
@@ -5338,6 +5574,11 @@ interface ActivePurchaseOpportunity {
         movingRef.current = false
         setMovementActive(false)
         setMovingPlayerIndex(null)
+
+        // Only trigger the landing highlight for the final authoritative destination
+        if (isFinalStage) {
+          triggerLandingHighlight(targetPos)
+        }
 
         if (pendingSnapshotRef?.current && applyGameStateSnapshot) {
           const snap = pendingSnapshotRef.current
@@ -5357,6 +5598,11 @@ interface ActivePurchaseOpportunity {
 
       setMovementActive(true)
       setMovingPlayerIndex(movingPlayerId)
+
+      if (destinationTimerRef.current) {
+        clearTimeout(destinationTimerRef.current)
+      }
+      setLandingHighlight(null)
 
       // Guarantee position is precisely at startPos before movement begins
       setPlayerPositions((prev) => {
@@ -5435,6 +5681,7 @@ interface ActivePurchaseOpportunity {
       setPlayerPositions,
       pendingSnapshotRef,
       applyGameStateSnapshot,
+      triggerLandingHighlight,
     ],
   )
 
@@ -6204,6 +6451,7 @@ interface ActivePurchaseOpportunity {
           intermediatePos,
           stepsToWalk,
           false,
+          false,
         )
         await new Promise((r) => window.setTimeout(r, preferences?.reducedMotion ? 40 : 220))
         await animatePlayerMovement(
@@ -6211,6 +6459,7 @@ interface ActivePurchaseOpportunity {
           intermediatePos,
           targetPos,
           0,
+          targetPos === 9,
           true,
         )
       } else {
@@ -6220,6 +6469,7 @@ interface ActivePurchaseOpportunity {
           targetPos,
           stepsToWalk,
           isStraightToJail || isRemainingInJail,
+          true,
         )
       }
 
@@ -7005,6 +7255,7 @@ interface ActivePurchaseOpportunity {
           intermediatePos,
           stepsToWalk,
           false,
+          false,
         )
         await new Promise((r) => window.setTimeout(r, preferences?.reducedMotion ? 40 : 220))
         await animatePlayerMovement(
@@ -7012,6 +7263,7 @@ interface ActivePurchaseOpportunity {
           intermediatePos,
           targetPos,
           0,
+          true,
           true,
         )
       } else {
@@ -7021,6 +7273,7 @@ interface ActivePurchaseOpportunity {
           targetPos,
           stepsToWalk,
           isStraightToJail || isRemainingInJail,
+          true,
         )
       }
 
@@ -7254,7 +7507,7 @@ interface ActivePurchaseOpportunity {
       )}
 
       <div className="game-layout-container">
-        <div className="game-board-column">
+        <div className="game-board-column" style={{ position: "relative" }}>
           <Board
             onSelectSpace={handleSelectSpace}
             playerPositions={playerPositions}
@@ -7277,6 +7530,13 @@ interface ActivePurchaseOpportunity {
               setGameInfoInitialTab("events")
               setGameInfoOpen(true)
             }}
+            selectedPlayerIdHighlight={selectedPlayerIdHighlight}
+            selectedPropertyIdHighlight={selectedPropertyIdHighlight}
+            landingHighlightTileIndex={landingHighlight?.tileIndex ?? null}
+          />
+          <CashTransfersOverlay
+            transfers={activeCashTransfers}
+            reducedMotion={preferences?.reducedMotion}
           />
         </div>
 
@@ -7330,6 +7590,11 @@ interface ActivePurchaseOpportunity {
             isMultiplayer={Boolean(roomCode || multiplayerClient.getRoomCode())}
             localPlayerId={localPlayerId}
             onKickPlayer={onKickPlayer}
+            selectedPlayerIdHighlight={selectedPlayerIdHighlight}
+            onToggleSelectPlayerHighlight={(pId) =>
+              setSelectedPlayerIdHighlight((prev) => (prev === pId ? null : pId))
+            }
+            reducedMotion={preferences?.reducedMotion}
           />
 
           {/* Host Pending Join Requests Banner */}
@@ -7907,6 +8172,7 @@ interface ActivePurchaseOpportunity {
         isHost={isEffectiveHost}
         isMultiplayer={Boolean(roomCode || multiplayerClient.getRoomCode())}
         onKickPlayer={onKickPlayer}
+        onSelectPropertyHighlight={(propId) => setSelectedPropertyIdHighlight(propId)}
       />
       <GameplayEventLog
         isOpen={eventLogOpen}

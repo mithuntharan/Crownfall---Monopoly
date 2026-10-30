@@ -3,6 +3,7 @@ import type { EnginePlayer, TransactionRecord } from "../engine/GameEngineInterf
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES, type ColorGroupId } from "../theme/colors"
 import { calculatePlayerPortfolio } from "../engine/portfolioUtils"
+import { getPlayerColorHex } from "../utils/boardCoordinates"
 
 interface FinancialInsightsModalProps {
   players: EnginePlayer[]
@@ -214,7 +215,245 @@ export function FinancialInsightsModal({
         >
           {activeTab === "overview" ? (
             /* ── VIEW 1: PLAYER COMPARISON MATRIX ── */
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* ── LIVE WEALTH & ASSET ALLOCATION ── */}
+              <div
+                className="live-wealth-card"
+                style={{
+                  background: "linear-gradient(135deg, rgba(28, 24, 16, 0.95), rgba(42, 34, 20, 0.9))",
+                  border: "1.5px solid rgba(200, 155, 69, 0.4)",
+                  borderRadius: "10px",
+                  padding: "14px 16px",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span
+                    style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: "var(--gold-300, #eed48f)",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    LIVE WEALTH &amp; ASSET ALLOCATION
+                  </span>
+                  <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.55)" }}>
+                    Real-time Authoritative Net Worth
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {playerComparisons.map((item, idx) => {
+                    const isLocal = item.player.id === localPlayerId
+                    const pColor = getPlayerColorHex(item.player.color)
+                    const port = item.portfolio
+                    const totalAssets = Math.max(1, port.totalAssetValue)
+                    const cashPct = Math.max(0, (port.cash / totalAssets) * 100)
+                    const propPct = Math.max(0, (port.realEstateValue / totalAssets) * 100)
+                    const bldgPct = Math.max(0, (port.constructionInvestment / totalAssets) * 100)
+
+                    return (
+                      <div
+                        key={item.player.id}
+                        style={{
+                          background: isLocal ? "rgba(200, 155, 69, 0.12)" : "rgba(0, 0, 0, 0.35)",
+                          border: isLocal ? "1px solid rgba(200, 155, 69, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
+                          borderRadius: "8px",
+                          padding: "10px 12px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span
+                              style={{
+                                width: "18px",
+                                height: "18px",
+                                lineHeight: "18px",
+                                textAlign: "center",
+                                borderRadius: "4px",
+                                background: idx === 0 ? "#ffd700" : idx === 1 ? "#cbd5e1" : idx === 2 ? "#cd7f32" : "rgba(255,255,255,0.1)",
+                                color: idx <= 2 ? "#000" : "#fff",
+                                fontSize: "10px",
+                                fontWeight: 800,
+                              }}
+                            >
+                              #{idx + 1}
+                            </span>
+                            <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: pColor, display: "inline-block" }} />
+                            <strong style={{ fontSize: "13px", color: "#ffffff", letterSpacing: "0.02em" }}>
+                              {item.player.name}
+                            </strong>
+                            {isLocal && (
+                              <span style={{ fontSize: "10px", color: "var(--gold-300)", fontWeight: 700 }}>(You)</span>
+                            )}
+                            <span
+                              style={{
+                                padding: "1px 6px",
+                                borderRadius: "4px",
+                                fontSize: "9px",
+                                fontWeight: 700,
+                                background:
+                                  item.status === "ACTIVE"
+                                    ? "rgba(16,185,129,0.2)"
+                                    : item.status === "IN JAIL"
+                                      ? "rgba(217,119,6,0.2)"
+                                      : item.status === "REST HOUSE"
+                                        ? "rgba(59,130,246,0.2)"
+                                        : "rgba(239,68,68,0.2)",
+                                color:
+                                  item.status === "ACTIVE"
+                                    ? "#10b981"
+                                    : item.status === "IN JAIL"
+                                      ? "#f59e0b"
+                                      : item.status === "REST HOUSE"
+                                        ? "#60a5fa"
+                                        : "#ef4444",
+                              }}
+                            >
+                              {item.status}
+                            </span>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.6)" }}>Net Worth:</span>
+                            <strong style={{ fontSize: "14px", fontWeight: 800, color: "#10b981" }}>
+                              ₹{item.netWorth.toLocaleString()}
+                            </strong>
+                          </div>
+                        </div>
+
+                        {/* Proportional Stacked Asset Bar */}
+                        <div
+                          style={{
+                            height: "10px",
+                            width: "100%",
+                            borderRadius: "5px",
+                            overflow: "hidden",
+                            background: "rgba(0, 0, 0, 0.45)",
+                            display: "flex",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                          }}
+                          title={`Assets: Cash ${cashPct.toFixed(1)}%, Real Estate ${propPct.toFixed(1)}%, Buildings ${bldgPct.toFixed(1)}%`}
+                        >
+                          {cashPct > 0 && (
+                            <div
+                              style={{
+                                width: `${cashPct}%`,
+                                height: "100%",
+                                background: "linear-gradient(90deg, #10b981, #059669)",
+                              }}
+                            />
+                          )}
+                          {propPct > 0 && (
+                            <div
+                              style={{
+                                width: `${propPct}%`,
+                                height: "100%",
+                                background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                              }}
+                            />
+                          )}
+                          {bldgPct > 0 && (
+                            <div
+                              style={{
+                                width: `${bldgPct}%`,
+                                height: "100%",
+                                background: "linear-gradient(90deg, #8b5cf6, #7c3aed)",
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Compact Chips */}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "10px" }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "2px 7px",
+                              borderRadius: "4px",
+                              background: "rgba(16, 185, 129, 0.15)",
+                              border: "1px solid rgba(16, 185, 129, 0.35)",
+                              color: "#6ee7b7",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span>Cash:</span>
+                            <strong style={{ color: "#ffffff" }}>₹{port.cash.toLocaleString()}</strong>
+                          </span>
+
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "2px 7px",
+                              borderRadius: "4px",
+                              background: "rgba(245, 158, 11, 0.15)",
+                              border: "1px solid rgba(245, 158, 11, 0.35)",
+                              color: "#fcd34d",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span>Real Estate:</span>
+                            <strong style={{ color: "#ffffff" }}>₹{port.realEstateValue.toLocaleString()}</strong>
+                            <span style={{ opacity: 0.75 }}>({item.propCount} props)</span>
+                          </span>
+
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "2px 7px",
+                              borderRadius: "4px",
+                              background: "rgba(139, 92, 246, 0.15)",
+                              border: "1px solid rgba(139, 92, 246, 0.35)",
+                              color: "#c4b5fd",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span>Buildings:</span>
+                            <strong style={{ color: "#ffffff" }}>₹{port.constructionInvestment.toLocaleString()}</strong>
+                            <span style={{ opacity: 0.75 }}>({item.houses}H / {item.hotels}Htl)</span>
+                          </span>
+
+                          {port.liabilities > 0 && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "2px 7px",
+                                borderRadius: "4px",
+                                background: "rgba(239, 68, 68, 0.15)",
+                                border: "1px solid rgba(239, 68, 68, 0.35)",
+                                color: "#fca5a5",
+                                fontWeight: 600,
+                              }}
+                              title="Outstanding mortgage redemption liabilities (0% interest on special properties)"
+                            >
+                              <span>Mortgage Debt:</span>
+                              <strong style={{ color: "#ffffff" }}>-₹{port.liabilities.toLocaleString()}</strong>
+                              <span style={{ opacity: 0.75 }}>({item.mortgages} mort)</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div
                 style={{
                   background: "rgba(0,0,0,0.25)",

@@ -2874,18 +2874,19 @@ button:focus-visible, input:focus-visible {
   gap: 4px;
   padding: 10px 14px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border-subtle, rgba(200, 155, 69, 0.25));
+  background: rgba(253, 250, 244, 0.94);
+  border: 1px solid rgba(180, 130, 40, 0.35);
+  box-shadow: 0 2px 8px rgba(60, 50, 40, 0.05);
 }
 .unowned-status-heading {
   font: 700 12px "Oswald", sans-serif;
-  color: var(--gold-bright, #ffd57e);
+  color: var(--gold, #b45309);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .unowned-status-desc {
   font: 500 11.5px "DM Sans", sans-serif;
-  color: var(--text-secondary, #cbd5e1);
+  color: var(--text-secondary, #4b4f56);
   margin: 0;
   line-height: 1.4;
   word-wrap: break-word;
@@ -3552,10 +3553,25 @@ button:focus-visible, input:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(253, 250, 244, 0.94);
+  border: 1px solid rgba(196, 184, 166, 0.38);
   border-radius: 6px;
   padding: 4px 10px;
+  color: #1e2024;
+}
+
+.ledger-party-chip strong {
+  color: #1e2024;
+}
+
+.ledger-party-chip.is-bank-party {
+  background: rgba(255, 253, 248, 0.98);
+  border-color: rgba(180, 130, 40, 0.45);
+  box-shadow: 0 1px 4px rgba(60, 50, 40, 0.06);
+}
+
+.ledger-party-chip.is-bank-party strong {
+  color: #1e2024;
 }
 
 .party-role-tag {
@@ -3794,6 +3810,624 @@ button:focus-visible, input:focus-visible {
 .end-session-topbar-btn:focus-visible {
   outline: 2px solid #b52b27;
   outline-offset: 1px;
+}
+
+/* ==============================================================================
+   CROWNFALL — FIVE-PART GAMEPLAY UI UPGRADE STYLES
+   ============================================================================== */
+
+/* ── 1. Animated Cash Transfers Overlay ── */
+.cash-transfers-overlay {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 90%;
+}
+
+.cash-transfer-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(253, 250, 244, 0.94);
+  border: 1.5px solid rgba(180, 130, 40, 0.45);
+  box-shadow: 0 4px 16px rgba(60, 50, 40, 0.08), 0 0 10px rgba(200, 155, 69, 0.2);
+  color: #1e2024;
+  font-family: "Oswald", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  animation: cashTransferFloat 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.cash-transfer-pill.p2p {
+  border-color: rgba(180, 130, 40, 0.55);
+}
+
+.cash-transfer-pill.bank-income {
+  border-color: rgba(5, 150, 105, 0.55);
+  box-shadow: 0 4px 16px rgba(60, 50, 40, 0.08), 0 0 10px rgba(5, 150, 105, 0.2);
+}
+
+.cash-transfer-pill.bank-expense {
+  border-color: rgba(190, 18, 60, 0.55);
+  box-shadow: 0 4px 16px rgba(60, 50, 40, 0.08), 0 0 10px rgba(190, 18, 60, 0.2);
+}
+
+.cash-transfer-pill .bank-party-label {
+  color: #1e2024;
+  font-weight: 700;
+}
+
+@keyframes cashTransferFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+}
+
+/* ── 2. Smart Board Highlighting ── */
+.board-space.is-owner-highlighted {
+  outline: 2.5px solid var(--highlight-owner-color, var(--gold, #b45309)) !important;
+  outline-offset: -2.5px;
+  box-shadow: 0 0 14px var(--highlight-owner-color, rgba(180, 130, 40, 0.4)), inset 0 0 10px rgba(255, 255, 255, 0.35) !important;
+  z-index: 10 !important;
+  transform: scale(1.02);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.board-space.is-property-highlighted {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: -3px;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.65), inset 0 0 12px rgba(245, 158, 11, 0.25) !important;
+  z-index: 12 !important;
+  transform: scale(1.03);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+/* Subtle, elegant landing-tile highlight with smooth exponential fade-out */
+.board-space.is-landing-highlighted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 8;
+  border: 2px solid rgba(200, 155, 69, 0.85);
+  box-shadow: inset 0 0 12px rgba(200, 155, 69, 0.28), 0 0 16px rgba(200, 155, 69, 0.35);
+  background: radial-gradient(circle at center, rgba(200, 155, 69, 0.12) 0%, transparent 75%);
+  animation: landingTileFade 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes landingTileFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.ps-player.ps-selected-highlight {
+  border-color: var(--gold, #b45309) !important;
+  background: rgba(200, 155, 69, 0.2) !important;
+  box-shadow: 0 0 12px rgba(200, 155, 69, 0.4) !important;
+  transform: translateY(-2px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 3. Neutral Elegant Ownership Ring ── */
+.tile-ownership-ring {
+  position: absolute;
+  inset: 1.5px;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+  border: 1.5px solid rgba(220, 195, 155, 0.65);
+  box-shadow: inset 0 0 4px rgba(220, 195, 155, 0.22), 0 0 5px rgba(220, 195, 155, 0.3);
+}
+
+/* ── 4. Property Comparison View (Redesigned 3-Property System) ── */
+.property-comparison-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px 20px;
+  box-sizing: border-box;
+}
+
+.property-compare-header-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(200, 155, 69, 0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.compare-selectors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .compare-selectors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compare-picker-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.picker-box-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.compare-picker-box label {
+  font-family: "Oswald", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft, #57534e);
+}
+
+.picker-clear-slot-btn {
+  background: none;
+  border: none;
+  color: #b91c1c;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.picker-clear-slot-btn:hover {
+  text-decoration: underline;
+}
+
+.compare-dropdown {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(200, 155, 69, 0.3);
+  background: #ffffff;
+  color: var(--ink, #1c1917);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.compare-dropdown:focus {
+  border-color: var(--gold, #b45309);
+  box-shadow: 0 0 0 2px rgba(200, 155, 69, 0.2);
+}
+
+.compare-dropdown option:disabled {
+  color: #a8a29e;
+  background: #f5f5f4;
+}
+
+.compare-global-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(200, 155, 69, 0.15);
+  padding-top: 8px;
+}
+
+.compare-summary-text {
+  font-size: 11px;
+  color: var(--ink-soft, #78716c);
+  font-weight: 600;
+}
+
+.compare-clear-btn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(185, 28, 28, 0.4);
+  background: rgba(185, 28, 28, 0.08);
+  color: #b91c1c;
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compare-clear-btn:hover:not(:disabled) {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.compare-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 3-column desktop layout */
+.property-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .property-comparison-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .property-compare-card,
+  .property-compare-empty-card {
+    min-width: 82%;
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+}
+
+.property-compare-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(200, 155, 69, 0.28);
+  border-radius: 10px;
+  padding: 14px 14px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.property-compare-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.prop-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prop-type-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.prop-remove-slot-btn {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-soft, #78716c);
+  cursor: pointer;
+  padding: 1px 4px;
+}
+
+.prop-remove-slot-btn:hover {
+  color: #b91c1c;
+}
+
+.prop-title {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink, #1c1917);
+  letter-spacing: 0.02em;
+}
+
+.prop-header-actions-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prop-quick-price {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.prop-quick-price span {
+  font-size: 10px;
+  color: var(--ink-soft, #78716c);
+  font-weight: 600;
+}
+
+.prop-quick-price strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold, #b45309);
+}
+
+.prop-highlight-board-btn {
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(200, 155, 69, 0.4);
+  background: rgba(200, 155, 69, 0.12);
+  color: var(--ink, #1c1917);
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.prop-highlight-board-btn:hover {
+  background: var(--gold, #b45309);
+  color: #ffffff;
+}
+
+.property-compare-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid rgba(200, 155, 69, 0.15);
+  padding-top: 8px;
+}
+
+.section-label {
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft, #78716c);
+}
+
+.prop-owner-banner {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(200, 155, 69, 0.18);
+}
+
+.owner-active-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.owner-name {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink, #1c1917);
+}
+
+.owner-status-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.owner-status-badge.active {
+  background: rgba(16, 185, 129, 0.18);
+  color: #047857;
+}
+
+.owner-status-badge.mortgaged {
+  background: rgba(239, 68, 68, 0.18);
+  color: #b91c1c;
+}
+
+.owner-unowned-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-soft, #78716c);
+  font-weight: 600;
+}
+
+.unowned-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px dashed #a8a29e;
+}
+
+.prop-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 3px 0;
+}
+
+.metric-label {
+  color: var(--ink-soft, #78716c);
+}
+
+.metric-value {
+  font-weight: 700;
+  color: var(--ink, #1c1917);
+}
+
+.highlight-box {
+  background: rgba(200, 155, 69, 0.08);
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+
+.prop-rent-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 6px;
+  padding: 4px 6px;
+  border: 1px solid rgba(200, 155, 69, 0.12);
+}
+
+.rent-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  padding: 2.5px 4px;
+  border-radius: 3px;
+}
+
+.rent-row.current-level {
+  background: rgba(200, 155, 69, 0.22);
+  font-weight: 800;
+}
+
+.rent-row.sub-row {
+  opacity: 0.85;
+  font-size: 10px;
+}
+
+.rent-amount {
+  font-weight: 700;
+}
+
+.current-development-pill {
+  font-size: 10.5px;
+  color: var(--ink-soft, #57534e);
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.dice-multiplier-notice {
+  font-size: 10px;
+  color: var(--ink-soft, #78716c);
+  background: rgba(0, 0, 0, 0.03);
+  padding: 5px 7px;
+  border-radius: 4px;
+  border-left: 2px solid var(--gold, #b45309);
+  line-height: 1.35;
+}
+
+.property-compare-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  border: 1.5px dashed rgba(200, 155, 69, 0.35);
+  border-radius: 10px;
+  padding: 28px 16px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.empty-slot-badge {
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft, #78716c);
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.property-compare-empty-card h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft, #44403c);
+}
+
+.property-compare-empty-card p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-soft, #78716c);
+  line-height: 1.4;
+  max-width: 240px;
+}
+
+/* ── Reduced Motion Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  .tile-ownership-flow {
+    animation: none !important;
+    background-size: 100% 100% !important;
+    opacity: 0.14 !important;
+  }
+  .board-space.is-landing-highlighted::after {
+    animation: landingTileFadeReduced 2.2s ease forwards !important;
+  }
+  .cash-transfer-pill {
+    animation: cashTransferFade 2.4s ease forwards !important;
+  }
+  @keyframes cashTransferFade {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes landingTileFadeReduced {
+    0% { opacity: 0; }
+    10% { opacity: 0.9; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; }
+  }
 }
 
 

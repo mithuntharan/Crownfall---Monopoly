@@ -9,8 +9,9 @@ import { TransactionLedgerContent } from "./TransactionLedgerModal"
 import { TradeModal } from "./TradeModal"
 import { GameplayEventLog } from "./GameplayEventLog"
 import { FinancialInsightsModal } from "./FinancialInsightsModal"
+import { PropertyComparisonView } from "./PropertyComparisonView"
 
-export type GameInfoTab = "ledger" | "trade" | "events" | "insights"
+export type GameInfoTab = "ledger" | "trade" | "events" | "insights" | "compare"
 
 export interface GameInfoModalProps {
   isOpen: boolean
@@ -35,6 +36,7 @@ export interface GameInfoModalProps {
   isHost?: boolean
   isMultiplayer?: boolean
   onKickPlayer?: (playerId: number) => void
+  onSelectPropertyHighlight?: (propertyId: string | null) => void
 }
 
 export function GameInfoModal({
@@ -54,6 +56,7 @@ export function GameInfoModal({
   isHost = false,
   isMultiplayer = false,
   onKickPlayer,
+  onSelectPropertyHighlight,
 }: GameInfoModalProps) {
   const [activeTab, setActiveTab] = useState<GameInfoTab>(initialTab)
 
@@ -254,6 +257,28 @@ export function GameInfoModal({
             >
               <span>INSIGHTS</span>
             </button>
+
+            <button
+              type="button"
+              className={`game-info-subtab-btn ${activeTab === "compare" ? "active" : ""}`}
+              onClick={() => setActiveTab("compare")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: activeTab === "compare" ? "1px solid var(--gold)" : "1px solid transparent",
+                background: activeTab === "compare" ? "rgba(200, 155, 69, 0.22)" : "transparent",
+                color: activeTab === "compare" ? "var(--ink, #1c1917)" : "var(--ink-soft, #78716c)",
+                fontWeight: 700,
+                fontSize: "11.5px",
+                cursor: "pointer",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
+              <span>COMPARE</span>
+            </button>
           </div>
 
           {/* Close button */}
@@ -367,6 +392,21 @@ export function GameInfoModal({
               onKickPlayer={onKickPlayer}
               close={onClose}
               isEmbedded
+            />
+          </div>
+
+          {/* Subtab 5: Compare */}
+          <div
+            style={{
+              display: activeTab === "compare" ? "flex" : "none",
+              flexDirection: "column",
+              height: "100%",
+              minHeight: 0,
+            }}
+          >
+            <PropertyComparisonView
+              players={players}
+              onSelectPropertyHighlight={onSelectPropertyHighlight}
             />
           </div>
         </div>

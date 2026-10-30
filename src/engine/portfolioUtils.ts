@@ -211,12 +211,8 @@ export function calculatePlayerPortfolio(
         let repay = 0
         if (isMortgaged) {
           mortgagedCount++
-          repay =
-            Math.ceil(
-              (sp.mortgageValue +
-                (sp.mortgageValue * effectiveRate) / 100) /
-                100,
-            ) * 100
+          // Special properties have ZERO mortgage interest liability per Crownfall rules
+          repay = sp.mortgageValue
           liabilities += repay
         }
 

@@ -177,7 +177,7 @@ export function TransactionLedgerContent({
                 </div>
 
                 <div className="ledger-parties-row">
-                  <span className="ledger-party-chip primary">
+                  <span className={`ledger-party-chip primary ${tx.primaryPlayerName === "Bank" ? "is-bank-party" : ""}`}>
                     <span className="party-role-tag">FROM</span>
                     <strong>{tx.primaryPlayerName}</strong>
                   </span>
@@ -185,7 +185,7 @@ export function TransactionLedgerContent({
                     <span className="ledger-transfer-line" />
                     <span className="ledger-transfer-icon">⟶</span>
                   </div>
-                  <span className="ledger-party-chip counterparty">
+                  <span className={`ledger-party-chip counterparty ${tx.counterpartyPlayerName === "Bank" ? "is-bank-party" : ""}`}>
                     <span className="party-role-tag">TO</span>
                     <strong>{tx.counterpartyPlayerName}</strong>
                   </span>
