@@ -1041,6 +1041,24 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
                 << std::flush;
       return;
     }
+    int activeIdx = engine->getActivePlayerIndex();
+    if (activeIdx >= 0 && activeIdx < static_cast<int>(engine->getPlayers().size())) {
+      const auto& actP = engine->getPlayers()[activeIdx];
+      if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
+        if (std::string(dbg) == "1") {
+          std::cerr << "[REST_DIAGNOSTIC] main.cpp roll: activeIdx=" << activeIdx << " inRestHouse=" << actP.inRestHouse << " restHouseTurns=" << actP.restHouseTurns << "\n";
+        }
+      }
+      if (actP.inRestHouse || actP.cardJailSkip || actP.restHouseTurns > 0 || actP.cardJailSkipTurns > 0) {
+        // Do NOT call advanceTurn() here. Skip consumption is solely handled by
+        // advanceTurn() inside endTurn processing. Calling it here would double-advance
+        // the turn order, skipping the wrong player. Just reject the roll.
+        std::cout << "{\"ok\":false,\"error\":\"Cannot roll: your turn is being skipped. End your turn instead.\",\"state\":"
+                  << toCompactJson(engine->exportStateJson()) << "}\n"
+                  << std::flush;
+        return;
+      }
+    }
     int d1 = getJsonIntField(line, "d1", 0);
     if (d1 == 0 && line.find("\"dice1\"") != std::string::npos) {
       d1 = getJsonIntField(line, "dice1", 0);

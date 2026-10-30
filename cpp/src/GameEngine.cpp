@@ -1,6 +1,7 @@
 #include "../include/GameEngine.h"
 #include "../include/BusinessData.h"
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <chrono>
 #include <optional>
@@ -9,7 +10,17 @@
 namespace Crownfall {
 
 GameEngine::GameEngine(GameRules rules)
-    : m_rules(rules), m_rng(std::random_device{}()) {}
+    : m_rules(rules), m_rng([]() {
+        std::random_device rd;
+        auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        std::seed_seq seq{
+            static_cast<uint32_t>(rd()),
+            static_cast<uint32_t>(now & 0xFFFFFFFF),
+            static_cast<uint32_t>((now >> 32) & 0xFFFFFFFF),
+            static_cast<uint32_t>(rd())
+        };
+        return std::mt19937(seq);
+    }()) {}
 
 void GameEngine::addPlayer(const std::string& name, const std::string& color, const std::string& token, bool isHuman) {
     Player p;
@@ -24,7 +35,11 @@ void GameEngine::addPlayer(const std::string& name, const std::string& color, co
     p.inJail = false;
     p.jailTurns = 0;
     p.inRestHouse = false;
+    p.restHouseTurns = 0;
+    p.cardJailSkip = false;
+    p.cardJailSkipTurns = 0;
     p.isBankrupt = false;
+    p.unmortgageInterestRatePercent = m_rules.unmortgageInterestRatePercent;
     m_players.push_back(p);
 }
 
@@ -50,6 +65,7 @@ void GameEngine::startGame() {
     m_transactionLedger.clear();
     m_nextTransactionId = 1;
     for (auto& p : m_players) {
+        p.unmortgageInterestRatePercent = m_rules.unmortgageInterestRatePercent;
         p.totalRentReceived = 0;
         p.totalRentPaid = 0;
         p.constructionCount = 0;
@@ -136,8 +152,8 @@ int GameEngine::calculatePlayerNetWorth(int playerId) const {
             }
             auto itM = p.mortgages.find(propId);
             if (itM != p.mortgages.end() && itM->second) {
-                // Outstanding liability for mortgaged property
-                int repayment = city->mortgageValue + (city->mortgageValue * m_rules.unmortgageInterestRatePercent / 100);
+                // Outstanding liability for mortgaged city property
+                int repayment = city->mortgageValue + static_cast<int>(city->mortgageValue * p.unmortgageInterestRatePercent / 100.0);
                 repayment = ((repayment + 99) / 100) * 100;
                 total -= repayment;
             }
@@ -147,9 +163,8 @@ int GameEngine::calculatePlayerNetWorth(int playerId) const {
                 total += sp->purchasePrice;
                 auto itM = p.mortgages.find(propId);
                 if (itM != p.mortgages.end() && itM->second) {
-                    int repayment = sp->mortgageValue + (sp->mortgageValue * m_rules.unmortgageInterestRatePercent / 100);
-                    repayment = ((repayment + 99) / 100) * 100;
-                    total -= repayment;
+                    // Special properties have ZERO mortgage interest liability
+                    total -= sp->mortgageValue;
                 }
             }
         }
@@ -250,14 +265,52 @@ void GameEngine::advanceTurn(bool extraTurn) {
     int startIdx = m_activePlayerIndex;
     int nextIdx = (m_activePlayerIndex + 1) % m_players.size();
     size_t attempts = 0;
-    while (m_players[nextIdx].isBankrupt && attempts < m_players.size()) {
-        nextIdx = (nextIdx + 1) % m_players.size();
-        attempts++;
+    size_t maxAttempts = m_players.size() * 2;
+
+    while (attempts < maxAttempts) {
+        if (nextIdx <= startIdx) {
+            m_roundNumber++;
+            startIdx = nextIdx;
+        }
+
+        Player& candidate = m_players[nextIdx];
+        if (candidate.isBankrupt) {
+            nextIdx = (nextIdx + 1) % m_players.size();
+            attempts++;
+            continue;
+        }
+
+        // Authoritatively consume Rest House or card-induced Jail skip
+        bool skipped = false;
+        if (candidate.restHouseTurns > 0 || candidate.inRestHouse) {
+            if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
+                if (std::string(dbg) == "1") {
+                    std::cerr << "[REST_DIAGNOSTIC] Consumed Rest House skip: player=" << candidate.id
+                              << " name=" << candidate.name << " turnId=" << m_currentTurnId
+                              << " pos=" << candidate.position << " restHouseTurns: 1 -> 0\n";
+                }
+            }
+            candidate.restHouseTurns = 0;
+            candidate.inRestHouse = false;
+            addLogEntry(candidate.id, "rest", candidate.name + " skipped their turn at Rest House.");
+            skipped = true;
+        }
+        if (candidate.cardJailSkipTurns > 0 || candidate.cardJailSkip) {
+            candidate.cardJailSkipTurns = 0;
+            candidate.cardJailSkip = false;
+            addLogEntry(candidate.id, "jail", candidate.name + " skipped their turn in Jail from a card.");
+            skipped = true;
+        }
+
+        if (skipped) {
+            nextIdx = (nextIdx + 1) % m_players.size();
+            attempts++;
+            continue;
+        }
+
+        break;
     }
 
-    if (nextIdx <= startIdx) {
-        m_roundNumber++;
-    }
     m_activePlayerIndex = nextIdx;
     m_turnState = TurnState::WAITING_FOR_ROLL;
     m_turnStartedAt = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -433,22 +486,19 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     }
     result.playerId = player.id;
 
-    // Check rest house
-    if (player.inRestHouse) {
-        player.inRestHouse = false;
-        result.eventDescription = player.name + " was resting in Rest House and skips this turn.";
-        result.spaceName = "REST HOUSE";
+    // NOTE: Skip consumption is handled SOLELY in advanceTurn().
+    // advanceTurn() atomically checks and consumes restHouseTurns/cardJailSkip flags
+    // so that any player with pending skips is never made the active player.
+    // If a roll request somehow arrives for a player with skip flags still set,
+    // that is a state error — reject it but do NOT call advanceTurn() here,
+    // as that would cause a double-advance past the legitimate next player.
+    if (player.inRestHouse || player.cardJailSkip || player.restHouseTurns > 0 || player.cardJailSkipTurns > 0) {
         result.previousPosition = player.position;
         result.newPosition = player.position;
-        m_lastDice1 = 0;
-        m_lastDice2 = 0;
-        m_lastTurnResult = result;
-        addLogEntry(player.id, "rest", result.eventDescription);
-        if (player.isHuman) {
-            m_turnState = TurnState::WAITING_FOR_ACTION;
-        } else {
-            advanceTurn(false);
-        }
+        result.spaceName = (player.position == 27) ? "REST HOUSE" : "JAIL";
+        result.eventDescription = player.name + " cannot roll: skip turn pending. Turn will be auto-advanced by endTurn.";
+        // Do NOT consume the flags here and do NOT call advanceTurn().
+        // Return without side-effects so endTurn's advanceTurn() remains the sole consumer.
         return result;
     }
 
@@ -523,13 +573,14 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
 
     result.previousPosition = player.position;
     int nextPos = (player.position + result.diceTotal) % 36;
+    int prevPos = player.position;
 
     // Check completion of rotation
     bool passedStart = (player.position + result.diceTotal >= 36);
     int startCrossings = (player.position + result.diceTotal) / 36;
     if (passedStart) {
         for (int c = 0; c < startCrossings; ++c) {
-            m_rules.unmortgageInterestRatePercent = std::round(m_rules.unmortgageInterestRatePercent * 1.05 * 10000.0) / 10000.0;
+            player.unmortgageInterestRatePercent = std::round(player.unmortgageInterestRatePercent * 1.05 * 10000.0) / 10000.0;
         }
         if (player.rotationsCompleted == 0) {
             player.rotationsCompleted = 1;
@@ -612,30 +663,64 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
                     player.jailTurns = 0;
+                    player.cardJailSkipTurns = 1;
+                    player.cardJailSkip = false;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
                     result.spaceName = "JAIL";
                     result.spaceType = SpaceType::Corner;
-                    result.eventDescription = player.name + " drew Chance: Go to Jail.";
+                    result.eventDescription = player.name + " drew Chance: Go to Jail (misses next turn).";
                 } else if (decl->kind == "rest") {
-                    player.inRestHouse = true;
                     player.position = 27;
+                    player.restHouseTurns = 1;
+                    player.inRestHouse = false;
                     result.mustGoToRestHouse = true;
                     result.newPosition = 27;
                     result.spaceName = "REST HOUSE";
                     result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Chance: Rest House (skips next turn).";
                 } else if (decl->kind == "move" && result.diceTotal == 9) {
-                    if (player.position > 1) {
-                        m_rules.unmortgageInterestRatePercent = std::round(m_rules.unmortgageInterestRatePercent * 1.05 * 10000.0) / 10000.0;
-                        player.position = 1;
+                    if (player.position == 7) {
+                        player.position = 1; // Bombay
+                        result.eventDescription = player.name + " drew Chance: Go back to " + spaces[1].name + ".";
                     } else {
-                        player.money += 1500;
-                        result.moneyChange = 1500;
-                        player.position = 23;
+                        player.money += m_rules.passStartBonus;
+                        result.moneyChange = m_rules.passStartBonus;
+                        result.passStartBonusAwarded = true;
+                        player.position = 23; // Darjeeling
+                        result.eventDescription = player.name + " drew Chance: Passed Start (+₹" + std::to_string(m_rules.passStartBonus) + ") and went to " + spaces[23].name + ".";
                     }
                     result.newPosition = player.position;
+                    const auto& destSpace = spaces[player.position];
+                    result.spaceName = destSpace.name;
+                    result.spaceType = destSpace.type;
+
+                    // Atomically resolve destination property
+                    if (destSpace.type == SpaceType::City && !player.inJail && !player.inRestHouse) {
+                        int ownerIdx = -1;
+                        findOwnerOfProperty(destSpace.propertyId, ownerIdx);
+                        if (ownerIdx == -1) {
+                            if (player.rotationsCompleted > 0 || m_devMode) {
+                                result.eligibleToBuy = true;
+                                result.purchasablePropertyId = destSpace.propertyId;
+                                auto cityOpt = BusinessData::getCityPropertyById(destSpace.propertyId);
+                                if (cityOpt) result.purchasePrice = cityOpt->purchasePrice;
+                            }
+                        } else if (ownerIdx != player.id) {
+                            if (!m_players[ownerIdx].mortgages[destSpace.propertyId]) {
+                                int rent = calculateRent(destSpace.propertyId, result.diceTotal);
+                                player.money -= rent;
+                                m_players[ownerIdx].money += rent;
+                                player.totalRentPaid += rent;
+                                m_players[ownerIdx].totalRentReceived += rent;
+                                result.rentPaid = true;
+                                result.rentAmount = rent;
+                                result.rentRecipientId = ownerIdx;
+                                recordTransaction("RENT", player.name + " paid ₹" + std::to_string(rent) + " rent to " + m_players[ownerIdx].name + " for " + destSpace.name + ".", rent, player.id, ownerIdx, destSpace.propertyId);
+                            }
+                        }
+                    }
                 }
                 addLogEntry(player.id, "chance", result.eventDescription, result.moneyChange);
                 if (result.moneyChange > 0) {
@@ -660,15 +745,18 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
                     player.jailTurns = 0;
+                    player.cardJailSkipTurns = 1;
+                    player.cardJailSkip = false;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
                     result.spaceName = "JAIL";
                     result.spaceType = SpaceType::Corner;
-                    result.eventDescription = player.name + " drew Community Chest: Go to Jail.";
+                    result.eventDescription = player.name + " drew Community Chest: Go to Jail (misses next turn).";
                 } else if (decl->kind == "rest") {
-                    player.inRestHouse = true;
                     player.position = 27;
+                    player.restHouseTurns = 1;
+                    player.inRestHouse = false;
                     result.mustGoToRestHouse = true;
                     result.newPosition = 27;
                     result.spaceName = "REST HOUSE";
@@ -706,10 +794,18 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 result.eventDescription = player.name + " is just visiting Jail.";
             } else if (nextPos == 18) {
                 result.eventDescription = player.name + " entered the Royal Club.";
-            } else if (nextPos == 27) {
-                player.inRestHouse = true;
+            } else if (nextPos == 27 && prevPos != 27) {
+                player.restHouseTurns = 1;
+                player.inRestHouse = false;
                 result.mustGoToRestHouse = true;
                 result.eventDescription = player.name + " stopped at the Rest House (must skip next turn).";
+                if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
+                    if (std::string(dbg) == "1") {
+                        std::cerr << "[REST_DIAGNOSTIC] Landed on Rest House: player=" << player.id
+                                  << " name=" << player.name << " turnId=" << m_currentTurnId
+                                  << " prevPos=" << prevPos << " newPos=" << nextPos << " restHouseTurns set to 1\n";
+                    }
+                }
             }
         } else if (space.type == SpaceType::Tax) {
             int tax = 500;
@@ -736,7 +832,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         m_landingActive = false;
     }
 
-    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail);
+    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail && !result.mustGoToJail && !result.mustGoToRestHouse && !player.cardJailSkip && !player.inRestHouse);
     result.extraTurnGranted = extra;
     m_lastTurnResult = result;
 
@@ -827,15 +923,16 @@ bool GameEngine::endTurn(int playerId, std::string& outError) {
         return false;
     }
     if (playerId >= 0 && playerId < static_cast<int>(m_players.size())) {
-        if (m_players[playerId].money < 0 && !m_players[playerId].isBankrupt) {
-            if (!m_players[playerId].isHuman) {
-                for (const auto& propId : m_players[playerId].ownedProperties) {
-                    if (!m_players[playerId].mortgages[propId]) {
+        Player& p = m_players[playerId];
+        if (p.money < 0 && !p.isBankrupt) {
+            if (!p.isHuman) {
+                for (const auto& propId : p.ownedProperties) {
+                    if (!p.mortgages[propId]) {
                         mortgageProperty(playerId, propId);
-                        if (m_players[playerId].money >= 0) break;
+                        if (p.money >= 0) break;
                     }
                 }
-                if (m_players[playerId].money < 0) {
+                if (p.money < 0) {
                     std::string dummyErr;
                     resignPlayer(playerId, dummyErr);
                     return true;
@@ -844,6 +941,16 @@ bool GameEngine::endTurn(int playerId, std::string& outError) {
                 outError = "Cannot end turn with negative balance. Player must settle debt or declare bankruptcy.";
                 return false;
             }
+        }
+
+        // Consume active skipped-turn flag
+        if (p.inRestHouse) {
+            p.inRestHouse = false;
+            addLogEntry(p.id, "rest", p.name + " finished resting in Rest House.");
+        }
+        if (p.cardJailSkip) {
+            p.cardJailSkip = false;
+            addLogEntry(p.id, "jail", p.name + " completed card-induced Jail skip.");
         }
     }
     advanceTurn(false);
@@ -1251,10 +1358,13 @@ bool GameEngine::unmortgageProperty(int playerId, const std::string& propertyId)
 
     if (mortgageVal <= 0) return false;
 
-    // Repayment total = principal + configured interest percentage (e.g. 10%) rounded to ₹100
-    double rawInterest = (mortgageVal * m_rules.unmortgageInterestRatePercent) / 100.0;
-    int fee = static_cast<int>(std::ceil(rawInterest / 100.0)) * 100;
-    int repayment = mortgageVal + fee;
+    bool isSpecial = BusinessData::getSpecialPropertyById(propertyId).has_value();
+    int repayment = mortgageVal;
+    if (!isSpecial) {
+        double rawInterest = (mortgageVal * player.unmortgageInterestRatePercent) / 100.0;
+        int fee = static_cast<int>(std::ceil(rawInterest / 100.0)) * 100;
+        repayment = mortgageVal + fee;
+    }
 
     if (player.money < repayment) return false; // Cannot afford
 
@@ -1269,8 +1379,11 @@ std::string GameEngine::createTradeOffer(int senderId, int receiverId,
                                         const std::vector<std::string>& senderProps, int senderCash,
                                         const std::vector<std::string>& receiverProps, int receiverCash,
                                         std::string& outError) {
-    if (senderId < 0 || senderId >= static_cast<int>(m_players.size()) ||
-        receiverId < 0 || receiverId >= static_cast<int>(m_players.size())) {
+    if (senderId < 0 || senderId >= static_cast<int>(m_players.size())) {
+        outError = "Invalid player ID.";
+        return "";
+    }
+    if (receiverId < 0 || receiverId >= static_cast<int>(m_players.size())) {
         outError = "Invalid player ID.";
         return "";
     }
@@ -1366,8 +1479,11 @@ std::string GameEngine::createTradeOffer(int senderId, int receiverId,
 void GameEngine::invalidateConflictingTrades() {
     for (auto& trade : m_tradeOffers) {
         if (trade.status != "PENDING") continue;
-        if (trade.senderId < 0 || trade.senderId >= static_cast<int>(m_players.size()) ||
-            trade.receiverId < 0 || trade.receiverId >= static_cast<int>(m_players.size())) {
+        if (trade.senderId < 0 || trade.senderId >= static_cast<int>(m_players.size())) {
+            trade.status = "INVALIDATED";
+            continue;
+        }
+        if (trade.receiverId < 0 || trade.receiverId >= static_cast<int>(m_players.size())) {
             trade.status = "INVALIDATED";
             continue;
         }
@@ -1734,7 +1850,11 @@ std::string GameEngine::exportStateJson() const {
         ss << "      \"inJail\": " << (p.inJail ? "true" : "false") << ",\n";
         ss << "      \"jailTurns\": " << p.jailTurns << ",\n";
         ss << "      \"inRestHouse\": " << (p.inRestHouse ? "true" : "false") << ",\n";
+        ss << "      \"restHouseTurns\": " << p.restHouseTurns << ",\n";
+        ss << "      \"cardJailSkip\": " << (p.cardJailSkip ? "true" : "false") << ",\n";
+        ss << "      \"cardJailSkipTurns\": " << p.cardJailSkipTurns << ",\n";
         ss << "      \"isBankrupt\": " << (p.isBankrupt ? "true" : "false") << ",\n";
+        ss << "      \"unmortgageInterestRatePercent\": " << p.unmortgageInterestRatePercent << ",\n";
         ss << "      \"totalRentReceived\": " << p.totalRentReceived << ",\n";
         ss << "      \"rentReceived\": " << p.totalRentReceived << ",\n";
         ss << "      \"totalRentPaid\": " << p.totalRentPaid << ",\n";
@@ -1767,4 +1887,3 @@ std::string GameEngine::exportStateJson() const {
 }
 
 } // namespace Crownfall
-

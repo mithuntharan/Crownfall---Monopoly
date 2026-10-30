@@ -72,6 +72,12 @@ import {
   type PendingPurchaseInfo,
 } from "./components/BoardCenterPurchaseControl"
 import { BoardCenterRecentEvents } from "./components/BoardCenterRecentEvents"
+import Dice3D from "./components/Dice3D"
+import {
+  ANIMATION_TIMINGS,
+  getAdaptiveStepSchedule,
+  EASE_OUT_EXPO,
+} from "./config/animationConfig"
 import {
   getTileCenterPercent,
   getMultiTokenOffset,
@@ -141,6 +147,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -158,6 +167,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -175,6 +187,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -192,6 +207,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -209,6 +227,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -226,6 +247,9 @@ const defaultPlayerConfigs: EnginePlayer[] = [
     inJail: false,
     jailTurns: 0,
     inRestHouse: false,
+    restHouseTurns: 0,
+    cardJailSkip: false,
+    cardJailSkipTurns: 0,
     ownedProperties: [],
     buildings: {},
     mortgages: {},
@@ -627,11 +651,13 @@ function Logo({ compact = false }: { compact?: boolean }) {
 function Token({
   player,
   active = false,
+  gliding = false,
   className = "",
   size = "sm",
 }: {
   player: EnginePlayer
   active?: boolean
+  gliding?: boolean
   className?: string
   size?: "xs" | "sm" | "md" | "lg" | "xl" | number
 }) {
@@ -640,6 +666,7 @@ function Token({
       player={player}
       size={size}
       active={active}
+      gliding={gliding}
       className={className}
     />
   )
@@ -2170,7 +2197,7 @@ function Board({
                   top: `${center.y}%`,
                   transform: `translate(calc(-50% + ${offset.dx}px), calc(-50% + ${offset.dy}px))`,
                   transition: isGliding
-                    ? `left ${stepDuration}ms cubic-bezier(0.25, 1, 0.5, 1), top ${stepDuration}ms cubic-bezier(0.25, 1, 0.5, 1)`
+                    ? `left ${stepDuration}ms ${EASE_OUT_EXPO}, top ${stepDuration}ms ${EASE_OUT_EXPO}`
                     : "none",
                 }}
               >
@@ -2178,6 +2205,7 @@ function Board({
                   player={player}
                   size="sm"
                   active={idx === (moving ? targetMovingIndex : activePlayerIndex)}
+                  gliding={isGliding}
                   className={isGliding ? "token-gliding" : ""}
                 />
               </div>
@@ -2349,7 +2377,7 @@ function PlayerStrip({
           const propCount = player.ownedProperties?.length ?? 0
           const isBankrupt = (player as { isBankrupt?: boolean }).isBankrupt ?? false
           const isJailed = (player as { isJailed?: boolean }).isJailed ?? false
-          const isResting = (player as { isResting?: boolean }).isResting ?? false
+          const isResting = Boolean((player as any).inRestHouse || (player as any).isResting)
           const canKick = isHost && isMultiplayer && player.id !== localPlayerId && !isBankrupt
 
           let statusIcon = ""
@@ -2422,250 +2450,31 @@ interface DiceProps {
   value: number
   rolling: boolean
   settling?: boolean
+  settleDuration?: number
   dieIndex?: number
   reducedMotion?: boolean
+  size?: number
 }
 
-/**
- * Normalized exponential ease-out function: E(t) = (1 - 2^(-k*t)) / (1 - 2^(-k))
- * Yields rapid initial spin with smooth, progressive deceleration to exact final orientation (0,0,0).
- */
-function easeOutExpo(t: number, k = 6.0): number {
-  if (t <= 0) return 0
-  if (t >= 1) return 1
-  return (1 - Math.pow(2, -k * t)) / (1 - Math.pow(2, -k))
-}
-
-function Dice({ value, rolling, settling = false, dieIndex = 0, reducedMotion = false }: DiceProps) {
-  const dots: Record<number, number[]> = {
-    1: [5],
-    2: [1, 9],
-    3: [1, 5, 9],
-    4: [1, 3, 7, 9],
-    5: [1, 3, 5, 7, 9],
-    6: [1, 3, 4, 6, 7, 9],
-  }
-
-  const safeVal = value >= 1 && value <= 6 ? value : 1
-
-  const dieRef = useRef<HTMLDivElement>(null)
-  const rafRef = useRef<number | null>(null)
-  const [displayVal, setDisplayVal] = useState<number>(safeVal)
-
-  // Track latest authoritative value in a ref so the active rAF animation callback
-  // always has access to the most recent authoritative face value without stale closures
-  const safeValRef = useRef<number>(safeVal)
-  safeValRef.current = safeVal
-
-  const isRollingRef = useRef<boolean>(rolling)
-  isRollingRef.current = rolling
-
-  const isSettlingRef = useRef<boolean>(settling)
-  isSettlingRef.current = settling
-
-  // Synchronize display value when idle
-  useEffect(() => {
-    if (!rolling && !settling) {
-      setDisplayVal(safeVal)
-    }
-  }, [value, rolling, settling, safeVal])
-
-  useEffect(() => {
-    // If not rolling and not settling, ensure die is at rest and cancel any running animation
-    if (!rolling && !settling) {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
-      }
-      if (dieRef.current) {
-        dieRef.current.style.transform = ""
-        dieRef.current.style.boxShadow = ""
-      }
-      setDisplayVal(safeVal)
-      return
-    }
-
-    // Only start a new animation cycle when rolling begins
-    // If settling begins while animation is already running, the loop handles the transition
-    if (rafRef.current !== null) {
-      return
-    }
-
-    const checkReducedMotion = Boolean(
-      reducedMotion ||
-      (typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-    )
-
-    const startTime = performance.now()
-
-    // Reduced motion mode: short, restrained ease-out without disorienting multi-axis spins
-    if (checkReducedMotion) {
-      const duration = 140
-      const initialTiltX = dieIndex === 2 ? -8 : -6
-      const initialScale = 1.05
-
-      const tickReduced = (now: number) => {
-        const elapsed = now - startTime
-        const t = Math.min(1, elapsed / duration)
-        const decay = 1 - easeOutExpo(t, 6.0)
-
-        if (dieRef.current) {
-          const rx = (initialTiltX * decay).toFixed(2)
-          const sc = (1 + (initialScale - 1) * decay).toFixed(3)
-          dieRef.current.style.transform = `rotateX(${rx}deg) scale(${sc})`
-        }
-
-        if (t < 1 && (isRollingRef.current || isSettlingRef.current)) {
-          rafRef.current = requestAnimationFrame(tickReduced)
-        } else {
-          if (dieRef.current) {
-            dieRef.current.style.transform = ""
-            dieRef.current.style.boxShadow = ""
-          }
-          setDisplayVal(safeValRef.current)
-          rafRef.current = null
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(tickReduced)
-      return () => {
-        if (rafRef.current !== null) {
-          cancelAnimationFrame(rafRef.current)
-          rafRef.current = null
-        }
-      }
-    }
-
-    // Full 3D exponential ease-out roll
-    // Varied trajectories per roll and per die index so consecutive rolls do not look identical
-    const dirX = Math.random() < 0.5 ? 1 : -1
-    const dirY = (dieIndex === 2 ? -1 : 1) * (Math.random() < 0.5 ? 1 : -1)
-    const dirZ = Math.random() < 0.5 ? 1 : -1
-
-    const turnsX = (dieIndex === 2 ? 2.5 : 2.0) + (Math.random() < 0.5 ? 0.5 : 1.0)
-    const turnsY = (dieIndex === 1 ? 2.5 : 2.0) + (Math.random() < 0.5 ? 0.5 : 1.0)
-    const turnsZ = Math.random() < 0.5 ? 0.5 : 1.0
-
-    const tiltX = (Math.random() - 0.5) * 32
-    const tiltY = (Math.random() - 0.5) * 32
-
-    const totalRotX = dirX * turnsX * 360 + tiltX
-    const totalRotY = dirY * turnsY * 360 + tiltY
-    const totalRotZ = dirZ * turnsZ * 360
-
-    let settleStartTime: number | null = null
-    let settleStartTau = 0.58
-    let currentTau = 0
-    let lastFaceChangeTime = startTime
-    let currentFace = safeVal
-
-    const tick = (now: number) => {
-      // Transition from rolling to settling
-      if (isSettlingRef.current && settleStartTime === null) {
-        settleStartTime = now
-        settleStartTau = Math.max(0.5, Math.min(0.68, currentTau))
-      }
-
-      if (settleStartTime !== null) {
-        const settleElapsed = now - settleStartTime
-        const settleDuration = 260
-        const settleProgress = Math.min(1, settleElapsed / settleDuration)
-        currentTau = settleStartTau + (1 - settleStartTau) * settleProgress
-      } else {
-        const rollElapsed = now - startTime
-        const rollDuration = 340
-        currentTau = Math.min(0.58, (rollElapsed / rollDuration) * 0.58)
-      }
-
-      // Exponential deceleration: velocity decreases exponentially from maximum down to zero
-      const decay = 1 - easeOutExpo(currentTau, 6.0)
-
-      // Angular rotation strictly scales with decay factor, reaching exact 0deg at tau = 1
-      const rx = totalRotX * decay
-      const ry = totalRotY * decay
-      const rz = totalRotZ * decay
-
-      // Parabolic 3D lift & depth trajectory
-      const arc = Math.sin(currentTau * Math.PI)
-      let ty = -18 * arc * decay
-      const tz = 12 * arc * decay
-      let sc = 1 + 0.10 * arc * decay
-
-      // Subtle final settling cushion near touchdown (tau > 0.82)
-      if (currentTau > 0.82) {
-        const s = (currentTau - 0.82) / 0.18
-        const cushion = Math.sin(s * Math.PI) * 1.5
-        ty += cushion
-        sc -= cushion * 0.015
-      }
-
-      if (dieRef.current) {
-        dieRef.current.style.transform = `translate3d(0, ${ty.toFixed(2)}px, ${tz.toFixed(2)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg) scale(${sc.toFixed(3)})`
-        const shadowSpread = (3 + 7 * arc * decay).toFixed(1)
-        const shadowBlur = (8 + 10 * arc * decay).toFixed(1)
-        const shadowAlpha = (0.25 + 0.15 * arc * decay).toFixed(2)
-        dieRef.current.style.boxShadow = `0 ${shadowSpread}px ${shadowBlur}px rgba(0, 0, 0, ${shadowAlpha})`
-      }
-
-      // Progressively decelerate face changes during rapid rotation, then lock to authoritative value
-      if (currentTau < 0.62 && !isSettlingRef.current) {
-        const faceInterval = 40 + (currentTau / 0.62) * 120
-        if (now - lastFaceChangeTime >= faceInterval) {
-          lastFaceChangeTime = now
-          let nextFace = Math.floor(Math.random() * 6) + 1
-          if (nextFace === currentFace) nextFace = (nextFace % 6) + 1
-          currentFace = nextFace
-          setDisplayVal(nextFace)
-        }
-      } else {
-        if (currentFace !== safeValRef.current) {
-          currentFace = safeValRef.current
-          setDisplayVal(safeValRef.current)
-        }
-      }
-
-      // Check if animation is complete or interrupted
-      const isComplete = currentTau >= 1 && (!isRollingRef.current && !isSettlingRef.current)
-      const isInterrupted = !isRollingRef.current && !isSettlingRef.current && currentTau > 0.2
-
-      if (isComplete || isInterrupted) {
-        if (dieRef.current) {
-          dieRef.current.style.transform = ""
-          dieRef.current.style.boxShadow = ""
-        }
-        setDisplayVal(safeValRef.current)
-        rafRef.current = null
-      } else {
-        rafRef.current = requestAnimationFrame(tick)
-      }
-    }
-
-    rafRef.current = requestAnimationFrame(tick)
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
-      }
-      if (dieRef.current) {
-        dieRef.current.style.transform = ""
-        dieRef.current.style.boxShadow = ""
-      }
-    }
-  }, [rolling, settling, dieIndex, reducedMotion])
-
+function Dice({
+  value,
+  rolling,
+  settling = false,
+  settleDuration,
+  dieIndex = 1,
+  reducedMotion = false,
+  size = 34,
+}: DiceProps) {
   return (
-    <div
-      ref={dieRef}
-      className={`die ${dieIndex ? `die-${dieIndex}` : ""} ${rolling ? "rolling" : ""} ${settling ? "settling" : ""}`}
-      aria-label={`Die showing ${safeVal}`}
-    >
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((p) => (
-        <i key={p} className={dots[displayVal]?.includes(p) ? "show" : ""} />
-      ))}
-    </div>
+    <Dice3D
+      value={value}
+      rolling={rolling}
+      settling={settling}
+      settleDuration={settleDuration}
+      dieIndex={dieIndex}
+      reducedMotion={reducedMotion}
+      size={size}
+    />
   )
 }
 
@@ -2677,8 +2486,8 @@ function DeclarationDice({ total }: { total: number }) {
   return (
     <div className="declaration-dice">
       <div className="dice-row">
-        <Dice value={first} rolling={false} />
-        <Dice value={second} rolling={false} />
+        <Dice value={first} rolling={false} dieIndex={1} size={34} />
+        <Dice value={second} rolling={false} dieIndex={2} size={34} />
       </div>
       <span>
         DICE RESULT <b>{total}</b>
@@ -4485,9 +4294,10 @@ function GameModal({
 
     const canAct = (activePlayerIndex === localPlayerId || !multiplayerClient.getRoomCode()) && isOwner
 
-    const unmortgageRate = unmortgageInterestRatePercent ?? 10.0
+    const isSpecial = !isCity || Boolean(SPECIAL_PROPERTIES[propId])
+    const unmortgageRate = isSpecial ? 0 : (propOwner?.unmortgageInterestRatePercent ?? unmortgageInterestRatePercent ?? 10.0)
     const rawFee = (mortgageVal * unmortgageRate) / 100
-    const redemptionFee = Math.ceil(rawFee / 100) * 100
+    const redemptionFee = isSpecial ? 0 : Math.ceil(rawFee / 100) * 100
     const redemptionCost = mortgageVal + redemptionFee
 
     const propSpaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === propId)
@@ -4886,6 +4696,8 @@ function GameModal({
                     ? "PROCESSING..."
                     : propOwner.money < redemptionCost
                     ? `CANNOT AFFORD · NEED ₹${redemptionCost.toLocaleString()}`
+                    : isSpecial
+                    ? `REDEEM / UNMORTGAGE · -₹${redemptionCost.toLocaleString()} (0% INTEREST)`
                     : `REDEEM / UNMORTGAGE · -₹${redemptionCost.toLocaleString()}`}
                 </Button>
               )}
@@ -5247,6 +5059,7 @@ function GameScreen({
   const isMovementInProgressRef = useRef(false)
   const lastProcessedRollSeqRef = useRef<number>(-1)
   const lastProcessedRollIdRef = useRef<string>("")
+  const movementGenerationRef = useRef<number>(0)
   rollingRef.current = rolling
   movingRef.current = moving
 
@@ -5491,11 +5304,17 @@ interface ActivePurchaseOpportunity {
     return preferences?.reducedMotion
       ? 15
       : preferences?.animationSpeed === "slow"
-      ? 260
+      ? 190
       : preferences?.animationSpeed === "fast"
-      ? 120
-      : 180
+      ? 105
+      : 140
   }, [preferences?.reducedMotion, preferences?.animationSpeed])
+
+  const [activeStepDuration, setActiveStepDuration] = useState<number>(() => currentStepDuration)
+
+  useEffect(() => {
+    setActiveStepDuration(currentStepDuration)
+  }, [currentStepDuration])
 
   const animatePlayerMovement = useCallback(
     async (
@@ -5505,18 +5324,11 @@ interface ActivePurchaseOpportunity {
       stepsToWalk: number,
       isStraightToJail: boolean = false,
     ) => {
-      setMovementActive(true)
-      setMovingPlayerIndex(movingPlayerId)
-      // Guarantee position is precisely at startPos before movement begins
-      setPlayerPositions((prev) => {
-        const next = [...prev]
-        next[movingPlayerId] = startPos
-        return next
-      })
-      setMoving(true)
-      movingRef.current = true
+      const currentGen = ++movementGenerationRef.current
 
-      if (stepsToWalk === 0 || isStraightToJail) {
+      const finishMovement = () => {
+        if (movementGenerationRef.current !== currentGen) return
+        setActiveStepDuration(currentStepDuration)
         setPlayerPositions((prev) => {
           const next = [...prev]
           next[movingPlayerId] = targetPos
@@ -5531,72 +5343,99 @@ interface ActivePurchaseOpportunity {
           const snap = pendingSnapshotRef.current
           pendingSnapshotRef.current = null
           if (snap.gameState) {
-            if (snap.gameState.activePlayerIndex === movingPlayerId && snap.gameState.turnState === "WAITING_FOR_ACTION") {
+            if (
+              snap.gameState.activePlayerIndex === movingPlayerId &&
+              snap.gameState.turnState === "WAITING_FOR_ACTION"
+            ) {
               applyGameStateSnapshot(snap.gameState)
             } else if (snap.gameState.activePlayerIndex !== movingPlayerId) {
               applyGameStateSnapshot(snap.gameState)
             }
           }
         }
+      }
+
+      setMovementActive(true)
+      setMovingPlayerIndex(movingPlayerId)
+
+      // Guarantee position is precisely at startPos before movement begins
+      setPlayerPositions((prev) => {
+        const next = [...prev]
+        next[movingPlayerId] = startPos
+        return next
+      })
+      setMoving(true)
+      movingRef.current = true
+
+      // Controlled special movement: Jail send, card-induced jump, or 0-step action
+      if (stepsToWalk === 0 || isStraightToJail) {
+        if (startPos === targetPos) {
+          finishMovement()
+          return
+        }
+
+        // Controlled exponential transit across the board without abrupt snapping or teleporting
+        const transitMs = preferences?.reducedMotion
+          ? 30
+          : ANIMATION_TIMINGS.TOKEN.controlledTransit
+        setActiveStepDuration(transitMs)
+        setPlayerPositions((prev) => {
+          const next = [...prev]
+          next[movingPlayerId] = targetPos
+          return next
+        })
+
+        await new Promise<void>((resolve) => window.setTimeout(resolve, transitMs))
+        if (movementGenerationRef.current !== currentGen) return
+
+        audioSystem.playMoveComplete()
+        const holdMs = preferences?.reducedMotion ? 20 : ANIMATION_TIMINGS.TOKEN.landingHold
+        await new Promise<void>((resolve) => window.setTimeout(resolve, holdMs))
+        if (movementGenerationRef.current !== currentGen) return
+
+        finishMovement()
         return
       }
 
-      const stepDuration = currentStepDuration
+      // Step schedule with adaptive distance-scaled velocity and exponential ease-out landing
+      const schedule = getAdaptiveStepSchedule(
+        stepsToWalk,
+        preferences?.animationSpeed,
+        preferences?.reducedMotion,
+      )
       let currPos = startPos
 
-      await new Promise<void>((resolve) => {
-        let stepCount = 0
-        const interval = window.setInterval(() => {
-          currPos = (currPos + 1) % 36
+      for (let step = 0; step < stepsToWalk; step++) {
+        currPos = (currPos + 1) % 36
+        const stepMs = schedule.stepDurations[step] ?? 120
+        setActiveStepDuration(stepMs)
 
-          setPlayerPositions((prev) => {
-            const next = [...prev]
-            next[movingPlayerId] = currPos
-            return next
-          })
+        setPlayerPositions((prev) => {
+          const next = [...prev]
+          next[movingPlayerId] = currPos
+          return next
+        })
 
-          stepCount++
+        await new Promise<void>((resolve) => window.setTimeout(resolve, stepMs))
+        if (movementGenerationRef.current !== currentGen) return
+      }
 
-          if (stepCount >= stepsToWalk) {
-            window.clearInterval(interval)
-            audioSystem.playMoveComplete()
+      audioSystem.playMoveComplete()
+      const landingHold = preferences?.reducedMotion ? 20 : ANIMATION_TIMINGS.TOKEN.landingHold
+      await new Promise<void>((resolve) => window.setTimeout(resolve, landingHold))
+      if (movementGenerationRef.current !== currentGen) return
 
-            const finishMovement = () => {
-              setPlayerPositions((prev) => {
-                const next = [...prev]
-                next[movingPlayerId] = targetPos
-                return next
-              })
-              setMoving(false)
-              movingRef.current = false
-              setMovementActive(false)
-              setMovingPlayerIndex(null)
-
-              if (pendingSnapshotRef?.current && applyGameStateSnapshot) {
-                const snap = pendingSnapshotRef.current
-                pendingSnapshotRef.current = null
-                if (snap.gameState) {
-                  // If current player is active and awaiting an action/purchase, preserve activePlayerIndex and turnState
-                  if (snap.gameState.activePlayerIndex === movingPlayerId && snap.gameState.turnState === "WAITING_FOR_ACTION") {
-                    applyGameStateSnapshot(snap.gameState)
-                  } else if (snap.gameState.activePlayerIndex !== movingPlayerId) {
-                    applyGameStateSnapshot(snap.gameState)
-                  }
-                }
-              }
-              resolve()
-            }
-
-            if (currPos !== targetPos) {
-              window.setTimeout(finishMovement, preferences?.reducedMotion ? 80 : 360)
-            } else {
-              finishMovement()
-            }
-          }
-        }, stepDuration)
-      })
+      finishMovement()
     },
-    [currentStepDuration, preferences?.reducedMotion, setMovementActive, setPlayerPositions, pendingSnapshotRef, applyGameStateSnapshot],
+    [
+      preferences?.animationSpeed,
+      preferences?.reducedMotion,
+      currentStepDuration,
+      setMovementActive,
+      setPlayerPositions,
+      pendingSnapshotRef,
+      applyGameStateSnapshot,
+    ],
   )
 
   // Invalidate pending callbacks and reset state on active player change
@@ -5656,6 +5495,8 @@ interface ActivePurchaseOpportunity {
   }
 
   // End Turn Action: Allowed only after mandatory actions resolved, prohibited on doubles and negative debt
+  const isMustSkip = Boolean(activePlayer?.inRestHouse || activePlayer?.cardJailSkip)
+
   const canEndTurn = Boolean(
     isHumanTurn &&
     !rolling &&
@@ -5664,13 +5505,17 @@ interface ActivePurchaseOpportunity {
     !diceSettling &&
     modal === null &&
     activePlayer.money >= 0 &&
-    turnState !== "WAITING_FOR_ROLL" &&
-    turnState !== "ROLLING" &&
-    turnState !== "MOVING" &&
-    turnState !== "RESOLVING_LANDING" &&
-    turnState !== "EXTRA_TURN" &&
-    turnState !== "GAME_OVER" &&
-    (hasRolledThisTurn || turnState === "WAITING_FOR_ACTION" || turnState === "TURN_COMPLETE")
+    (isMustSkip
+      ? turnState !== "GAME_OVER"
+      : (
+          turnState !== "WAITING_FOR_ROLL" &&
+          turnState !== "ROLLING" &&
+          turnState !== "MOVING" &&
+          turnState !== "RESOLVING_LANDING" &&
+          turnState !== "EXTRA_TURN" &&
+          turnState !== "GAME_OVER" &&
+          (hasRolledThisTurn || turnState === "WAITING_FOR_ACTION" || turnState === "TURN_COMPLETE")
+        ))
   )
 
   const activePlayerPhaseText = useMemo(() => {
@@ -5678,13 +5523,15 @@ interface ActivePurchaseOpportunity {
     if (rolling || diceRolling) return "Rolling dice..."
     if (moving) return "Moving token..."
     if (pendingPurchase) return "Awaiting purchase decision"
+    if (activePlayer?.inRestHouse) return isHumanTurn ? "Rest House: Turn Skipped" : `${activePlayer.name} resting (Turn Skipped)`
+    if (activePlayer?.cardJailSkip) return isHumanTurn ? "Jail: Turn Skipped" : `${activePlayer.name} in Jail (Turn Skipped)`
     if (turnState === "WAITING_FOR_ROLL") return isHumanTurn ? "Your roll" : "Awaiting roll"
     if (turnState === "EXTRA_TURN") return isHumanTurn ? "Doubles! Roll again" : "Rolling extra turn"
     if (turnState === "RESOLVING_LANDING") return "Resolving landing"
     if (canEndTurn) return isHumanTurn ? "Ready to end turn" : "Resolving turn"
     if (turnState === "WAITING_FOR_ACTION") return "Action pending"
     return "In Progress"
-  }, [turnState, rolling, diceRolling, moving, pendingPurchase, isHumanTurn, canEndTurn])
+  }, [turnState, rolling, diceRolling, moving, pendingPurchase, isHumanTurn, canEndTurn, activePlayer])
 
   const handleConfirmBuyCenter = async () => {
     if (!pendingPurchase || isSubmittingPurchase) return
@@ -5927,6 +5774,18 @@ interface ActivePurchaseOpportunity {
       const nextState = res.state
       setHasRolledThisTurn(false)
       // Immediately clear turn-scoped purchase and building tracking from next authoritative engine state
+      const endTurnMergedPlayers = nextState.players.map((p, pIdx) => {
+        let name = p.name
+        let color = p.color
+        if (!name || !name.trim()) {
+          try {
+            const saved = getStoredPlayerName(pIdx)
+            if (saved && saved.trim()) name = saved.trim()
+          } catch (_) {}
+        }
+        return { ...p, name, color }
+      })
+      setPlayers(endTurnMergedPlayers)
       setTurnPurchasedProperties(nextState.turnPurchasedProperties ?? [])
       setTurnBuildingsBuilt(nextState.turnBuildingsBuilt ?? [])
       setActiveLanding(nextState.activeLanding ?? null)
@@ -5944,6 +5803,28 @@ interface ActivePurchaseOpportunity {
       isEndingTurnRef.current = false
     }
   }
+
+  // Authoritative auto-advance for skipped turns (Rest House or card Jail)
+  useEffect(() => {
+    if (
+      isGameStarted &&
+      isMustSkip &&
+      isHumanTurn &&
+      turnState !== "GAME_OVER" &&
+      !rolling &&
+      !moving &&
+      !diceRolling &&
+      !diceSettling &&
+      modal === null
+    ) {
+      const skipTimer = window.setTimeout(() => {
+        if (!isEndingTurnRef.current) {
+          handleManualEndTurn()
+        }
+      }, 1500)
+      return () => window.clearTimeout(skipTimer)
+    }
+  }, [isGameStarted, isMustSkip, isHumanTurn, turnState, activePlayerIndex, rolling, moving, diceRolling, diceSettling, modal])
 
   // Autonomous bot property purchase logic
   const handleBotPropertyPurchase = async (
@@ -6250,7 +6131,23 @@ interface ActivePurchaseOpportunity {
         audioSystem.playDiceRoll()
       }
 
-      await new Promise((r) => window.setTimeout(r, 220))
+      const remoteTumbleMs = preferences?.reducedMotion
+        ? ANIMATION_TIMINGS.DICE.reducedMotion.tumble
+        : preferences?.animationSpeed === "fast"
+        ? ANIMATION_TIMINGS.DICE.fast.tumble
+        : preferences?.animationSpeed === "slow"
+        ? ANIMATION_TIMINGS.DICE.slow.tumble
+        : ANIMATION_TIMINGS.DICE.standard.tumble
+
+      const remoteSettleMs = preferences?.reducedMotion
+        ? ANIMATION_TIMINGS.DICE.reducedMotion.settle
+        : preferences?.animationSpeed === "fast"
+        ? ANIMATION_TIMINGS.DICE.fast.settle
+        : preferences?.animationSpeed === "slow"
+        ? ANIMATION_TIMINGS.DICE.slow.settle
+        : ANIMATION_TIMINGS.DICE.standard.settle
+
+      await new Promise((r) => window.setTimeout(r, remoteTumbleMs))
 
       // Set authoritative dice from remote player's accepted roll
       setDice([evt.dice1, evt.dice2])
@@ -6280,7 +6177,7 @@ interface ActivePurchaseOpportunity {
         description: `${remotePlayer.name} rolled [${evt.dice1}, ${evt.dice2}] = ${evt.diceTotal}${evt.isDouble ? " (DOUBLES!)" : ""} and moved to ${evt.spaceName}.`,
       })
 
-      await new Promise((r) => window.setTimeout(r, 240))
+      await new Promise((r) => window.setTimeout(r, remoteSettleMs))
       setDiceSettling(false)
 
       // 4. Animate remote player token along perimeter
@@ -6297,14 +6194,34 @@ interface ActivePurchaseOpportunity {
          evt.actionResult?.eventDescription?.toLowerCase().includes("consecutive doubles"))
       )
       const stepsToWalk = (isStraightToJail || isRemainingInJail) ? 0 : evt.diceTotal
+      const intermediatePos = (effectiveStartPos + evt.diceTotal) % 36
+      const isCardRedirection = !isStraightToJail && !isRemainingInJail && targetPos !== intermediatePos
 
-      await animatePlayerMovement(
-        remotePlayerId,
-        effectiveStartPos,
-        targetPos,
-        stepsToWalk,
-        isStraightToJail || isRemainingInJail,
-      )
+      if (isCardRedirection) {
+        await animatePlayerMovement(
+          remotePlayerId,
+          effectiveStartPos,
+          intermediatePos,
+          stepsToWalk,
+          false,
+        )
+        await new Promise((r) => window.setTimeout(r, preferences?.reducedMotion ? 40 : 220))
+        await animatePlayerMovement(
+          remotePlayerId,
+          intermediatePos,
+          targetPos,
+          0,
+          true,
+        )
+      } else {
+        await animatePlayerMovement(
+          remotePlayerId,
+          effectiveStartPos,
+          targetPos,
+          stepsToWalk,
+          isStraightToJail || isRemainingInJail,
+        )
+      }
 
       // 5. Converge to authoritative state
       setTurnState("RESOLVING_LANDING")
@@ -6330,6 +6247,9 @@ interface ActivePurchaseOpportunity {
                 inJail: mp.inJail ?? existing?.inJail ?? false,
                 jailTurns: mp.jailTurns ?? existing?.jailTurns ?? 0,
                 inRestHouse: mp.inRestHouse ?? existing?.inRestHouse ?? false,
+                restHouseTurns: mp.restHouseTurns !== undefined ? mp.restHouseTurns : (existing?.restHouseTurns ?? 0),
+                cardJailSkip: mp.cardJailSkip ?? existing?.cardJailSkip ?? false,
+                cardJailSkipTurns: mp.cardJailSkipTurns !== undefined ? mp.cardJailSkipTurns : (existing?.cardJailSkipTurns ?? 0),
                 ownedProperties: mp.ownedProperties ?? existing?.ownedProperties ?? [],
                 buildings: mp.buildings ?? existing?.buildings ?? {},
                 mortgages: mp.mortgages ?? existing?.mortgages ?? {},
@@ -6395,6 +6315,21 @@ interface ActivePurchaseOpportunity {
       setActivePlayerIndex(engineState.activePlayerIndex)
       if (!isMultiplayer && _setLocalPlayerId) {
         _setLocalPlayerId(engineState.activePlayerIndex)
+      }
+
+      if (engineState.players && engineState.players.length > 0) {
+        const advMergedPlayers = engineState.players.map((p, pIdx) => {
+          let name = p.name
+          let color = p.color
+          if (!name || !name.trim()) {
+            try {
+              const saved = getStoredPlayerName(pIdx)
+              if (saved && saved.trim()) name = saved.trim()
+            } catch (_) {}
+          }
+          return { ...p, name, color }
+        })
+        setPlayers(advMergedPlayers)
       }
 
       setTurnState(engineState.turnState)
@@ -6611,7 +6546,7 @@ interface ActivePurchaseOpportunity {
     }
 
     // Event 6: Rest House visit (space 27)
-    if (result.mustGoToRestHouse || result.newPosition === 27) {
+    if (result.mustGoToRestHouse || (result.newPosition === 27 && result.previousPosition !== 27)) {
       const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
       const restMsg = result.eventDescription || `${pName} entered Rest House (skips next turn).`
       addGameplayEvent({
@@ -6939,6 +6874,12 @@ interface ActivePurchaseOpportunity {
     const snapPlayerIndex = activePlayerIndex
     const actingPlayer = players[snapPlayerIndex]
 
+    if (actingPlayer?.inRestHouse || actingPlayer?.cardJailSkip || (actingPlayer?.restHouseTurns ?? 0) > 0 || (actingPlayer?.cardJailSkipTurns ?? 0) > 0) {
+      console.warn(`[Roll] Blocked roll: player #${snapPlayerIndex} turn is skipped.`)
+      showToast(`${actingPlayer?.name || 'Player'}'s turn is skipped.`)
+      return
+    }
+
     // Authoritative client-side turn guard: only active player can roll in multiplayer
     if (isMultiplayer && snapPlayerIndex !== localPlayerId) {
       console.warn(`[Roll] Blocked manual roll: not your turn (active: ${snapPlayerIndex}, local: ${localPlayerId})`)
@@ -6969,21 +6910,16 @@ interface ActivePurchaseOpportunity {
       triggerHaptic(25)
     }
 
-    const minTumbleMs = preferences?.reducedMotion
-      ? 100
+    const diceTiming = preferences?.reducedMotion
+      ? ANIMATION_TIMINGS.DICE.reducedMotion
       : preferences?.animationSpeed === "fast"
-      ? 200
+      ? ANIMATION_TIMINGS.DICE.fast
       : preferences?.animationSpeed === "slow"
-      ? 480
-      : 360
+      ? ANIMATION_TIMINGS.DICE.slow
+      : ANIMATION_TIMINGS.DICE.standard
 
-    const settleDelay = preferences?.reducedMotion
-      ? 100
-      : preferences?.animationSpeed === "slow"
-      ? 450
-      : preferences?.animationSpeed === "fast"
-      ? 180
-      : 300
+    const minTumbleMs = diceTiming.tumble
+    const settleDelay = diceTiming.settle
 
     const tumbleDelayPromise = new Promise((resolve) => window.setTimeout(resolve, minTumbleMs))
 
@@ -7037,36 +6973,6 @@ interface ActivePurchaseOpportunity {
       const viewHoldMs = preferences?.reducedMotion ? 40 : 160
       await new Promise((resolve) => window.setTimeout(resolve, viewHoldMs))
 
-      // Rest House skip: dice are 0,0 and player is skipped
-      if (result.dice1 === 0 && result.dice2 === 0) {
-        setRolling(false)
-        rollingRef.current = false
-        setMovementActive(false)
-        setMovingPlayerIndex(null)
-        setTurnState("RESOLVING_LANDING")
-
-        addGameplayEvent({
-          id: `rest_skip_${Date.now()}_${activePlayerIndex}`,
-          type: "REST",
-          timestamp: Date.now(),
-          playerId: activePlayerIndex,
-          playerName: activePlayer.name,
-          description:
-            result.eventDescription ||
-            `${activePlayer.name} skips this turn (Rest House).`,
-        })
-
-        setPlayers(engineState.players)
-        setRoundNumber(engineState.roundNumber)
-
-        window.setTimeout(() => {
-          setActivePlayerIndex(engineState.activePlayerIndex)
-          setTurnState(engineState.turnState)
-        }, 1200)
-
-        return
-      }
-
       // Animate token movement along clockwise board perimeter
       setTurnState("MOVING")
       setRolling(false)
@@ -7089,14 +6995,34 @@ interface ActivePurchaseOpportunity {
 
       const stepsToWalk = (isStraightToJail || isRemainingInJail) ? 0 : result.diceTotal
       const startPos = isRemainingInJail ? 9 : (result.previousPosition !== undefined ? result.previousPosition : snapStartPos)
+      const intermediatePos = (startPos + result.diceTotal) % 36
+      const isCardRedirection = !isStraightToJail && !isRemainingInJail && targetPos !== intermediatePos
 
-      await animatePlayerMovement(
-        snapPlayerIndex,
-        startPos,
-        targetPos,
-        stepsToWalk,
-        isStraightToJail || isRemainingInJail,
-      )
+      if (isCardRedirection) {
+        await animatePlayerMovement(
+          snapPlayerIndex,
+          startPos,
+          intermediatePos,
+          stepsToWalk,
+          false,
+        )
+        await new Promise((r) => window.setTimeout(r, preferences?.reducedMotion ? 40 : 220))
+        await animatePlayerMovement(
+          snapPlayerIndex,
+          intermediatePos,
+          targetPos,
+          0,
+          true,
+        )
+      } else {
+        await animatePlayerMovement(
+          snapPlayerIndex,
+          startPos,
+          targetPos,
+          stepsToWalk,
+          isStraightToJail || isRemainingInJail,
+        )
+      }
 
       setTurnState("RESOLVING_LANDING")
       resolvePostMovement(result, engineState)
@@ -7345,7 +7271,7 @@ interface ActivePurchaseOpportunity {
             onDeclineCenter={handleDeclineCenter}
             isSubmittingPurchase={isSubmittingPurchase}
             isHumanTurn={isHumanTurn}
-            stepDuration={currentStepDuration}
+            stepDuration={activeStepDuration}
             recentEvents={effectiveEventLogList}
             onOpenFullLog={() => {
               setGameInfoInitialTab("events")
@@ -7622,11 +7548,47 @@ interface ActivePurchaseOpportunity {
             <div className="controls-status-strip">
               <div className="dice-total">
                 <div className="dice-row">
-                  <Dice value={dice[0]} rolling={diceRolling} settling={diceSettling} dieIndex={1} reducedMotion={preferences?.reducedMotion} />
-                  <Dice value={dice[1]} rolling={diceRolling} settling={diceSettling} dieIndex={2} reducedMotion={preferences?.reducedMotion} />
+                  <Dice
+                    value={dice[0]}
+                    rolling={diceRolling}
+                    settling={diceSettling}
+                    settleDuration={
+                      preferences?.reducedMotion
+                        ? ANIMATION_TIMINGS.DICE.reducedMotion.settle
+                        : preferences?.animationSpeed === "fast"
+                        ? ANIMATION_TIMINGS.DICE.fast.settle
+                        : preferences?.animationSpeed === "slow"
+                        ? ANIMATION_TIMINGS.DICE.slow.settle
+                        : ANIMATION_TIMINGS.DICE.standard.settle
+                    }
+                    dieIndex={1}
+                    reducedMotion={preferences?.reducedMotion}
+                  />
+                  <Dice
+                    value={dice[1]}
+                    rolling={diceRolling}
+                    settling={diceSettling}
+                    settleDuration={
+                      preferences?.reducedMotion
+                        ? ANIMATION_TIMINGS.DICE.reducedMotion.settle
+                        : preferences?.animationSpeed === "fast"
+                        ? ANIMATION_TIMINGS.DICE.fast.settle
+                        : preferences?.animationSpeed === "slow"
+                        ? ANIMATION_TIMINGS.DICE.slow.settle
+                        : ANIMATION_TIMINGS.DICE.standard.settle
+                    }
+                    dieIndex={2}
+                    reducedMotion={preferences?.reducedMotion}
+                  />
                 </div>
                 <span>
-                  TOTAL <b>{dice[0] + dice[1]}</b>
+                  {activePlayer?.inRestHouse ? (
+                    <b style={{ color: "#fca5a5" }}>REST HOUSE</b>
+                  ) : activePlayer?.cardJailSkip ? (
+                    <b style={{ color: "#fca5a5" }}>JAIL SKIP</b>
+                  ) : (
+                    <>TOTAL <b>{dice[0] + dice[1]}</b></>
+                  )}
                 </span>
               </div>
               {!isGameStarted ? (
@@ -7722,7 +7684,8 @@ interface ActivePurchaseOpportunity {
               ) : (
                 /* Feature 1: One Adaptive Roll Dice / End Turn Button */
                 (() => {
-                  const isRollPhase = turnState === "WAITING_FOR_ROLL" || turnState === "EXTRA_TURN"
+                  const isMustSkip = Boolean(activePlayer?.inRestHouse || activePlayer?.cardJailSkip)
+                  const isRollPhase = (turnState === "WAITING_FOR_ROLL" || turnState === "EXTRA_TURN") && !isMustSkip
                   const isBusy =
                     rolling ||
                     moving ||
@@ -7734,6 +7697,36 @@ interface ActivePurchaseOpportunity {
                     turnState === "ROLLING" ||
                     turnState === "MOVING" ||
                     turnState === "RESOLVING_LANDING"
+
+                  if (isMustSkip) {
+                    const skipReason = activePlayer?.inRestHouse ? "REST HOUSE" : "JAIL"
+                    const skipLabel = !isHumanTurn
+                      ? `WAITING FOR ${activePlayer.name.toUpperCase()} (SKIPPING TURN)...`
+                      : `SKIP TURN (${skipReason})`
+                    const skipDisabled = !isHumanTurn || isBusy || !canEndTurn || isEndingTurnRef.current
+
+                    return (
+                      <Button
+                        className="roll-button end-turn-mode adaptive-action-btn end-turn-ready"
+                        onClick={() => {
+                          if (!skipDisabled && isHumanTurn) {
+                            handleManualEndTurn()
+                          }
+                        }}
+                        disabled={skipDisabled}
+                        style={{
+                          background: isHumanTurn ? "linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)" : undefined,
+                          borderColor: isHumanTurn ? "#ef4444" : undefined,
+                          color: "#fff",
+                          cursor: skipDisabled ? "not-allowed" : "pointer",
+                          opacity: skipDisabled ? 0.65 : 1,
+                        }}
+                        title={`Player must skip this turn due to ${skipReason.toLowerCase()}. Click to advance turn.`}
+                      >
+                        {skipLabel}
+                      </Button>
+                    )
+                  }
 
                   if (isRollPhase) {
                     const rollDisabled = !isHumanTurn || isBusy || (isMultiplayer && activePlayerIndex !== localPlayerId)
@@ -8649,6 +8642,9 @@ export default function App() {
               inJail: mp.inJail ?? existing?.inJail ?? false,
               jailTurns: mp.jailTurns ?? existing?.jailTurns ?? 0,
               inRestHouse: mp.inRestHouse ?? existing?.inRestHouse ?? false,
+              restHouseTurns: mp.restHouseTurns !== undefined ? mp.restHouseTurns : (existing?.restHouseTurns ?? 0),
+              cardJailSkip: mp.cardJailSkip ?? existing?.cardJailSkip ?? false,
+              cardJailSkipTurns: mp.cardJailSkipTurns !== undefined ? mp.cardJailSkipTurns : (existing?.cardJailSkipTurns ?? 0),
               ownedProperties: mp.ownedProperties ?? existing?.ownedProperties ?? [],
               buildings: mp.buildings ?? existing?.buildings ?? {},
               mortgages: mp.mortgages ?? existing?.mortgages ?? {},

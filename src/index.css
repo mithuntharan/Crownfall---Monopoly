@@ -117,6 +117,18 @@
   --radius-md: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+
+  /* ─── Exponential Animation Tokens & Unified Timing Architecture ───── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo-decel: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --duration-btn: 140ms;
+  --duration-btn-press: 100ms;
+  --duration-indicator: 180ms;
+  --duration-tab: 200ms;
+  --duration-panel: 260ms;
+  --duration-notification: 240ms;
+  --duration-drawer: 240ms;
 }
 
 /* ==============================================================================
@@ -278,7 +290,7 @@ button:focus-visible, input:focus-visible {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: 0 4px 14px rgba(60, 50, 40, 0.08);
-  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--duration-tab) var(--ease-out-expo), border-color var(--duration-tab) var(--ease-out-expo), box-shadow var(--duration-tab) var(--ease-out-expo);
 }
 
 .glass-card:hover {
@@ -307,12 +319,17 @@ button:focus-visible, input:focus-visible {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform var(--duration-btn-press) var(--ease-out-expo),
+              background-color var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              box-shadow var(--duration-btn) var(--ease-out-expo),
+              color var(--duration-btn) var(--ease-out-expo);
   box-sizing: border-box;
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(1.5px) scale(0.99);
+  transform: translateY(1px) scale(0.985);
+  transition-duration: var(--duration-btn-press);
 }
 
 .btn-primary {
@@ -352,7 +369,10 @@ button:focus-visible, input:focus-visible {
   min-height: 40px;
   font-weight: 600;
   border-radius: var(--radius-sm, 8px);
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              color var(--duration-btn) var(--ease-out-expo),
+              box-shadow var(--duration-btn) var(--ease-out-expo);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -651,7 +671,13 @@ button:focus-visible, input:focus-visible {
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: background-color var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              transform var(--duration-btn-press) var(--ease-out-expo);
+}
+
+.icon-button:active {
+  transform: scale(0.94);
 }
 
 .icon-button:hover {
@@ -1637,7 +1663,10 @@ button:focus-visible, input:focus-visible {
   text-transform: uppercase;
   user-select: none;
   line-height: 1;
-  transition: all 0.15s ease-in-out;
+  transition: opacity var(--duration-indicator) var(--ease-out-expo),
+              transform var(--duration-indicator) var(--ease-out-expo),
+              background-color var(--duration-indicator) var(--ease-out-expo),
+              border-color var(--duration-indicator) var(--ease-out-expo);
 }
 
 .crownfall-mortgage-indicator svg,
@@ -1855,7 +1884,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
-  animation: building-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: building-pop var(--duration-indicator) var(--ease-out-expo);
 }
 
 .building-marker-hotel {
@@ -1868,11 +1897,11 @@ button:focus-visible, input:focus-visible {
   border-radius: 2px;
   border: 1.5px solid #fbbf24;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7), 0 0 6px rgba(251, 191, 36, 0.5);
-  animation: building-pop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: building-pop var(--duration-indicator) var(--ease-out-expo);
 }
 
 @keyframes building-pop {
-  0% { transform: scale(0.85); opacity: 0; }
+  0% { transform: scale(0.8); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
@@ -1912,9 +1941,86 @@ button:focus-visible, input:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  perspective: 600px;
 }
 
+/* ─── Compact Refined Ivory-White 3D & 2D Dice (High-Fidelity Rendering) ─── */
+
+.dice-2d-face-container {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.dice-2d-floor-shadow {
+  width: 26px;
+  height: 4px;
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(60, 48, 32, 0.28) 0%, rgba(60, 48, 32, 0.08) 50%, transparent 75%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dice-3d-scene {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 600px;
+  transform-style: preserve-3d;
+  user-select: none;
+  touch-action: manipulation;
+  position: relative;
+}
+
+.dice-3d-cube {
+  width: 34px;
+  height: 34px;
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.dice-3d-face {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  top: 0;
+  left: 0;
+  border-radius: 6px;
+  box-sizing: border-box;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: visible;
+  /* Hardware-accelerated subpixel antialiasing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Restrained, soft warm contact shadow below the die with identical baseline geometry to 2D */
+.dice-3d-floor-shadow {
+  width: 26px;
+  height: 4px;
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(60, 48, 32, 0.28) 0%, rgba(60, 48, 32, 0.08) 50%, transparent 75%);
+  pointer-events: none;
+  transition: transform 140ms var(--ease-out-expo), opacity 140ms var(--ease-out-expo);
+}
+
+/* Backward-compatible .die styles */
 .die {
   width: 34px;
   height: 34px;
@@ -1954,9 +2060,11 @@ button:focus-visible, input:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .die {
+  .dice-3d-cube {
     will-change: auto;
     transition: none !important;
+  }
+  .dice-3d-scene {
     animation: none !important;
   }
 }
@@ -2017,7 +2125,14 @@ button:focus-visible, input:focus-visible {
   color: var(--gold-bright);
   background: rgba(136, 19, 55, 0.35);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform var(--duration-btn-press) var(--ease-out-expo),
+              background-color var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              box-shadow var(--duration-btn) var(--ease-out-expo);
+}
+
+.end-turn-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
 }
 
 .end-turn-button:not(:disabled) {
@@ -2055,8 +2170,23 @@ button:focus-visible, input:focus-visible {
   font: 600 11px "Oswald", sans-serif;
   letter-spacing: 0.05em;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: transform var(--duration-btn-press) var(--ease-out-expo),
+              background-color var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              color var(--duration-btn) var(--ease-out-expo),
+              box-shadow var(--duration-btn) var(--ease-out-expo);
   white-space: nowrap;
+}
+
+.desktop-action-btn:active {
+  transform: scale(0.97);
+}
+
+.tab-btn {
+  transition: background-color var(--duration-tab) var(--ease-out-expo),
+              border-color var(--duration-tab) var(--ease-out-expo),
+              color var(--duration-tab) var(--ease-out-expo),
+              box-shadow var(--duration-tab) var(--ease-out-expo);
 }
 
 .desktop-action-btn:hover {
@@ -2082,7 +2212,7 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   padding: 16px;
   box-sizing: border-box;
-  animation: modalBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalBackdropFadeIn var(--duration-panel) var(--ease-out-expo) forwards;
 }
 
 .modal-sheet {
@@ -2100,7 +2230,7 @@ button:focus-visible, input:focus-visible {
   padding: 20px 24px;
   box-shadow: var(--shadow-modal);
   box-sizing: border-box;
-  animation: modalSheetScaleIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalSheetScaleIn var(--duration-panel) var(--ease-out-expo) forwards;
 }
 
 @keyframes modalBackdropFadeIn {
@@ -2111,7 +2241,7 @@ button:focus-visible, input:focus-visible {
 @keyframes modalSheetScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.97) translateY(8px);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
@@ -2451,18 +2581,19 @@ button:focus-visible, input:focus-visible {
   max-width: 320px;
   z-index: 12;
   cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--duration-notification) var(--ease-out-expo),
+              opacity var(--duration-notification) var(--ease-out-expo);
 }
 .board-center-notification-wrapper.entering {
-  animation: centerNotificationEnter 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: centerNotificationEnter var(--duration-notification) var(--ease-out-expo) forwards;
 }
 .board-center-notification-wrapper.dismissing {
-  animation: centerNotificationDismiss 0.2s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  animation: centerNotificationDismiss 200ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
 }
 @keyframes centerNotificationEnter {
   from {
     opacity: 0;
-    transform: translate(-50%, -46%) scale(0.96);
+    transform: translate(-50%, -44%) scale(0.96);
   }
   to {
     opacity: 1;
@@ -2476,7 +2607,7 @@ button:focus-visible, input:focus-visible {
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -54%) scale(0.96);
+    transform: translate(-50%, -54%) scale(0.97);
   }
 }
 .board-center-notification-card {
@@ -2533,12 +2664,12 @@ button:focus-visible, input:focus-visible {
   padding: 10px 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(217, 119, 6, 0.35);
   box-sizing: border-box;
-  animation: centerPurchaseSlideIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: centerPurchaseSlideIn var(--duration-panel) var(--ease-out-expo) forwards;
 }
 @keyframes centerPurchaseSlideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -46%) scale(0.97);
+    transform: translate(-50%, -44%) scale(0.96);
   }
   to {
     opacity: 1;
@@ -2772,6 +2903,43 @@ button:focus-visible, input:focus-visible {
   max-width: 680px;
   margin: 0 auto;
   box-sizing: border-box;
+  animation: gameoverReveal 320ms var(--ease-out-expo) forwards;
+}
+
+@keyframes gameoverReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── TURN OVERVIEW DRAWER & BACKDROP ───────────────────────────────────── */
+.turn-overview-backdrop {
+  animation: drawerBackdropFadeIn var(--duration-drawer) var(--ease-out-expo) forwards;
+}
+
+.turn-overview-card {
+  animation: drawerSlideIn var(--duration-drawer) var(--ease-out-expo) forwards;
+}
+
+@keyframes drawerBackdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drawerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .winner-crown {
   width: 84px;
@@ -3560,12 +3728,12 @@ button:focus-visible, input:focus-visible {
   pointer-events: none;
   will-change: transform, opacity, width, height;
   opacity: 0;
-  transition: width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-              height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-              margin 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-              border-color 0.2s ease,
-              background-color 0.2s ease,
-              opacity 0.15s ease;
+  transition: width var(--duration-btn) var(--ease-out-expo),
+              height var(--duration-btn) var(--ease-out-expo),
+              margin var(--duration-btn) var(--ease-out-expo),
+              border-color var(--duration-btn) var(--ease-out-expo),
+              background-color var(--duration-btn) var(--ease-out-expo),
+              opacity var(--duration-btn) var(--ease-out-expo);
   z-index: 9999999;
 }
 

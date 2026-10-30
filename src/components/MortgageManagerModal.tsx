@@ -29,7 +29,9 @@ export function MortgageManagerModal({
     const hex = city && ROYAL_COLOR_THEMES[city.colorGroup] ? ROYAL_COLOR_THEMES[city.colorGroup].accent : "#c89b45"
     const purchasePrice = city ? city.purchasePrice : sp ? sp.purchasePrice : 0
     const mortgageValue = city ? city.mortgageValue : sp ? sp.mortgageValue : Math.floor(purchasePrice / 2)
-    const redemptionFee = Math.ceil((mortgageValue * 0.1) / 100) * 100
+    const isSpecial = !city || Boolean(sp)
+    const rate = isSpecial ? 0 : (player.unmortgageInterestRatePercent ?? 10.0) / 100.0
+    const redemptionFee = isSpecial ? 0 : Math.ceil((mortgageValue * rate) / 100) * 100
     const redemptionCost = mortgageValue + redemptionFee
     const isMortgaged = !!player.mortgages[propId]
     const buildingsCount = player.buildings[propId] || 0
@@ -44,6 +46,7 @@ export function MortgageManagerModal({
       redemptionFee,
       redemptionCost,
       isMortgaged,
+      isSpecial,
       buildingsCount,
     }
   })
@@ -212,7 +215,7 @@ export function MortgageManagerModal({
                     {prop.isMortgaged ? (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
                         <div style={{ fontSize: "10px", color: "var(--gold-300)" }}>
-                          Redeem: ₹{prop.redemptionCost.toLocaleString()} (+₹{prop.redemptionFee} fee)
+                          Redeem: ₹{prop.redemptionCost.toLocaleString()} ({prop.redemptionFee > 0 ? `+₹${prop.redemptionFee} fee` : "0% interest"})
                         </div>
                         <button
                           onClick={() => handleRedeem(prop.propId, prop.redemptionCost)}
@@ -229,7 +232,7 @@ export function MortgageManagerModal({
                             fontWeight: 700,
                           }}
                         >
-                          {isBusy ? "Redeeming..." : canAffordRedeem ? "Redeem (+10%)" : "Cannot Afford"}
+                          {isBusy ? "Redeeming..." : canAffordRedeem ? (prop.redemptionFee > 0 ? `Redeem (+₹${prop.redemptionFee})` : "Redeem (0%)") : "Cannot Afford"}
                         </button>
                       </div>
                     ) : (

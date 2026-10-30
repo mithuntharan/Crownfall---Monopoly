@@ -229,10 +229,14 @@ struct Player {
     bool inJail = false;
     int jailTurns = 0;
     bool inRestHouse = false;
+    int restHouseTurns = 0; // Pending skips from landing on Rest House (consumed on turn entry)
+    bool cardJailSkip = false; // Exactly one upcoming turn skipped when sent to Jail by card
+    int cardJailSkipTurns = 0; // Pending skips from card Jail
     bool isBankrupt = false;
     std::vector<std::string> ownedProperties; // city IDs or special IDs
     std::map<std::string, int> buildings;     // propertyId -> count (1-3 houses, 4 = hotel)
     std::map<std::string, bool> mortgages;    // propertyId -> isMortgaged
+    double unmortgageInterestRatePercent = 10.0; // Player-specific rate; compounds by 5% when this player crosses Start
 
     // Live Statistics (Feature 3)
     int totalRentReceived = 0;

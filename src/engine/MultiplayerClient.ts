@@ -23,6 +23,9 @@ export interface MultiplayerPlayer {
   inJail: boolean
   jailTurns: number
   inRestHouse: boolean
+  restHouseTurns?: number
+  cardJailSkip?: boolean
+  cardJailSkipTurns?: number
   ownedProperties: string[]
   buildings: Record<string, number>
   mortgages: Record<string, boolean>

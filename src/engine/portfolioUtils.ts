@@ -144,6 +144,7 @@ export function calculatePlayerPortfolio(
 ): PlayerPortfolioSummary {
   const cash = player.money || 0
   const ownedIds = player.ownedProperties || []
+  const effectiveRate = player.unmortgageInterestRatePercent ?? unmortgageInterestRatePercent
 
   let realEstateValue = 0
   let constructionInvestment = 0
@@ -177,7 +178,7 @@ export function calculatePlayerPortfolio(
         repay =
           Math.ceil(
             (city.mortgageValue +
-              (city.mortgageValue * unmortgageInterestRatePercent) / 100) /
+              (city.mortgageValue * effectiveRate) / 100) /
               100,
           ) * 100
         liabilities += repay
@@ -213,7 +214,7 @@ export function calculatePlayerPortfolio(
           repay =
             Math.ceil(
               (sp.mortgageValue +
-                (sp.mortgageValue * unmortgageInterestRatePercent) / 100) /
+                (sp.mortgageValue * effectiveRate) / 100) /
                 100,
             ) * 100
           liabilities += repay

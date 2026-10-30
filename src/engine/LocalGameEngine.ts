@@ -135,6 +135,7 @@ export class LocalGameEngine implements IGameEngine {
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
       passStartBonus: rules.passStartBonus ?? 1500,
       requireLandingToBuild: rules.requireLandingToBuild ?? false, // New rule: anywhere building
+      buildingRule: rules.buildingRule ?? (rules.requireLandingToBuild ? "land" : "anywhere"),
       baseRentDoublesForSet: rules.baseRentDoublesForSet ?? true,
       unmortgageInterestRatePercent: rules.unmortgageInterestRatePercent ?? 10,
       buildingRefundPercentage: rules.buildingRefundPercentage ?? 50,
@@ -146,8 +147,8 @@ export class LocalGameEngine implements IGameEngine {
     this.timerSeconds = this.rules.timerSeconds
     this.devMode = this.rules.devMode
     this.players = [
-      { id: 0, name: "Player 1", color: "saffron", token: "1", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
-      { id: 1, name: "Player 2", color: "teal", token: "2", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
+      { id: 0, name: "Player 1", color: "saffron", token: "1", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
+      { id: 1, name: "Player 2", color: "teal", token: "2", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
     ]
   }
 
@@ -192,6 +193,11 @@ export class LocalGameEngine implements IGameEngine {
       }
       if (rules.requireLandingToBuild !== undefined) {
         this.rules.requireLandingToBuild = rules.requireLandingToBuild
+        this.rules.buildingRule = rules.requireLandingToBuild ? "land" : "anywhere"
+      }
+      if (rules.buildingRule !== undefined) {
+        this.rules.buildingRule = rules.buildingRule
+        this.rules.requireLandingToBuild = rules.buildingRule === "land"
       }
       if (rules.unmortgageInterestRatePercent !== undefined) {
         this.rules.unmortgageInterestRatePercent = rules.unmortgageInterestRatePercent
@@ -241,6 +247,9 @@ export class LocalGameEngine implements IGameEngine {
       inJail: false,
       jailTurns: 0,
       inRestHouse: false,
+      restHouseTurns: 0,
+      cardJailSkip: false,
+      cardJailSkipTurns: 0,
       isBankrupt: false,
       ownedProperties: [],
       buildings: {},
@@ -307,6 +316,9 @@ export class LocalGameEngine implements IGameEngine {
       inJail: false,
       jailTurns: 0,
       inRestHouse: false,
+      restHouseTurns: 0,
+      cardJailSkip: false,
+      cardJailSkipTurns: 0,
       isBankrupt: false,
       ownedProperties: [],
       buildings: {},
@@ -498,38 +510,17 @@ export class LocalGameEngine implements IGameEngine {
     const player = this.players[this.activePlayerIndex]
     const prevPos = player.position
 
-    // Check Rest House
-    if (player.inRestHouse) {
-      player.inRestHouse = false
-      const res: TurnResult = {
-        playerId: player.id,
-        dice1: 0,
-        dice2: 0,
-        diceTotal: 0,
-        isDouble: false,
-        previousPosition: prevPos,
-        newPosition: prevPos,
-        spaceName: "REST HOUSE",
-        spaceType: "corner",
-        eventDescription: `${player.name} was resting in Rest House and skips this turn.`,
-        moneyChange: 0,
-        passStartBonusAwarded: false,
-        startingCapitalAwarded: false,
-        mustGoToJail: false,
-        mustGoToRestHouse: false,
-        eligibleToBuy: false,
-        purchasablePropertyId: "",
-        purchasePrice: 0,
-        rentPaid: false,
-        rentAmount: 0,
-        rentRecipientId: -1,
-      }
-      if (player.isHuman) {
-        this.turnState = "WAITING_FOR_ACTION"
-      } else {
-        this.advanceTurn(false)
-      }
-      return { result: res, state: await this.getState() }
+    // Check Rest House / card skip: do NOT consume the flag or advance the turn here.
+    // Skip consumption is handled SOLELY in advanceTurn(), which is called by endTurn().
+    // advanceTurn() atomically skips any player whose restHouseTurns > 0 or inRestHouse
+    // is true, ensuring they are never made the active player during their penalised turn.
+    // If a roll request arrives for a player with pending skip flags, reject without
+    // side-effects so endTurn's advanceTurn() remains the sole authoritative consumer.
+    // Calling advanceTurn() here would double-advance the turn and skip the wrong player.
+    if (player.inRestHouse || (player.restHouseTurns ?? 0) > 0 || player.cardJailSkip || (player.cardJailSkipTurns ?? 0) > 0) {
+      throw new Error(
+        `Cannot roll: ${player.name}'s turn is being skipped (Rest House penalty). End your turn instead.`
+      )
     }
 
     // Roll dice
@@ -757,7 +748,8 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Chance: Go to Jail.`
           } else if (decl.kind === "rest") {
-            player.inRestHouse = true
+            player.restHouseTurns = 1
+            player.inRestHouse = false
             player.position = 27
             res.mustGoToRestHouse = true
             res.newPosition = 27
@@ -816,7 +808,8 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Community Chest: Go to Jail.`
           } else if (decl.kind === "rest") {
-            player.inRestHouse = true
+            player.restHouseTurns = 1
+            player.inRestHouse = false
             player.position = 27
             res.mustGoToRestHouse = true
             res.newPosition = 27
@@ -849,8 +842,9 @@ export class LocalGameEngine implements IGameEngine {
           res.eventDescription = `${player.name} is just visiting Jail.`
         } else if (nextPos === 18) {
           res.eventDescription = `${player.name} entered the Royal Club.`
-        } else if (nextPos === 27) {
-          player.inRestHouse = true
+        } else if (nextPos === 27 && prevPos !== 27) {
+          player.restHouseTurns = 1
+          player.inRestHouse = false
           res.mustGoToRestHouse = true
           res.eventDescription = `${player.name} stopped at the Rest House (must skip next turn).`
         }
@@ -882,7 +876,11 @@ export class LocalGameEngine implements IGameEngine {
       this.rules.doublesRuleEnabled &&
       isDouble &&
       !player.inJail &&
-      !wasInJail
+      !wasInJail &&
+      !res.mustGoToJail &&
+      !res.mustGoToRestHouse &&
+      !player.cardJailSkip &&
+      !player.inRestHouse
     )
 
     if (res.eligibleToBuy) {
@@ -998,8 +996,46 @@ export class LocalGameEngine implements IGameEngine {
       this.landingTurnId = -1
       this.landingPosition = -1
       this.landingPropertyId = ""
-      this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length
-      if (this.activePlayerIndex === 0) this.roundNumber++
+      let startIdx = this.activePlayerIndex
+      let nextIdx = (this.activePlayerIndex + 1) % this.players.length
+      let attempts = 0
+      const maxAttempts = this.players.length * 2
+      while (attempts < maxAttempts) {
+        if (nextIdx <= startIdx) {
+          this.roundNumber++
+          startIdx = nextIdx
+        }
+        const candidate = this.players[nextIdx]
+        if (candidate?.isBankrupt) {
+          nextIdx = (nextIdx + 1) % this.players.length
+          attempts++
+          continue
+        }
+        let skipped = false
+        if ((candidate?.restHouseTurns || 0) > 0 || candidate?.inRestHouse) {
+          candidate.restHouseTurns = 0
+          candidate.inRestHouse = false
+          this.addLog(candidate.id, "rest", `${candidate.name} skipped their turn at Rest House.`)
+          skipped = true
+        }
+        if ((candidate?.cardJailSkipTurns || 0) > 0 || candidate?.cardJailSkip) {
+          candidate.cardJailSkipTurns = 0
+          candidate.cardJailSkip = false
+          this.addLog(candidate.id, "jail", `${candidate.name} skipped their turn in Jail from a card.`)
+          skipped = true
+        }
+        if (skipped) {
+          nextIdx = (nextIdx + 1) % this.players.length
+          attempts++
+          continue
+        }
+        break
+      }
+      this.activePlayerIndex = nextIdx
+      const nextPlayer = this.players[this.activePlayerIndex]
+      if (nextPlayer && !nextPlayer.isBankrupt) {
+        this.addLog(nextPlayer.id, "turn_start", `${nextPlayer.name}'s turn began (Round ${this.roundNumber}).`)
+      }
       this.turnState = "WAITING_FOR_ROLL"
       this.turnStartedAt = Date.now()
     } else {

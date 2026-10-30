@@ -101,7 +101,8 @@ async function runComprehensiveTests() {
 
   state = (await engine.sendCommand({ action: "state" })).state;
   assert.ok(startCrossed, "Player crossed Start during movement");
-  assert.ok(state.rules.unmortgageInterestRatePercent > 10.0, `Interest rate increased above 10% (current: ${state.rules.unmortgageInterestRatePercent}%)`);
+  const crossedPlayer = state.players.find(p => (p.unmortgageInterestRatePercent || 0) > 10.0);
+  assert.ok(Boolean(crossedPlayer || state.rules.unmortgageInterestRatePercent > 10.0), `Mortgage interest rate increased for player who crossed Start (player rate: ${crossedPlayer?.unmortgageInterestRatePercent}%)`);
   pass("4. Mortgage fee compounds by 5% strictly on Start crossings");
 
   // 5. C++ ENGINE: NO CONSTRUCTION ON MORTGAGED PROPERTY & MORTGAGE INTEGRATION

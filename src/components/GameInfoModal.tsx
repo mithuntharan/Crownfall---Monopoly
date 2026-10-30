@@ -144,7 +144,7 @@ export function GameInfoModal({
                 fontWeight: 700,
                 fontSize: "11.5px",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               <span>LEDGER</span>
@@ -178,7 +178,7 @@ export function GameInfoModal({
                 fontWeight: 700,
                 fontSize: "11.5px",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                 position: "relative",
               }}
             >
@@ -215,7 +215,7 @@ export function GameInfoModal({
                 fontWeight: 700,
                 fontSize: "11.5px",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               <span>EVENTS</span>
@@ -249,7 +249,7 @@ export function GameInfoModal({
                 fontWeight: 700,
                 fontSize: "11.5px",
                 cursor: "pointer",
-                transition: "all 0.15s ease",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               <span>INSIGHTS</span>

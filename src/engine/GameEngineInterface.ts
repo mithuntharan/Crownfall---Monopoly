@@ -20,10 +20,14 @@ export interface EnginePlayer {
   inJail: boolean
   jailTurns?: number
   inRestHouse: boolean
+  restHouseTurns?: number
+  cardJailSkip?: boolean
+  cardJailSkipTurns?: number
   isBankrupt?: boolean
   ownedProperties: string[]
   buildings: Record<string, number>
   mortgages: Record<string, boolean>
+  unmortgageInterestRatePercent?: number
   // Live player statistics (Feature 3)
   totalRentReceived?: number
   totalRentPaid?: number

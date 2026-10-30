@@ -31,7 +31,16 @@ class CppEngineProcess {
     if (this.process && !this.process.killed) {
       return true;
     }
-    if (!fs.existsSync(this.exePath)) {
+    if (fs.existsSync(this.exePath)) {
+      try {
+        const cppPath = path.resolve(__dirname, '../cpp/src/GameEngine.cpp');
+        if (fs.existsSync(cppPath) && fs.statSync(cppPath).mtimeMs > fs.statSync(this.exePath).mtimeMs) {
+          console.warn('[CPP ENGINE BRIDGE] STALE BINARY DETECTED: ' + this.exePath + ' is older than cpp/src/GameEngine.cpp! Auto-recompiling...');
+          const { spawnSync } = require('child_process');
+          spawnSync(process.execPath, [path.resolve(__dirname, 'compile_engine.cjs')], { stdio: 'inherit' });
+        }
+      } catch (_) {}
+    } else {
       console.warn('[CPP ENGINE BRIDGE] Executable not found at:', this.exePath);
       return false;
     }

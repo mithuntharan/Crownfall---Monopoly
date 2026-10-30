@@ -64,7 +64,16 @@ class CppEngineProcess {
 
   ensureProcess() {
     if (this.process && !this.process.killed) return true;
-    if (!fs.existsSync(this.exePath)) {
+    if (fs.existsSync(this.exePath)) {
+      try {
+        const cppPath = path.resolve(__dirname, '../cpp/src/GameEngine.cpp');
+        if (fs.existsSync(cppPath) && fs.statSync(cppPath).mtimeMs > fs.statSync(this.exePath).mtimeMs) {
+          console.warn('[MULTIPLAYER SERVER] STALE BINARY DETECTED: ' + this.exePath + ' is older than cpp/src/GameEngine.cpp! Auto-recompiling...');
+          const { spawnSync } = require('child_process');
+          spawnSync(process.execPath, [path.resolve(__dirname, 'compile_engine.cjs')], { stdio: 'inherit' });
+        }
+      } catch (_) {}
+    } else {
       console.warn('[MULTIPLAYER SERVER] Engine executable not found at:', this.exePath);
       return false;
     }
@@ -1058,6 +1067,11 @@ class Room {
           throw new Error(`Not your turn. It is currently ${activeName}'s turn.`);
         }
         if (action === 'roll') {
+          const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
+          if (process.env.REST_HOUSE_DEBUG === '1') { console.log(`[REST_DIAGNOSTIC] Roll attempt: player=${playerId}, pos=${engPlayer?.position}, restHouseTurns=${engPlayer?.restHouseTurns ?? 0}, inRestHouse=${engPlayer?.inRestHouse}`); }
+          if (engPlayer?.inRestHouse || engPlayer?.cardJailSkip || (engPlayer?.restHouseTurns || 0) > 0 || (engPlayer?.cardJailSkipTurns || 0) > 0) {
+            throw new Error('Cannot roll: your turn is skipped.');
+          }
           const curTurnState = this.gameState.turnState;
           if (curTurnState !== 'WAITING_FOR_ROLL' && curTurnState !== 'EXTRA_TURN') {
             throw new Error(`Cannot roll at this time (current turn state: ${curTurnState}).`);
@@ -1278,7 +1292,8 @@ class Room {
       }
 
       // 7. Special Square: Rest House (MOVEMENT_LOCATIONS)
-      if (res.mustGoToRestHouse || res.newPosition === 27) {
+      if (res.mustGoToRestHouse || (res.newPosition === 27 && res.previousPosition !== 27)) {
+        if (process.env.REST_HOUSE_DEBUG === '1') { console.log(`[REST_DIAGNOSTIC] Rest House landing: player=${player.id}, prevPos=${res.previousPosition}, newPos=${res.newPosition}`); }
         this.addEvent({
           id: `ev_rest_${now}_${player.id}_${seq}`,
           type: 'REST',
@@ -1917,6 +1932,9 @@ class Room {
           inJail: engP ? engP.inJail : false,
           jailTurns: engP ? engP.jailTurns : 0,
           inRestHouse: engP ? engP.inRestHouse : false,
+          restHouseTurns: engP ? (engP.restHouseTurns || 0) : 0,
+          cardJailSkip: engP ? Boolean(engP.cardJailSkip) : false,
+          cardJailSkipTurns: engP ? (engP.cardJailSkipTurns || 0) : 0,
           ownedProperties: engP ? engP.ownedProperties : [],
           buildings: engP ? engP.buildings : {},
           mortgages: engP ? engP.mortgages : {},

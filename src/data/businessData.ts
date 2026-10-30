@@ -52,6 +52,8 @@ export interface Declaration {
   title: string
   declaration: string
   kind: EventKind
+  targetSpaceIndex?: number
+  alternateTargetSpaceIndex?: number
   effect: string
   effectNote: string
 }
@@ -802,6 +804,8 @@ export const CHANCE_DECLARATIONS: Declaration[] = [
     declaration:
       "Go back to Bombay. If you have to pass starting point, collect Rs. 1500 & go to Darjeeling.",
     kind: "move",
+    targetSpaceIndex: 1,
+    alternateTargetSpaceIndex: 23,
     effect: "MOVE TO BOMBAY",
     effectNote: "PASS START: + ₹1,500 · THEN DARJEELING",
   },

@@ -215,6 +215,7 @@ export function PreferencesModal({
           }}
         >
           <button
+            className={`tab-btn ${activeTab === "appearance" ? "active" : ""}`}
             onClick={() => setActiveTab("appearance")}
             style={{
               padding: "8px 6px",
@@ -227,11 +228,13 @@ export function PreferencesModal({
               fontSize: "clamp(10px, 2.5vw, 11px)",
               cursor: "pointer",
               textAlign: "center",
+              transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
             APPEARANCE
           </button>
           <button
+            className={`tab-btn ${activeTab === "gameplay" ? "active" : ""}`}
             onClick={() => setActiveTab("gameplay")}
             style={{
               padding: "8px 6px",
@@ -244,11 +247,13 @@ export function PreferencesModal({
               fontSize: "clamp(10px, 2.5vw, 11px)",
               cursor: "pointer",
               textAlign: "center",
+              transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
             GAMEPLAY
           </button>
           <button
+            className={`tab-btn ${activeTab === "host" ? "active" : ""}`}
             onClick={() => setActiveTab("host")}
             style={{
               padding: "8px 6px",
@@ -261,6 +266,7 @@ export function PreferencesModal({
               fontSize: "clamp(10px, 2.5vw, 11px)",
               cursor: "pointer",
               textAlign: "center",
+              transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
             HOST SETTINGS
@@ -445,7 +451,7 @@ export function PreferencesModal({
                         display: "flex",
                         alignItems: "center",
                         gap: "6px",
-                        transition: "all 0.2s ease",
+                        transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                       }}
                       title="Copy room code to clipboard"
                     >
@@ -626,7 +632,7 @@ export function PreferencesModal({
                           fontSize: "11.5px",
                           cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
                           opacity: isGameStarted || !isHost ? 0.5 : 1,
-                          transition: "all 0.15s ease",
+                          transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                           boxShadow: isSelected ? "0 1px 4px rgba(200, 155, 69, 0.18)" : "none",
                         }}
                       >
@@ -678,7 +684,7 @@ export function PreferencesModal({
                       cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
                       opacity: isGameStarted || !isHost ? 0.5 : 1,
                       textAlign: "center",
-                      transition: "all 0.15s ease",
+                      transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   >
                     Build Mode A — Land to Build
@@ -702,7 +708,7 @@ export function PreferencesModal({
                       cursor: isGameStarted || !isHost ? "not-allowed" : "pointer",
                       opacity: isGameStarted || !isHost ? 0.5 : 1,
                       textAlign: "center",
-                      transition: "all 0.15s ease",
+                      transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   >
                     Build Mode B — Build From Anywhere

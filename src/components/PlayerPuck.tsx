@@ -181,11 +181,13 @@ export const PlayerPuck: React.FC<PlayerPuckProps> = ({
           // Metallic outer bevel ring + deep drop shadow
           background: `linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, ${config.rim} 35%, #18181b 95%)`,
           padding: `${bevelWidth}px`,
-          boxShadow: active
+          boxShadow: gliding
+            ? `0 5px 12px rgba(0,0,0,0.45), 0 0 0 1.5px ${config.highlight}`
+            : active
             ? `0 2px 6px rgba(0,0,0,0.5), 0 0 0 1.5px ${config.highlight}`
             : "0 1.5px 4px rgba(0,0,0,0.35)",
-          transition: "transform 0.18s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.18s ease",
-          transform: active ? "scale(1.05)" : "scale(1)",
+          transition: "transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: gliding ? "translateY(-2.5px) scale(1.08)" : active ? "scale(1.05)" : "scale(1)",
         }}
       >
         {/* Core Jewel Lacquer Face */}
