@@ -120,10 +120,10 @@ struct BoardSpaceDefinition {
 struct GameRules {
     int minPlayers = 2;
     int maxPlayers = 6;
-    int defaultStartingMoney = 25000;
-    std::vector<int> startingMoneyOptions = { 25000, 30000, 35000, 40000, 45000, 50000, 55000 };
+    int defaultStartingMoney = 45000;
+    std::vector<int> startingMoneyOptions = { 40000, 45000, 50000, 55000, 60000, 65000 };
     bool doublesRuleEnabled = true;
-    int passStartBonus = 1500;
+    int passStartBonus = 2300; // 5% of ₹45,000 rounded to nearest ₹100
     bool requireLandingToBuild = false; // New rule: Players can build on eligible properties from anywhere during their turn
     bool baseRentDoublesForSet = true;  // Rule 27: Complete group doubles undeveloped base rent
     double unmortgageInterestRatePercent = 10.0; // Default 10% interest/repayment addition upon unmortgaging

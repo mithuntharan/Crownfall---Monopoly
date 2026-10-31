@@ -59,6 +59,11 @@ const RATE_LIMIT_CONFIGS = {
     refillRatePerSec: parseFloat(process.env.RATE_LIMIT_JOIN_RESPOND_RATE || '0.5'), // 1 token per 2s (~30 per min)
     description: 'Join request responses',
   },
+  CHAT_MESSAGE: {
+    maxTokens: parseInt(process.env.RATE_LIMIT_CHAT_BURST || '10', 10),
+    refillRatePerSec: parseFloat(process.env.RATE_LIMIT_CHAT_RATE || '1.0'), // 1 token per second
+    description: 'In-game chat messages',
+  },
   RECONNECT: {
     maxTokens: parseInt(process.env.RATE_LIMIT_RECONNECT_BURST || '20', 10),
     refillRatePerSec: parseFloat(process.env.RATE_LIMIT_RECONNECT_RATE || '0.33'), // 1 token per 3s (~20 per min)

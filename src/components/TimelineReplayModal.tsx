@@ -246,7 +246,7 @@ export function TimelineReplayModal({
                 {new Date(selectedEvent.timestamp).toLocaleTimeString()}
               </span>
             </div>
-            <p style={{ fontSize: "13px", color: "#fff", margin: "4px 0" }}>
+            <p style={{ fontSize: "13px", color: "var(--text-primary, #f8fafc)", margin: "4px 0" }}>
               {selectedEvent.description}
             </p>
 
@@ -321,7 +321,7 @@ export function TimelineReplayModal({
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontSize: "16px" }}>{getEventIcon(ev.type)}</span>
                     <div>
-                      <div style={{ fontSize: "12px", color: isSelected ? "var(--gold-300)" : "#fff", fontWeight: 600 }}>
+                      <div style={{ fontSize: "12px", color: isSelected ? "var(--gold-300)" : "var(--text-primary, #f8fafc)", fontWeight: 600 }}>
                         {ev.description}
                       </div>
                       <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>

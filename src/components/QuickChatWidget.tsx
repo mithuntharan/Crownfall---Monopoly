@@ -1,198 +1,207 @@
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import type { EnginePlayer } from "../engine/GameEngineInterface"
 import { audioSystem } from "../utils/audioSystem"
+import { multiplayerClient } from "../engine/MultiplayerClient"
 
 export interface ChatMessage {
   id: string
+  roomCode?: string
   senderId: number
   senderName: string
   senderColor: string
   text: string
-  isEmoji?: boolean
   timestamp: number
 }
 
-const PRESET_EMOJIS = ["👑", "🎲", "💰", "💸", "🏰", "🔥", "😭", "👏"]
-
-const PRESET_MESSAGES = [
-  "Good luck everyone!",
-  "Nice roll!",
-  "Ouch, that rent hurts!",
-  "Care to trade?",
-  "Watch out for Jail!",
-  "Building my empire!",
-  "Well played!",
-  "GG!",
-]
-
 interface QuickChatWidgetProps {
   localPlayer: EnginePlayer
+  isMultiplayer?: boolean
   soundEnabled?: boolean
 }
 
-export function QuickChatWidget({ localPlayer, soundEnabled = true }: QuickChatWidgetProps) {
+export function QuickChatWidget({
+  localPlayer,
+  isMultiplayer = false,
+  soundEnabled = true,
+}: QuickChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [floatingReactions, setFloatingReactions] = useState<ChatMessage[]>([])
-  const [cooldownRemaining, setCooldownRemaining] = useState(0)
+  const [inputText, setInputText] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
 
-  const channelRef = useRef<BroadcastChannel | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
 
+  // Append a message while deduplicating by ID
+  const appendMessage = (newMsg: ChatMessage) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === newMsg.id)) return prev
+      return [...prev.slice(-49), newMsg]
+    })
+    if (!isOpen) {
+      setUnreadCount((c) => c + 1)
+    }
+    if (soundEnabled) {
+      audioSystem.playNotification()
+    }
+  }
+
+  // Sync with multiplayer room chat and snapshot history
   useEffect(() => {
-    try {
-      const ch = new BroadcastChannel("crownfall_quick_chat")
-      channelRef.current = ch
+    // Check initial chat history in snapshot if available
+    const snap = multiplayerClient.getLatestSnapshot() as any
+    if (snap?.chatHistory && Array.isArray(snap.chatHistory) && snap.chatHistory.length > 0) {
+      setMessages(snap.chatHistory.slice(-50))
+    }
 
+    // Subscribe to multiplayer server broadcast messages
+    const unsubChat = multiplayerClient.onChatMessage((msg: ChatMessage) => {
+      if (msg && msg.text) {
+        appendMessage(msg)
+      }
+    })
+
+    // Subscribe to snapshot updates for chat history
+    const unsubSnap = multiplayerClient.onSnapshot((s: any) => {
+      if (s?.chatHistory && Array.isArray(s.chatHistory)) {
+        setMessages((prev) => {
+          const map = new Map<string, ChatMessage>()
+          for (const m of prev) map.set(m.id, m)
+          for (const m of s.chatHistory) map.set(m.id, m)
+          return Array.from(map.values()).slice(-50)
+        })
+      }
+    })
+
+    // Local tab broadcast channel fallback
+    try {
+      const ch = new BroadcastChannel("crownfall_chat_local")
+      broadcastChannelRef.current = ch
       ch.onmessage = (event) => {
         const msg = event.data as ChatMessage
         if (msg && msg.text) {
-          setMessages((prev) => [...prev.slice(-30), msg])
-          if (!isMuted && soundEnabled) {
-            audioSystem.playNotification()
-          }
-          if (msg.isEmoji) {
-            setFloatingReactions((prev) => [...prev, msg])
-            setTimeout(() => {
-              setFloatingReactions((prev) => prev.filter((r) => r.id !== msg.id))
-            }, 2500)
-          }
-          if (!isOpen) {
-            setUnreadCount((c) => c + 1)
-          }
+          appendMessage(msg)
         }
       }
-
-      return () => {
-        ch.close()
-      }
     } catch (_) {}
-  }, [isMuted, soundEnabled, isOpen])
 
+    return () => {
+      unsubChat()
+      unsubSnap()
+      try {
+        broadcastChannelRef.current?.close()
+      } catch (_) {}
+    }
+  }, [soundEnabled, isOpen])
+
+  // Scroll to bottom on new message or open
   useEffect(() => {
     if (isOpen) {
       setUnreadCount(0)
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }
-  }, [isOpen, messages])
+  }, [isOpen, messages.length])
 
-  // Cooldown timer
-  useEffect(() => {
-    if (cooldownRemaining <= 0) return
-    const timer = setTimeout(() => {
-      setCooldownRemaining((prev) => Math.max(0, prev - 1))
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [cooldownRemaining])
+  const charCount = [...inputText].length
+  const isOverLimit = charCount > 64
 
-  const sendMessage = (text: string, isEmoji = false) => {
-    if (cooldownRemaining > 0) return
-
-    const newMsg: ChatMessage = {
-      id: `chat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      senderId: localPlayer.id,
-      senderName: localPlayer.name,
-      senderColor: localPlayer.color,
-      text,
-      isEmoji,
-      timestamp: Date.now(),
+  const handleSendMessage = async () => {
+    const trimmed = inputText.trim()
+    if (!trimmed) {
+      setSendError("Message cannot be empty.")
+      return
     }
 
-    setMessages((prev) => [...prev.slice(-30), newMsg])
-    if (isEmoji) {
-      setFloatingReactions((prev) => [...prev, newMsg])
-      setTimeout(() => {
-        setFloatingReactions((prev) => prev.filter((r) => r.id !== newMsg.id))
-      }, 2500)
+    const count = [...trimmed].length
+    if (count > 64) {
+      setSendError("Message exceeds allowed length.")
+      return
     }
+
+    setSendError(null)
+    setIsSending(true)
+
+    const hasActiveMpRoom = Boolean(isMultiplayer || multiplayerClient.getRoomCode())
 
     try {
-      channelRef.current?.postMessage(newMsg)
-    } catch (_) {}
+      if (hasActiveMpRoom) {
+        await multiplayerClient.sendChatMessage(trimmed)
+      } else {
+        // Local mode fallback
+        const localMsg: ChatMessage = {
+          id: `local_chat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          senderId: localPlayer.id,
+          senderName: localPlayer.name,
+          senderColor: localPlayer.color,
+          text: trimmed,
+          timestamp: Date.now(),
+        }
+        appendMessage(localMsg)
+        try {
+          broadcastChannelRef.current?.postMessage(localMsg)
+        } catch (_) {}
+      }
 
-    // Rate limiting: 1s
-    setCooldownRemaining(1)
+      // Clear input only after successful acknowledgment / send
+      setInputText("")
+    } catch (err: any) {
+      // Preserve unsent text on failure
+      setSendError(err.message || "Failed to deliver message. Check connection.")
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      if (!isSending && charCount > 0 && !isOverLimit) {
+        handleSendMessage()
+      }
+    }
   }
 
   return (
     <>
-      {/* Floating Reactions on Screen */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: "120px",
-          right: "24px",
-          pointerEvents: "none",
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          alignItems: "flex-end",
-        }}
-      >
-        {floatingReactions.map((r) => (
-          <div
-            key={r.id}
-            style={{
-              background: "rgba(17, 29, 56, 0.9)",
-              border: `1px solid ${r.senderColor}`,
-              borderRadius: "20px",
-              padding: "4px 12px",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-              animation: "floatUp 2.5s ease-out forwards",
-            }}
-          >
-            <span style={{ fontSize: "11px", color: r.senderColor, fontWeight: 700 }}>
-              {r.senderName}:
-            </span>
-            <span style={{ fontSize: "20px" }}>{r.text}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Floating Chat Trigger Button */}
       {!isOpen && (
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
+          className="chat-toggle-pill"
+          aria-label="Open room chat"
           style={{
             position: "fixed",
             bottom: "80px",
             right: "16px",
-            background: "linear-gradient(135deg, #1e293b, #0f172a)",
-            border: "1px solid var(--gold-400)",
-            color: "var(--gold-300)",
-            borderRadius: "50%",
-            width: "46px",
-            height: "46px",
+            background: "var(--surface-primary, #1e2430)",
+            color: "var(--text-primary, #f8fafc)",
+            border: "1px solid var(--border-gold, #b45309)",
+            borderRadius: "20px",
+            padding: "8px 16px",
+            fontWeight: 700,
+            fontSize: "12px",
+            letterSpacing: "0.5px",
+            cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.6)",
-            cursor: "pointer",
-            zIndex: 100,
+            gap: "8px",
+            zIndex: 9998,
           }}
-          title="Quick Chat & Reactions"
         >
-          <span style={{ fontSize: "20px" }}>💬</span>
+          <span style={{ textTransform: "uppercase" }}>Chat</span>
           {unreadCount > 0 && (
             <span
               style={{
-                position: "absolute",
-                top: "-4px",
-                right: "-4px",
-                background: "var(--crimson)",
-                color: "#fff",
+                background: "var(--accent-red, #dc2626)",
+                color: "#ffffff",
                 borderRadius: "10px",
                 padding: "1px 6px",
-                fontSize: "11px",
-                fontWeight: 700,
-                border: "1px solid #fff",
+                fontSize: "10px",
+                fontWeight: 800,
               }}
             >
               {unreadCount}
@@ -201,215 +210,245 @@ export function QuickChatWidget({ localPlayer, soundEnabled = true }: QuickChatW
         </button>
       )}
 
-      {/* Chat Drawer / Modal */}
+      {/* Chat Window Panel */}
       {isOpen && (
         <div
+          role="region"
+          aria-label="Room Chat"
+          className="chat-widget-window"
           style={{
             position: "fixed",
-            bottom: "75px",
+            bottom: "80px",
             right: "16px",
             width: "320px",
-            maxHeight: "440px",
-            background: "#111d38",
-            border: "1px solid var(--gold-400)",
+            maxWidth: "calc(100vw - 32px)",
+            background: "var(--surface-primary, #141822)",
+            border: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.35))",
             borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.7)",
+            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.55)",
+            zIndex: 9998,
             display: "flex",
             flexDirection: "column",
-            zIndex: 1000,
             overflow: "hidden",
+            fontFamily: "inherit",
           }}
         >
           {/* Header */}
           <div
             style={{
-              padding: "8px 12px",
-              background: "rgba(0,0,0,0.3)",
-              borderBottom: "1px solid var(--border-subtle)",
+              padding: "10px 14px",
+              background: "var(--surface-secondary, rgba(255, 255, 255, 0.04))",
+              borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.1))",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "16px" }}>💬</span>
-              <strong style={{ fontSize: "12px", color: "var(--gold-300)", textTransform: "uppercase" }}>
-                Quick Chat
-              </strong>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <button
-                onClick={() => setIsMuted(!isMuted)}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  color: isMuted ? "#ef4444" : "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  padding: "2px",
-                }}
-                title={isMuted ? "Unmute Chat Sounds" : "Mute Chat Sounds"}
-              >
-                {isMuted ? "🔇" : "🔊"}
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  padding: "2px",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  letterSpacing: "0.5px",
+                  textTransform: "uppercase",
+                  color: "var(--gold-400, #ca8a04)",
                 }}
               >
-                ✕
-              </button>
+                Room Chat
+              </span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  color: "var(--text-muted, #94a3b8)",
+                }}
+              >
+                ({messages.length})
+              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="chat-close-btn"
+              aria-label="Close chat"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-muted, #94a3b8)",
+                cursor: "pointer",
+                padding: "4px 8px",
+                fontSize: "12px",
+                fontWeight: 600,
+                borderRadius: "4px",
+              }}
+            >
+              Close
+            </button>
           </div>
 
           {/* Messages Feed */}
           <div
+            className="chat-messages-scroll custom-scrollbar"
             style={{
               flex: 1,
-              padding: "10px",
+              padding: "10px 12px",
               overflowY: "auto",
               display: "flex",
               flexDirection: "column",
-              gap: "6px",
-              maxHeight: "180px",
-              minHeight: "120px",
-              background: "rgba(0,0,0,0.2)",
+              gap: "8px",
+              maxHeight: "220px",
+              minHeight: "140px",
+              background: "rgba(0, 0, 0, 0.2)",
             }}
           >
             {messages.length === 0 ? (
-              <p style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "center", margin: "auto" }}>
-                Send a quick reaction or message!
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-muted, #94a3b8)",
+                  textAlign: "center",
+                  margin: "auto",
+                  padding: "16px 8px",
+                }}
+              >
+                No messages yet. Send a message below.
               </p>
             ) : (
-              messages.map((m) => (
-                <div
-                  key={m.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: m.senderId === localPlayer.id ? "flex-end" : "flex-start",
-                  }}
-                >
+              messages.map((m) => {
+                const isSelf = m.senderId === localPlayer.id
+                return (
                   <div
+                    key={m.id}
                     style={{
-                      fontSize: "10px",
-                      color: m.senderColor,
-                      marginBottom: "1px",
-                      fontWeight: 600,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: isSelf ? "flex-end" : "flex-start",
                     }}
                   >
-                    {m.senderName}
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        color: m.senderColor || "var(--gold-300, #eab308)",
+                        marginBottom: "2px",
+                        letterSpacing: "0.3px",
+                      }}
+                    >
+                      {m.senderName}
+                    </div>
+                    <div
+                      style={{
+                        background: isSelf
+                          ? "rgba(200, 155, 69, 0.2)"
+                          : "rgba(255, 255, 255, 0.08)",
+                        border: isSelf
+                          ? "1px solid var(--border-gold, #b45309)"
+                          : "1px solid var(--border-subtle, rgba(255, 255, 255, 0.12))",
+                        borderRadius: "8px",
+                        padding: "6px 10px",
+                        fontSize: "12px",
+                        lineHeight: 1.35,
+                        color: "var(--text-primary, #f8fafc)",
+                        maxWidth: "88%",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {m.text}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      background: m.senderId === localPlayer.id ? "rgba(200, 155, 69, 0.25)" : "rgba(255,255,255,0.08)",
-                      border: m.senderId === localPlayer.id ? "1px solid var(--gold-400)" : "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "8px",
-                      padding: m.isEmoji ? "2px 8px" : "4px 8px",
-                      fontSize: m.isEmoji ? "18px" : "12px",
-                      color: "#fff",
-                      maxWidth: "85%",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {m.text}
-                  </div>
-                </div>
-              ))
+                )
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Emoji Reactions Row */}
+          {/* Composer */}
           <div
             style={{
+              padding: "10px 12px",
+              background: "var(--surface-secondary, rgba(255, 255, 255, 0.03))",
+              borderTop: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
               display: "flex",
-              gap: "4px",
-              padding: "6px 8px",
-              background: "rgba(0,0,0,0.3)",
-              borderTop: "1px solid var(--border-subtle)",
-              overflowX: "auto",
+              flexDirection: "column",
+              gap: "6px",
             }}
           >
-            {PRESET_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                disabled={cooldownRemaining > 0}
-                onClick={() => sendMessage(emoji, true)}
+            {sendError && (
+              <div
+                role="alert"
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  fontSize: "18px",
-                  cursor: cooldownRemaining > 0 ? "not-allowed" : "pointer",
-                  padding: "4px",
-                  borderRadius: "4px",
-                  opacity: cooldownRemaining > 0 ? 0.4 : 1,
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
-
-          {/* Preset Text Messages */}
-          <div
-            style={{
-              padding: "8px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "4px",
-              background: "rgba(0,0,0,0.4)",
-              maxHeight: "120px",
-              overflowY: "auto",
-            }}
-          >
-            {PRESET_MESSAGES.map((text) => (
-              <button
-                key={text}
-                disabled={cooldownRemaining > 0}
-                onClick={() => sendMessage(text, false)}
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: "6px",
-                  padding: "5px 6px",
                   fontSize: "10px",
-                  color: "#cbd5e1",
-                  textAlign: "left",
-                  cursor: cooldownRemaining > 0 ? "not-allowed" : "pointer",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  opacity: cooldownRemaining > 0 ? 0.4 : 1,
+                  color: "var(--accent-red, #ef4444)",
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.25)",
+                  borderRadius: "4px",
+                  padding: "4px 8px",
                 }}
               >
-                {text}
-              </button>
-            ))}
-          </div>
+                {sendError}
+              </div>
+            )}
 
-          {/* Cooldown indicator */}
-          {cooldownRemaining > 0 && (
-            <div
-              style={{
-                fontSize: "10px",
-                color: "var(--gold-300)",
-                textAlign: "center",
-                padding: "2px",
-                background: "rgba(200, 155, 69, 0.1)",
-              }}
-            >
-              Wait 1s before next message...
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => {
+                  setInputText(e.target.value)
+                  if (sendError) setSendError(null)
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Message..."
+                maxLength={64}
+                disabled={isSending}
+                style={{
+                  flex: 1,
+                  background: "rgba(0, 0, 0, 0.25)",
+                  border: isOverLimit
+                    ? "1px solid var(--accent-red, #ef4444)"
+                    : "1px solid var(--border-subtle, rgba(255, 255, 255, 0.15))",
+                  borderRadius: "6px",
+                  padding: "6px 10px",
+                  fontSize: "12px",
+                  color: "var(--text-primary, #f8fafc)",
+                  outline: "none",
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={handleSendMessage}
+                disabled={isSending || charCount === 0 || isOverLimit}
+                style={{
+                  background:
+                    charCount === 0 || isOverLimit || isSending
+                      ? "rgba(255, 255, 255, 0.08)"
+                      : "var(--gold-400, #ca8a04)",
+                  color:
+                    charCount === 0 || isOverLimit || isSending
+                      ? "var(--text-muted, #64748b)"
+                      : "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 14px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                  textTransform: "uppercase",
+                  cursor:
+                    charCount === 0 || isOverLimit || isSending
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {isSending ? "Sending" : "Send"}
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </>
   )
 }
+
+export default QuickChatWidget

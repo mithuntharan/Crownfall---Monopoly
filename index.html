@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="<!-- figma:lang -->" data-theme="light">
+<html lang="<!-- figma:lang -->" data-theme="dark">
   <head>
     <!-- figma:head-start -->
     <meta charset="UTF-8" />
@@ -8,14 +8,26 @@
     <script>
       (function() {
         try {
-          document.documentElement.setAttribute("data-theme", "light");
+          var key = "crownfall_game_preferences";
+          var legacy = "dominion_game_preferences";
+          var raw = localStorage.getItem(key) || localStorage.getItem(legacy);
+          var theme = "dark";
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.theme === "light") {
+              theme = "light";
+            } else if (parsed && parsed.theme === "dark") {
+              theme = "dark";
+            }
+          }
+          document.documentElement.setAttribute("data-theme", theme);
         } catch (_) {}
       })();
     </script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
     <!-- figma:head-end -->
   </head>
-  <body data-theme="light">
+  <body>
     <!-- figma:body-start -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

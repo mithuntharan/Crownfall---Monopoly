@@ -177,7 +177,7 @@ export function TradeModal({
   const tradeBody = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* Tab switch */}
-      <div style={{ display: "flex", gap: "8px", padding: "8px 16px", background: "rgba(0,0,0,0.2)", borderBottom: "1px solid var(--border-subtle)" }}>
+      <div style={{ display: "flex", gap: "8px", padding: "8px 16px", background: "var(--glass-light, rgba(0,0,0,0.2))", borderBottom: "1px solid var(--border-subtle)" }}>
         <button
           className={`tab-btn ${activeTab === "create" ? "active" : ""}`}
           onClick={() => setActiveTab("create")}
@@ -185,11 +185,12 @@ export function TradeModal({
               flex: 1,
               padding: "8px 12px",
               borderRadius: "6px",
-              border: activeTab === "create" ? "1px solid var(--gold-400)" : "1px solid transparent",
-              background: activeTab === "create" ? "rgba(200, 155, 69, 0.2)" : "transparent",
-              color: activeTab === "create" ? "var(--gold-300)" : "var(--text-muted)",
-              fontWeight: 600,
+              border: activeTab === "create" ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+              background: activeTab === "create" ? "rgba(212, 175, 55, 0.22)" : "rgba(255, 255, 255, 0.04)",
+              color: activeTab === "create" ? "var(--gold-bright, #ffd57e)" : "var(--text-secondary, #cbd5e1)",
+              fontWeight: 700,
               cursor: "pointer",
+              transition: "all 0.15s ease",
             }}
           >
             Propose New Trade
@@ -201,12 +202,13 @@ export function TradeModal({
               flex: 1,
               padding: "8px 12px",
               borderRadius: "6px",
-              border: activeTab === "offers" ? "1px solid var(--gold-400)" : "1px solid transparent",
-              background: activeTab === "offers" ? "rgba(200, 155, 69, 0.2)" : "transparent",
-              color: activeTab === "offers" ? "var(--gold-300)" : "var(--text-muted)",
-              fontWeight: 600,
+              border: activeTab === "offers" ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+              background: activeTab === "offers" ? "rgba(212, 175, 55, 0.22)" : "rgba(255, 255, 255, 0.04)",
+              color: activeTab === "offers" ? "var(--gold-bright, #ffd57e)" : "var(--text-secondary, #cbd5e1)",
+              fontWeight: 700,
               cursor: "pointer",
               position: "relative",
+              transition: "all 0.15s ease",
             }}
           >
             Active & Past Trades
@@ -251,18 +253,19 @@ export function TradeModal({
                           padding: "8px 14px",
                           borderRadius: "8px",
                           border: selectedPartnerId === p.id ? `2px solid ${p.color}` : "1px solid var(--border-subtle)",
-                          background: selectedPartnerId === p.id ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.2)",
-                          color: "#fff",
+                          background: selectedPartnerId === p.id ? "rgba(212, 175, 55, 0.2)" : "rgba(255, 255, 255, 0.04)",
+                          color: "var(--text-primary, #f3f4f6)",
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           gap: "8px",
                           fontSize: "13px",
+                          transition: "all 0.15s ease",
                         }}
                       >
                         <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: p.color }} />
                         <strong>{p.name}</strong>
-                        <span style={{ color: p.money < 0 ? "#fca5a5" : "var(--gold-300)", fontSize: "11px" }}>
+                        <span style={{ color: p.money < 0 ? "var(--financial-loss, #f87171)" : "var(--gold-bright, #ffd57e)", fontSize: "11px" }}>
                           ₹{p.money.toLocaleString()}
                         </span>
                       </button>
@@ -274,9 +277,9 @@ export function TradeModal({
               {partner && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px", marginBottom: "16px" }}>
                   {/* YOU OFFER (LEFT) */}
-                  <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ background: "var(--bg-surface, rgba(20, 24, 32, 0.90))", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                     <div style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px", marginBottom: "10px" }}>
-                      <strong style={{ color: "var(--gold-300)", fontSize: "13px" }}>YOU GIVE ({localPlayer.name})</strong>
+                      <strong style={{ color: "var(--gold-bright, #ffd57e)", fontSize: "13px" }}>YOU GIVE ({localPlayer.name})</strong>
                       <div style={{ fontSize: "11px", color: localPlayer.money < 0 ? "#fca5a5" : "var(--text-muted)" }}>
                         Cash: {localPlayer.money < 0 ? `-₹${Math.abs(localPlayer.money).toLocaleString()} (In Debt)` : `₹${localPlayer.money.toLocaleString()}`}
                       </div>
@@ -298,11 +301,11 @@ export function TradeModal({
                         }}
                         style={{
                           width: "100%",
-                          background: localPlayer.money <= 0 ? "rgba(255,255,255,0.05)" : "#ffffff",
-                          border: "1px solid rgba(148, 163, 184, 0.4)",
+                          background: localPlayer.money <= 0 ? "var(--input-disabled-bg, rgba(255,255,255,0.05))" : "var(--input-bg, #ffffff)",
+                          border: "1px solid var(--input-border, rgba(148, 163, 184, 0.4))",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: localPlayer.money <= 0 ? "var(--text-muted)" : "#0f172a",
+                          color: localPlayer.money <= 0 ? "var(--text-muted)" : "var(--input-color, #0f172a)",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
@@ -331,15 +334,16 @@ export function TradeModal({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "space-between",
-                                  padding: "6px 8px",
+                                  padding: "7px 10px",
                                   borderRadius: "6px",
-                                  border: isSelected ? "1px solid var(--gold-400)" : "1px solid rgba(255,255,255,0.06)",
-                                  background: isSelected ? "rgba(200, 155, 69, 0.25)" : "rgba(0,0,0,0.2)",
+                                  border: isSelected ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+                                  background: isSelected ? "rgba(212, 175, 55, 0.25)" : "rgba(255, 255, 255, 0.04)",
                                   cursor: "pointer",
                                   textAlign: "left",
+                                  transition: "all 0.15s ease",
                                 }}
                               >
-                                <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#fff" }}>
+                                <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: isSelected ? "var(--gold-bright, #ffd57e)" : "var(--text-primary, #f3f4f6)" }}>
                                   <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: color }} />
                                   {getPropName(propId)}
                                 </span>
@@ -355,9 +359,9 @@ export function TradeModal({
                   </div>
 
                   {/* YOU RECEIVE (RIGHT) */}
-                  <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ background: "var(--bg-surface, rgba(20, 24, 32, 0.90))", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                     <div style={{ borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px", marginBottom: "10px" }}>
-                      <strong style={{ color: "var(--gold-300)", fontSize: "13px" }}>YOU RECEIVE ({partner.name})</strong>
+                      <strong style={{ color: "var(--gold-bright, #ffd57e)", fontSize: "13px" }}>YOU RECEIVE ({partner.name})</strong>
                       <div style={{ fontSize: "11px", color: partner.money < 0 ? "#fca5a5" : "var(--text-muted)" }}>
                         Cash: {partner.money < 0 ? `-₹${Math.abs(partner.money).toLocaleString()} (In Debt)` : `₹${partner.money.toLocaleString()}`}
                       </div>
@@ -379,11 +383,11 @@ export function TradeModal({
                         }}
                         style={{
                           width: "100%",
-                          background: partner.money <= 0 ? "rgba(255,255,255,0.05)" : "#ffffff",
-                          border: "1px solid rgba(148, 163, 184, 0.4)",
+                          background: partner.money <= 0 ? "var(--input-disabled-bg, rgba(255,255,255,0.05))" : "var(--input-bg, #ffffff)",
+                          border: "1px solid var(--input-border, rgba(148, 163, 184, 0.4))",
                           borderRadius: "6px",
                           padding: "6px 8px",
-                          color: partner.money <= 0 ? "var(--text-muted)" : "#0f172a",
+                          color: partner.money <= 0 ? "var(--text-muted)" : "var(--input-color, #0f172a)",
                           fontWeight: 700,
                           fontSize: "13px",
                         }}
@@ -412,15 +416,16 @@ export function TradeModal({
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "space-between",
-                                  padding: "6px 8px",
+                                  padding: "7px 10px",
                                   borderRadius: "6px",
-                                  border: isSelected ? "1px solid var(--gold-400)" : "1px solid rgba(255,255,255,0.06)",
-                                  background: isSelected ? "rgba(200, 155, 69, 0.25)" : "rgba(0,0,0,0.2)",
+                                  border: isSelected ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+                                  background: isSelected ? "rgba(212, 175, 55, 0.25)" : "rgba(255, 255, 255, 0.04)",
                                   cursor: "pointer",
                                   textAlign: "left",
+                                  transition: "all 0.15s ease",
                                 }}
                               >
-                                <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#fff" }}>
+                                <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: isSelected ? "var(--gold-bright, #ffd57e)" : "var(--text-primary, #f3f4f6)" }}>
                                   <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: color }} />
                                   {getPropName(propId)}
                                 </span>
@@ -451,11 +456,13 @@ export function TradeModal({
                   style={{
                     padding: "8px 16px",
                     borderRadius: "6px",
-                    background: "transparent",
+                    background: "rgba(255, 255, 255, 0.04)",
                     border: "1px solid var(--border-subtle)",
-                    color: "var(--text-muted)",
+                    color: "var(--text-secondary, #cbd5e1)",
                     cursor: "pointer",
                     fontSize: "13px",
+                    fontWeight: 600,
+                    transition: "all 0.15s ease",
                   }}
                 >
                   Cancel
@@ -466,13 +473,18 @@ export function TradeModal({
                   style={{
                     padding: "8px 20px",
                     borderRadius: "6px",
-                    background: "linear-gradient(135deg, var(--gold-400), var(--gold-500))",
-                    border: "none",
-                    color: "#0a101d",
+                    background: isSubmitting || !partner
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "linear-gradient(135deg, #d4af37 0%, #aa820a 100%)",
+                    border: isSubmitting || !partner
+                      ? "1px solid rgba(255, 255, 255, 0.08)"
+                      : "1px solid var(--gold-bright, #ffd57e)",
+                    color: isSubmitting || !partner ? "var(--text-muted, #94a3af)" : "#0c0e12",
                     fontWeight: 700,
                     cursor: isSubmitting || !partner ? "not-allowed" : "pointer",
                     fontSize: "13px",
-                    boxShadow: "0 2px 8px rgba(200, 155, 69, 0.3)",
+                    boxShadow: isSubmitting || !partner ? "none" : "0 2px 10px rgba(212, 175, 55, 0.3)",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   {isSubmitting ? "Proposing..." : "Send Trade Offer"}
@@ -501,7 +513,7 @@ export function TradeModal({
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                          <span style={{ fontWeight: 700, color: "#fff", fontSize: "13px" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-primary, #f8fafc)", fontSize: "13px" }}>
                             From: <span style={{ color: "var(--gold-300)" }}>{offer.senderName}</span>
                           </span>
                           <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
@@ -564,12 +576,13 @@ export function TradeModal({
                             style={{
                               padding: "6px 14px",
                               borderRadius: "6px",
-                              border: "1px solid var(--crimson)",
-                              background: "rgba(200, 50, 50, 0.15)",
-                              color: "#ff8b8b",
+                              border: "1px solid rgba(239, 68, 68, 0.5)",
+                              background: "rgba(239, 68, 68, 0.18)",
+                              color: "#fca5a5",
                               cursor: "pointer",
                               fontSize: "12px",
                               fontWeight: 600,
+                              transition: "all 0.15s ease",
                             }}
                           >
                             Reject
@@ -629,7 +642,7 @@ export function TradeModal({
                       >
                         <div style={{ fontSize: "12px" }}>
                           <span style={{ color: "var(--text-muted)" }}>Sent to </span>
-                          <strong style={{ color: "#fff" }}>{offer.receiverName}</strong>
+                          <strong style={{ color: "var(--text-primary, #f8fafc)" }}>{offer.receiverName}</strong>
                           <div style={{ color: "var(--gold-300)", marginTop: "2px" }}>
                             Giving: ₹{offer.senderCash.toLocaleString()} {offer.senderPropertyIds.map(getPropName).join(", ")} | Asking: ₹{offer.receiverCash.toLocaleString()} {offer.receiverPropertyIds.map(getPropName).join(", ")}
                           </div>
@@ -639,11 +652,13 @@ export function TradeModal({
                           style={{
                             padding: "6px 12px",
                             borderRadius: "6px",
-                            border: "1px solid var(--border-subtle)",
-                            background: "transparent",
-                            color: "var(--text-muted)",
+                            border: "1px solid rgba(239, 68, 68, 0.4)",
+                            background: "rgba(239, 68, 68, 0.12)",
+                            color: "#fca5a5",
                             cursor: "pointer",
                             fontSize: "11px",
+                            fontWeight: 600,
+                            transition: "all 0.15s ease",
                           }}
                         >
                           Cancel
@@ -676,8 +691,8 @@ export function TradeModal({
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <span style={{ fontWeight: 700, color: "var(--gold-300)" }}>{offer.senderName}</span>
-                          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>⇄</span>
-                          <span style={{ fontWeight: 700, color: "#fff" }}>{offer.receiverName}</span>
+                          <span style={{ fontSize: "10px", color: "var(--text-muted, #94a3af)" }}>⇄</span>
+                          <span style={{ fontWeight: 700, color: "var(--text-primary, #f8fafc)" }}>{offer.receiverName}</span>
                         </div>
                         <span
                           style={{

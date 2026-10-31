@@ -38,7 +38,7 @@ export interface GameplayConfig {
 
   /**
    * Starting Capital:
-   * Cash awarded upon completing the first board rotation (Default: Rs. 25,000).
+   * Cash awarded upon completing the first board rotation (Default: Rs. 45,000).
    */
   defaultStartingMoney: number
 
@@ -58,9 +58,17 @@ export interface GameplayConfig {
 
   /**
    * Pass Start Bonus:
-   * Cash collected when passing or landing on Start after rotation 1 (Rs. 1,500).
+   * Cash collected when passing or landing on Start after rotation 1 (5% of starting capital, default Rs. 2,300).
    */
   passStartBonus: number
+}
+
+/**
+ * Calculates the dynamic 5% Start-crossing reward rounded to the nearest ₹100 with exact ₹50 ties rounding up.
+ * Integer-safe arithmetic: Math.floor((capital * 5 + 5000) / 10000) * 100
+ */
+export function calculateStartBonus(startingCapital: number = 45000): number {
+  return Math.floor((startingCapital * 5 + 5000) / 10000) * 100
 }
 
 export const GAME_CONFIG: GameplayConfig = {
@@ -70,9 +78,9 @@ export const GAME_CONFIG: GameplayConfig = {
   // --- Authoritative Game Rules ---
   requireLandingToBuild: false,
   doublesRuleDefault: true,
-  defaultStartingMoney: 25000,
+  defaultStartingMoney: 45000,
   turnTimerEnabledDefault: true,
   turnTimerSecondsDefault: 60,
   buildingRefundPercentage: 50,
-  passStartBonus: 1500,
+  passStartBonus: 2300,
 }

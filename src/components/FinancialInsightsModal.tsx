@@ -2,13 +2,18 @@ import { useState, useMemo } from "react"
 import type { EnginePlayer, TransactionRecord } from "../engine/GameEngineInterface"
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES, type ColorGroupId } from "../theme/colors"
-import { calculatePlayerPortfolio } from "../engine/portfolioUtils"
+import {
+  calculatePlayerPortfolio,
+  calculatePlayerWealthTax,
+  calculatePlayerRoundEarnings,
+} from "../engine/portfolioUtils"
 import { getPlayerColorHex } from "../utils/boardCoordinates"
 
 interface FinancialInsightsModalProps {
   players: EnginePlayer[]
   localPlayerId: number
   transactionLedger?: TransactionRecord[]
+  roundNumber?: number
   isHost?: boolean
   isMultiplayer?: boolean
   onKickPlayer?: (playerId: number) => void
@@ -20,6 +25,7 @@ export function FinancialInsightsModal({
   players,
   localPlayerId,
   transactionLedger = [],
+  roundNumber = 1,
   isHost = false,
   isMultiplayer = false,
   onKickPlayer,
@@ -64,6 +70,14 @@ export function FinancialInsightsModal({
   const portfolio = useMemo(() => {
     return calculatePlayerPortfolio(player)
   }, [player])
+
+  const wealthTax = useMemo(() => {
+    return calculatePlayerWealthTax(player)
+  }, [player])
+
+  const roundEarnings = useMemo(() => {
+    return calculatePlayerRoundEarnings(player.id, roundNumber, transactionLedger)
+  }, [player.id, roundNumber, transactionLedger])
 
   // Financial statistics from authoritative transaction ledger
   const financialStats = useMemo(() => {
@@ -288,7 +302,7 @@ export function FinancialInsightsModal({
                               #{idx + 1}
                             </span>
                             <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: pColor, display: "inline-block" }} />
-                            <strong style={{ fontSize: "13px", color: "#ffffff", letterSpacing: "0.02em" }}>
+                            <strong style={{ fontSize: "13px", color: "var(--text-primary, #f8fafc)", letterSpacing: "0.02em" }}>
                               {item.player.name}
                             </strong>
                             {isLocal && (
@@ -668,6 +682,43 @@ export function FinancialInsightsModal({
                 </div>
               </div>
 
+              {/* Tax Assessment & Rule Liabilities */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "10px" }}>
+                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(200, 155, 69, 0.4)", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, color: "var(--gold-300)", fontSize: "11px", textTransform: "uppercase" }}>
+                      Income Tax (Round #{roundNumber})
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: roundEarnings.incomeTax > 0 ? "var(--gold-bright, #ffd57e)" : "#94a3b8", marginTop: "4px" }}>
+                    ₹{roundEarnings.incomeTax.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                    Round Income: <span style={{ color: "#10b981" }}>+₹{roundEarnings.income.toLocaleString()}</span> | Expenses: <span style={{ color: "#ef4444" }}>-₹{roundEarnings.expenses.toLocaleString()}</span>
+                  </div>
+                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>
+                    Net Tax Base: ₹{roundEarnings.net.toLocaleString()} (Excludes financing &amp; noncash assets)
+                  </div>
+                </div>
+
+                <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(200, 155, 69, 0.4)", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, color: "var(--gold-300)", fontSize: "11px", textTransform: "uppercase" }}>
+                      Wealth Tax
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "18px", fontWeight: 800, color: wealthTax.totalTax > 0 ? "var(--gold-bright, #ffd57e)" : "#94a3b8", marginTop: "4px" }}>
+                    ₹{wealthTax.totalTax.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                    {wealthTax.undevelopedCount} unbuilt (₹{wealthTax.undevelopedTax}) · {wealthTax.housesCount} house{wealthTax.housesCount !== 1 ? "s" : ""} (₹{wealthTax.housesTax}) · {wealthTax.hotelsCount} hotel{wealthTax.hotelsCount !== 1 ? "s" : ""} (₹{wealthTax.hotelsTax})
+                  </div>
+                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.45)", marginTop: "2px" }}>
+                    Rates: ₹50 unbuilt / ₹100 per house / ₹150 per hotel
+                  </div>
+                </div>
+              </div>
+
               {/* Rent Economics Grid */}
               <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "12px" }}>
                 <div style={{ fontWeight: 700, color: "var(--gold-300)", fontSize: "12px", textTransform: "uppercase", marginBottom: "10px" }}>
@@ -742,7 +793,7 @@ export function FinancialInsightsModal({
                     return (
                       <div key={grp.name}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginBottom: "3px" }}>
-                          <span style={{ color: "#fff", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ color: "var(--text-primary, #f8fafc)", display: "flex", alignItems: "center", gap: "6px" }}>
                             <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: grp.hex }} />
                             {grp.name}
                           </span>
@@ -789,7 +840,7 @@ export function FinancialInsightsModal({
                         }}
                       >
                         <div>
-                          <strong style={{ color: p.isMortgaged ? "#ef4444" : "#fff" }}>{p.name}</strong>
+                          <strong style={{ color: p.isMortgaged ? "var(--financial-loss, #ef4444)" : "var(--text-primary, #f8fafc)" }}>{p.name}</strong>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
                             {p.isMortgaged ? "Mortgaged" : p.rentNote}
                           </div>
@@ -829,7 +880,7 @@ export function FinancialInsightsModal({
                             fontSize: "11px",
                           }}
                         >
-                          <span style={{ color: "#cbd5e1" }}>{tx.description}</span>
+                          <span style={{ color: "var(--text-secondary, #cbd5e1)" }}>{tx.description}</span>
                           <span style={{ fontWeight: 700, color: isReceiver ? "#10b981" : "#ef4444" }}>
                             {isReceiver ? "+" : "-"}₹{tx.amount.toLocaleString()}
                           </span>

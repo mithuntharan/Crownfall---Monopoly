@@ -95,6 +95,25 @@ export interface TransactionRecord {
   resultingBalances: Record<string, number>
 }
 
+// Authoritative Round Earnings for Income Tax Assessment (10% of net round earnings)
+export interface RoundEarningsSummary {
+  income: number
+  expenses: number
+  net: number
+  incomeTax: number
+}
+
+// Authoritative Development Breakdown for Wealth Tax Assessment
+export interface WealthTaxBreakdown {
+  undevelopedCount: number
+  undevelopedTax: number
+  housesCount: number
+  housesTax: number
+  hotelsCount: number
+  hotelsTax: number
+  totalTax: number
+}
+
 export interface TurnTimerState {
   enabled: boolean
   duration: number
@@ -108,10 +127,10 @@ export interface GameRules {
   minPlayers?: number
   maxPlayers?: number
   playerCount?: number
-  defaultStartingMoney?: number // 25000, 30000, 35000, 40000, 45000, 50000, 55000
+  defaultStartingMoney?: number // 40000, 45000 (default), 50000, 55000, 60000, 65000
   startingMoneyOptions?: number[]
   doublesRuleEnabled?: boolean
-  passStartBonus?: number // 1500
+  passStartBonus?: number // 5% of starting capital rounded to nearest ₹100 (e.g. 2300 for 45000)
   requireLandingToBuild?: boolean
   buildingRule?: "land" | "anywhere"
   baseRentDoublesForSet?: boolean
@@ -160,6 +179,7 @@ export interface GameState {
     position: number
     isActive: boolean
   }
+  propertyOwnerCrossings?: Record<string, number>
   rules?: GameRules
   players: EnginePlayer[]
 }
@@ -248,6 +268,8 @@ export interface IGameEngine {
   resignPlayer?(
     playerId: number,
   ): Promise<{ success: boolean; state: GameState; error?: string }>
+  calculatePlayerRoundEarnings?(playerId: number): RoundEarningsSummary
+  calculatePlayerWealthTax?(playerId: number): WealthTaxBreakdown
   getState(): Promise<GameState>
   setDevMode?(enabled: boolean, requesterId?: number): Promise<GameState>
   setActivePlayerIndex?(playerId: number): Promise<GameState>

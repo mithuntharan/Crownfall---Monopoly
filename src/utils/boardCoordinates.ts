@@ -54,13 +54,28 @@ export function getAxisCenterPercent(gridIndex: number): number {
   return ((1.7 + (gridIndex - 2) * 1.0 + 0.5) / 11.4) * 100
 }
 
-export function getTileCenterPercent(tileIndex: number): { x: number; y: number } {
+export function getTileCenterPercent(tileIndex: number, isDetained = false): { x: number; y: number } {
   const norm = ((tileIndex % 36) + 36) % 36
   const pos = BOARD_POSITIONS[norm] ?? { row: 10, col: 10 }
-  return {
+  const base = {
     x: getAxisCenterPercent(pos.col),
     y: getAxisCenterPercent(pos.row),
   }
+  if (norm === 9) {
+    // Space 9 (Bottom-Left Corner): Split into detention cell (inner top-right) and visiting corridor (outer bottom-left)
+    if (isDetained) {
+      return {
+        x: base.x + 2.6,
+        y: base.y - 2.6,
+      }
+    } else {
+      return {
+        x: base.x - 2.2,
+        y: base.y + 2.2,
+      }
+    }
+  }
+  return base
 }
 
 export function getMultiTokenOffset(rank: number, totalCount: number): { dx: number; dy: number } {

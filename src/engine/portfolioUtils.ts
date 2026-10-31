@@ -6,7 +6,12 @@ import {
   type SpecialPropertyDefinition,
   type ColorGroup,
 } from "../data/businessData"
-import type { EnginePlayer } from "./GameEngineInterface"
+import type {
+  EnginePlayer,
+  TransactionRecord,
+  RoundEarningsSummary,
+  WealthTaxBreakdown,
+} from "./GameEngineInterface"
 
 export interface PropertyValuationDetail {
   id: string
@@ -77,6 +82,19 @@ export function playerOwnedCountInGroup(player: EnginePlayer, group: ColorGroup)
   return count
 }
 
+export function getPlayerHotelCount(
+  player?: { ownedProperties?: string[]; buildings?: Record<string, number> } | null,
+): number {
+  if (!player || !player.ownedProperties || !player.buildings) return 0
+  let count = 0
+  for (const propId of player.ownedProperties) {
+    if ((player.buildings[propId] || 0) >= 4 && CITY_PROPERTIES[propId]) {
+      count++
+    }
+  }
+  return count
+}
+
 export function playerOwnsSpecialPair(player: EnginePlayer, specialId: string): boolean {
   const sp = SPECIAL_PROPERTIES[specialId]
   if (!sp) return false
@@ -119,7 +137,26 @@ export function calculatePropertyRent(
       return { rent: mult * 7, note: hasPair ? "Paired Multiplier (Avg ~₹700)" : "Single Multiplier (Avg ~₹350)" }
     } else {
       if (propId === "railway") {
-        return hasPair ? { rent: 1200, note: "With Roadways (₹1,200)" } : { rent: 600, note: "Alone (₹600)" }
+        if (hasPair) {
+          const hotels = getPlayerHotelCount(player)
+          const rent = Math.max(1000 * hotels, 2000)
+          return {
+            rent,
+            note: `With Roadways (₹${rent.toLocaleString()} · ${hotels} ${hotels === 1 ? "hotel" : "hotels"})`,
+          }
+        }
+        return { rent: 600, note: "Alone (₹600)" }
+      }
+      if (propId === "air_india" || propId === "airways") {
+        if (hasPair) {
+          const hotels = getPlayerHotelCount(player)
+          const rent = Math.max(1500 * hotels, 2500)
+          return {
+            rent,
+            note: `With Electrical Co. (₹${rent.toLocaleString()} · ${hotels} ${hotels === 1 ? "hotel" : "hotels"})`,
+          }
+        }
+        return { rent: 800, note: "Alone (₹800)" }
       }
       return hasPair ? { rent: 1500, note: "With Pair (₹1,500)" } : { rent: 800, note: "Alone (₹800)" }
     }
@@ -211,7 +248,7 @@ export function calculatePlayerPortfolio(
         let repay = 0
         if (isMortgaged) {
           mortgagedCount++
-          // Special properties have ZERO mortgage interest liability per Crownfall rules
+          // Special properties have ZERO mortgage interest liability
           repay = sp.mortgageValue
           liabilities += repay
         }
@@ -260,4 +297,100 @@ export function calculatePlayerPortfolio(
     formulaExplanation:
       "Net Worth = Cash Balance + Real Estate Value + Construction Investment − Mortgage Redemption Liabilities",
   }
+}
+
+/**
+ * Authoritative Wealth Tax Assessment
+ * - Undeveloped properties (city without buildings, or special property): ₹50
+ * - Properties with houses (1-3): ₹100 per house (no ₹50 property base)
+ * - Properties with hotel (level 4+): ₹150 flat per hotel (no house fees, no property base)
+ * - Mortgaged properties remain owned and subject to standard undeveloped tariff
+ */
+export function calculatePlayerWealthTax(player: EnginePlayer): WealthTaxBreakdown {
+  const breakdown: WealthTaxBreakdown = {
+    undevelopedCount: 0,
+    undevelopedTax: 0,
+    housesCount: 0,
+    housesTax: 0,
+    hotelsCount: 0,
+    hotelsTax: 0,
+    totalTax: 0,
+  }
+
+  const ownedIds = player.ownedProperties || []
+  for (const propId of ownedIds) {
+    const city = CITY_PROPERTIES[propId]
+    const bCount = player.buildings?.[propId] || 0
+
+    if (city && bCount > 0) {
+      if (bCount >= 4) {
+        // Hotel: ₹150 per hotel
+        breakdown.hotelsCount++
+        breakdown.hotelsTax += 150
+      } else {
+        // Houses: ₹100 per house
+        breakdown.housesCount += bCount
+        breakdown.housesTax += bCount * 100
+      }
+    } else {
+      // Undeveloped property (city with 0 buildings, or special property)
+      breakdown.undevelopedCount++
+      breakdown.undevelopedTax += 50
+    }
+  }
+
+  breakdown.totalTax = breakdown.undevelopedTax + breakdown.housesTax + breakdown.hotelsTax
+  return breakdown
+}
+
+/**
+ * Authoritative Income Tax Assessment
+ * 10% of net earnings during the current round:
+ * netEarnings = max(0, totalIncomeDuringRound - totalExpensesDuringRound)
+ * Excludes financing transactions (MORTGAGE and UNMORTGAGE) and noncash changes.
+ */
+export function calculatePlayerRoundEarnings(
+  playerId: number,
+  roundNumber: number,
+  transactionLedger: TransactionRecord[] = [],
+): RoundEarningsSummary {
+  let income = 0
+  let expenses = 0
+
+  for (const tx of transactionLedger) {
+    if (tx.turnNumber !== roundNumber) continue
+    if (tx.type === "MORTGAGE" || tx.type === "UNMORTGAGE" || tx.type === "RESIGNATION") {
+      continue
+    }
+
+    if (tx.primaryPlayerId === playerId) {
+      if (
+        tx.type === "RENT" ||
+        tx.type === "PURCHASE" ||
+        tx.type === "CONSTRUCTION" ||
+        tx.type === "FEE" ||
+        tx.type === "TAX" ||
+        tx.type === "TRADE"
+      ) {
+        expenses += tx.amount
+      } else if (
+        tx.type === "START_REWARD" ||
+        tx.type === "CAPITAL_REWARD" ||
+        tx.type === "DESTRUCTION_REFUND" ||
+        tx.type === "PROPERTY_SALE"
+      ) {
+        income += tx.amount
+      }
+    }
+
+    if (tx.counterpartyPlayerId === playerId) {
+      if (tx.type === "RENT" || tx.type === "TRADE") {
+        income += tx.amount
+      }
+    }
+  }
+
+  const net = Math.max(0, income - expenses)
+  const incomeTax = Math.round(net * 0.1)
+  return { income, expenses, net, incomeTax }
 }

@@ -30,6 +30,7 @@ export interface SpecialPropertyDefinition {
   rentAlone: string
   rentWithPair: string
   pair: string
+  pairProperty?: string
   isDiceMultiplier?: boolean
 }
 
@@ -42,6 +43,8 @@ export interface BoardSpaceDefinition {
   colorGroup: ColorGroup
   propertyId?: string
   side: "bottom" | "left" | "top" | "right"
+  description?: string
+
 }
 
 export type EventKind = "receive" | "pay" | "move" | "jail" | "rest" | "players" | "buildings"
@@ -356,6 +359,16 @@ export const CITY_PROPERTIES: Record<string, PropertyDefinition> = {
 }
 
 // 2. SPECIAL PROPERTIES (6 properties)
+export const SPECIAL_PAIR_MAP: Record<string, string> = {
+  railway: "roadways",
+  roadways: "railway",
+  electrical_company: "air_india",
+  air_india: "electrical_company",
+  airways: "electrical_company",
+  water_works: "motor_boat",
+  motor_boat: "water_works",
+}
+
 export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
   railway: {
     id: "railway",
@@ -363,8 +376,9 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     purchasePrice: 9500,
     mortgageValue: 4800,
     rentAlone: "₹600 fixed",
-    rentWithPair: "₹1,200 fixed",
+    rentWithPair: "max(₹1,000 × Hotels, ₹2,000)",
     pair: "Railway + Roadways",
+    pairProperty: "roadways",
     isDiceMultiplier: false,
   },
   roadways: {
@@ -375,6 +389,7 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     rentAlone: "₹50 × dice",
     rentWithPair: "₹100 × dice",
     pair: "Railway + Roadways",
+    pairProperty: "railway",
     isDiceMultiplier: true,
   },
   electrical_company: {
@@ -385,6 +400,7 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     rentAlone: "₹25 × dice",
     rentWithPair: "₹75 × dice",
     pair: "Electrical Company + Air India",
+    pairProperty: "air_india",
     isDiceMultiplier: true,
   },
   air_india: {
@@ -393,8 +409,9 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     purchasePrice: 10500,
     mortgageValue: 5300,
     rentAlone: "₹800 fixed",
-    rentWithPair: "₹1,500 fixed",
+    rentWithPair: "max(₹1,500 × Hotels, ₹2,500)",
     pair: "Electrical Company + Air India",
+    pairProperty: "electrical_company",
     isDiceMultiplier: false,
   },
   water_works: {
@@ -405,6 +422,7 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     rentAlone: "₹50 × dice",
     rentWithPair: "₹100 × dice",
     pair: "Water Works + Motor Boat",
+    pairProperty: "motor_boat",
     isDiceMultiplier: true,
   },
   motor_boat: {
@@ -415,6 +433,7 @@ export const SPECIAL_PROPERTIES: Record<string, SpecialPropertyDefinition> = {
     rentAlone: "₹75 × dice",
     rentWithPair: "₹150 × dice",
     pair: "Water Works + Motor Boat",
+    pairProperty: "water_works",
     isDiceMultiplier: true,
   },
 }
@@ -493,6 +512,8 @@ export const BOARD_SPACES: BoardSpaceDefinition[] = [
   {
     index: 5,
     name: "INCOME TAX",
+    description: "10% of net earnings in the current round (actual income minus actual expenses).",
+
     type: "tax",
     colorGroup: "NONE",
     side: "bottom",
@@ -693,6 +714,7 @@ export const BOARD_SPACES: BoardSpaceDefinition[] = [
   {
     index: 31,
     name: "WEALTH TAX",
+    description: "Assessment on property portfolio: ₹50 undeveloped, ₹100 per house, ₹150 per hotel.",
     type: "tax",
     colorGroup: "NONE",
     side: "right",

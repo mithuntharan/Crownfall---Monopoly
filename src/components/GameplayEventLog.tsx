@@ -276,259 +276,122 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
   const eventLogBody = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* 8 Category Tabs Bar */}
-      <div
-        className="event-log-tabs-bar"
-        style={{
-          display: "flex",
-          gap: "6px",
-          overflowX: "auto",
-                padding: "8px 12px",
-                background: "#ede5d5",
-                borderBottom: "1px solid rgba(180, 130, 40, 0.25)",
-                scrollbarWidth: "thin",
-                scrollbarColor: "var(--gold, #b45309) transparent",
-                WebkitOverflowScrolling: "touch",
-                flexShrink: 0,
-              }}
+      <div className="event-log-tabs-bar custom-scrollbar">
+        {EVENT_LOG_CATEGORIES.map((cat) => {
+          const isActive = activeCategory === cat.id
+          const count = categoryCounts[cat.id] ?? 0
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`event-log-cat-btn ${isActive ? "active" : ""}`}
+              onClick={() => setActiveCategory(cat.id)}
             >
-              {EVENT_LOG_CATEGORIES.map((cat) => {
-                const isActive = activeCategory === cat.id
-                const count = categoryCounts[cat.id] ?? 0
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setActiveCategory(cat.id)}
+              {cat.icon ? <span>{cat.icon}</span> : null}
+              <span>{cat.label}</span>
+              <span className={`event-log-cat-count ${isActive ? "active" : ""}`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Events List */}
+      <div
+        ref={feedRef}
+        onScroll={handleScroll}
+        className="event-log-feed custom-scrollbar"
+      >
+        {displayedEvents.length === 0 ? (
+          <div className="event-log-empty-state">
+            <span className="event-log-empty-title">[LOG EMPTY]</span>
+            <span className="event-log-empty-desc">
+              {deduplicatedEvents.length === 0
+                ? "No events recorded in this session yet."
+                : "No events match this category tab."}
+            </span>
+          </div>
+        ) : (
+          displayedEvents.map((evt, idx) => {
+            const typeKey = evt.type.toLowerCase()
+            const cfg = TYPE_CONFIG[typeKey] || TYPE_CONFIG[evt.type] || TYPE_CONFIG.roll
+            return (
+              <div
+                key={evt.id || `evt_${idx}`}
+                className={`event-log-entry-card ${cfg.isImportant ? "is-important" : ""}`}
+                style={{
+                  borderLeft: cfg.isImportant ? `4px solid ${cfg.accentBorder}` : undefined,
+                }}
+              >
+                {cfg.icon ? (
+                  <span className="event-log-icon">
+                    {cfg.icon}
+                  </span>
+                ) : null}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
                     style={{
-                      whiteSpace: "nowrap",
-                      padding: "6px 11px",
-                      minHeight: "34px",
-                      borderRadius: "7px",
-                      fontSize: "11px",
-                      fontFamily: "'Oswald', 'DM Sans', sans-serif",
-                      fontWeight: 700,
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                      cursor: "pointer",
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: "6px",
-                      transition: "all 0.18s ease",
-                      border: isActive
-                        ? "1px solid #711f31"
-                        : "1px solid rgba(180, 130, 40, 0.25)",
-                      background: isActive
-                        ? "linear-gradient(135deg, #881337 0%, #9f1239 100%)"
-                        : "rgba(255, 255, 255, 0.8)",
-                      color: isActive ? "#ffffff" : "#475569",
-                      boxShadow: isActive ? "0 2px 6px rgba(136, 19, 55, 0.35)" : "none",
+                      justifyContent: "space-between",
+                      gap: "8px",
+                      marginBottom: "3px",
                     }}
                   >
-                    {cat.icon ? <span>{cat.icon}</span> : null}
-                    <span>{cat.label}</span>
-                    <span
-                      style={{
-                        padding: "1px 5px",
-                        borderRadius: "10px",
-                        fontSize: "9.5px",
-                        fontWeight: 800,
-                        background: isActive
-                          ? "rgba(255, 255, 255, 0.25)"
-                          : "rgba(0, 0, 0, 0.08)",
-                        color: isActive ? "#ffffff" : "#334155",
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Events List */}
-            <div
-              ref={feedRef}
-              onScroll={handleScroll}
-              style={{
-                padding: "10px 14px",
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-                flex: 1,
-                background: "#f9f7f2",
-              }}
-            >
-              {displayedEvents.length === 0 ? (
-                <div
-                  style={{
-                    padding: "48px 16px",
-                    textAlign: "center",
-                    color: "#64748b",
-                    fontSize: "13px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
-                >
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--gold-400, #b45309)" }}>[LOG EMPTY]</span>
-                  <span>
-                    {deduplicatedEvents.length === 0
-                      ? "No events recorded in this session yet."
-                      : "No events match this category tab."}
-                  </span>
-                </div>
-              ) : (
-                displayedEvents.map((evt, idx) => {
-                  const typeKey = evt.type.toLowerCase()
-                  const cfg = TYPE_CONFIG[typeKey] || TYPE_CONFIG[evt.type] || TYPE_CONFIG.roll
-                  return (
-                    <div
-                      key={evt.id || `evt_${idx}`}
-                      style={{
-                        background: "#fffdf9",
-                        border: "1px solid rgba(202, 192, 175, 0.45)",
-                        borderLeft: cfg.isImportant ? `4px solid ${cfg.accentBorder}` : "1px solid rgba(202, 192, 175, 0.45)",
-                        borderRadius: "7px",
-                        padding: "8px 12px",
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "10px",
-                        boxShadow: "0 1px 3px rgba(60, 50, 40, 0.05)",
-                      }}
-                    >
-                      {cfg.icon ? (
-                        <span
-                          style={{
-                            fontSize: "16px",
-                            lineHeight: 1,
-                            marginTop: "2px",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {cfg.icon}
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span
+                        className={`event-type-badge badge-${typeKey}`}
+                        style={{
+                          borderColor: cfg.border,
+                          background: cfg.bg,
+                          color: cfg.color,
+                        }}
+                      >
+                        {cfg.label}
+                      </span>
+                      {evt.turnNumber !== undefined && (
+                        <span className="event-turn-pill">
+                          Turn #{evt.turnNumber}
                         </span>
-                      ) : null}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "8px",
-                            marginBottom: "3px",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span
-                              style={{
-                                fontSize: "9.5px",
-                                fontWeight: 800,
-                                letterSpacing: "0.06em",
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                                background: cfg.bg,
-                                color: cfg.color,
-                                border: `1px solid ${cfg.border}`,
-                              }}
-                            >
-                              {cfg.label}
-                            </span>
-                            {evt.turnNumber !== undefined && (
-                              <span
-                                style={{
-                                  fontSize: "9.5px",
-                                  fontWeight: 600,
-                                  color: "#4b4f56",
-                                  background: "#f4ede0",
-                                  padding: "1px 5px",
-                                  borderRadius: "3px",
-                                }}
-                              >
-                                Turn #{evt.turnNumber}
-                              </span>
-                            )}
-                          </div>
-                          <span
-                            style={{
-                              fontSize: "10px",
-                              color: "#686d76",
-                              fontWeight: 500,
-                              fontFamily: "DM Sans, sans-serif",
-                            }}
-                          >
-                            {new Date(evt.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "12.5px",
-                            color: "#1e2024",
-                            fontWeight: 500,
-                            lineHeight: 1.35,
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          <strong style={{ color: "#1e2024", fontWeight: 700 }}>
-                            {evt.playerName}:
-                          </strong>{" "}
-                          {evt.description}
-                        </div>
-                        {evt.amount !== undefined && evt.amount !== 0 && (
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 800,
-                              marginTop: "3px",
-                              color: evt.amount > 0 ? "#15803d" : "#b91c1c",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            <span
-                              style={{
-                                padding: "1px 6px",
-                                borderRadius: "4px",
-                                background: evt.amount > 0 ? "#dcfce7" : "#fee2e2",
-                                border: `1px solid ${evt.amount > 0 ? "#bbf7d0" : "#fecaca"}`,
-                              }}
-                            >
-                              {evt.amount > 0 ? `+₹${evt.amount.toLocaleString()}` : `-₹${Math.abs(evt.amount).toLocaleString()}`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  )
-                })
-              )}
-            </div>
+                    <span className="event-timestamp">
+                      {new Date(evt.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="event-desc-text">
+                    <strong className="event-player-name">
+                      {evt.playerName}:
+                    </strong>{" "}
+                    {evt.description}
+                  </div>
+                  {evt.amount !== undefined && evt.amount !== 0 && (
+                    <div className="event-amount-wrapper">
+                      <span
+                        className={`event-amount-pill ${evt.amount > 0 ? "gain" : "loss"}`}
+                      >
+                        {evt.amount > 0 ? `+₹${evt.amount.toLocaleString()}` : `-₹${Math.abs(evt.amount).toLocaleString()}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
 
-            {/* Footer */}
-            <div
-              style={{
-                borderTop: "1.5px solid rgba(180, 130, 40, 0.25)",
-                padding: "10px 16px",
-                background: "#f4ede0",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: "11.5px",
-                color: "#64748b",
-                fontWeight: 600,
-                flexShrink: 0,
-              }}
-            >
-              <span>
-                Showing {displayedEvents.length} of {deduplicatedEvents.length} events
-              </span>
-            </div>
+      {/* Footer */}
+      <div className="event-log-footer">
+        <span>
+          Showing {displayedEvents.length} of {deduplicatedEvents.length} events
+        </span>
+      </div>
     </div>
   )
 
@@ -560,70 +423,21 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
       <div
         className="event-log-card"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "580px",
-          maxWidth: "min(580px, 96vw)",
-          maxHeight: "calc(100dvh - 24px)",
-          height: "min(640px, calc(100dvh - 24px))",
-          background: "linear-gradient(180deg, #fefdfb 0%, #f7f3ea 100%)",
-          border: "1.5px solid var(--gold, #b45309)",
-          borderRadius: "14px",
-          boxShadow: "0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(0,0,0,0.08)",
-          display: "flex",
-          flexDirection: "column",
-          color: "#0f172a",
-          fontFamily: "'DM Sans', sans-serif",
-          overflow: "hidden",
-        }}
       >
         {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: "1.5px solid rgba(180, 130, 40, 0.3)",
-            padding: "12px 18px",
-            background: "#f4ede0",
-            flexShrink: 0,
-          }}
-        >
+        <div className="event-log-card-header">
           <div>
-            <strong
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "17px",
-                fontWeight: 800,
-                color: "#451a03",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                letterSpacing: "0.02em",
-              }}
-            >
+            <strong className="event-log-card-title">
               CROWNFALL CHRONICLE · EVENT LOG
             </strong>
-            <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px", fontWeight: 500 }}>
+            <span className="event-log-card-subtitle">
               Authoritative chronological game events · Oldest to newest
             </span>
           </div>
           <button
             onClick={handleToggle}
             aria-label="Close event log"
-            style={{
-              background: "rgba(0, 0, 0, 0.05)",
-              border: "1px solid rgba(180, 130, 40, 0.35)",
-              borderRadius: "50%",
-              width: "30px",
-              height: "30px",
-              color: "#475569",
-              display: "grid",
-              placeItems: "center",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: 700,
-              transition: "all 0.15s ease",
-            }}
+            className="event-log-close-btn"
           >
             ✕
           </button>

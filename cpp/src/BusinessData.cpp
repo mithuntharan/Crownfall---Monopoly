@@ -35,10 +35,10 @@ static const std::vector<PropertyDefinition> s_cityProperties = {
 };
 
 static const std::vector<SpecialPropertyDefinition> s_specialProperties = {
-    { "railway", "Railway", 9500, 4800, "₹600 fixed", "₹1,200 fixed", "Roadways", false, 600, 1200 },
+    { "railway", "Railway", 9500, 4800, "₹600 fixed", "max(₹1,000 × Hotels, ₹2,000)", "Roadways", false, 600, 2000 },
     { "roadways", "Roadways", 3200, 1600, "₹50 × dice", "₹100 × dice", "Railway", true, 50, 100 },
     { "electrical_company", "Electrical Company", 2500, 1300, "₹25 × dice", "₹75 × dice", "Air India", true, 25, 75 },
-    { "air_india", "Air India", 10500, 5300, "₹800 fixed", "₹1,500 fixed", "Electrical Company", false, 800, 1500 },
+    { "air_india", "Air India", 10500, 5300, "₹800 fixed", "max(₹1,500 × Hotels, ₹2,500)", "Electrical Company", false, 800, 2500 },
     { "water_works", "Water Works", 3200, 1600, "₹50 × dice", "₹100 × dice", "Motor Boat", true, 50, 100 },
     { "motor_boat", "Motor Boat", 5500, 2800, "₹75 × dice", "₹150 × dice", "Water Works", true, 75, 150 }
 };

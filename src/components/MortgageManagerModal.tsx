@@ -197,7 +197,7 @@ export function MortgageManagerModal({
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{ width: "6px", height: "36px", borderRadius: "3px", background: prop.hex }} />
                     <div>
-                      <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ fontWeight: 700, color: "var(--text-primary, #f8fafc)", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
                         {prop.name}
                         {prop.isMortgaged && (
                           <MortgageStatusIndicator isMortgaged={true} variant="badge" />

@@ -42,7 +42,7 @@ void runEngineRulesTests() {
   std::cout << "========================================\n";
 
   GameRules rules;
-  rules.defaultStartingMoney = 25000;
+  rules.defaultStartingMoney = 45000;
   rules.doublesRuleEnabled = true;
 
   GameEngine engine(rules);
@@ -76,7 +76,7 @@ void runEngineRulesTests() {
       4, 6)); // Player 1 crosses start (27 + 10 = 37 -> space 1: Bombay)
 
   assert(engine.getPlayers()[0].rotationsCompleted == 1);
-  assert(engine.getPlayers()[0].money == 25000);
+  assert(engine.getPlayers()[0].money == 45000);
   std::cout << "  \u2713 Rule 5: Awarded Rs. 25,000 starting capital upon "
                "completing first rotation!\n";
 
@@ -84,7 +84,7 @@ void runEngineRulesTests() {
   // Player 1 is on space 1 (Bombay, price 8500)
   bool bought = engine.buyCurrentProperty(0);
   assert(bought);
-  assert(engine.getPlayers()[0].money == 25000 - 8500);
+  assert(engine.getPlayers()[0].money == 45000 - 8500);
   std::cout
       << "  \u2713 Rule 21: Successfully purchased Bombay for Rs. 8,500!\n";
 
@@ -113,7 +113,7 @@ void runRegressionTests() {
   {
     GameRules r;
     r.doublesRuleEnabled = false;
-    r.defaultStartingMoney = 25000;
+    r.defaultStartingMoney = 45000;
     GameEngine eng(r);
     eng.addPlayer("Alpha", "red", "A");
     eng.startGame();
@@ -130,7 +130,7 @@ void runRegressionTests() {
     assert(wr.newPosition == 1);       // (35+2)%36 = 1
     assert(wr.startingCapitalAwarded); // First time crossing start = capital
     assert(eng.getPlayers()[0].rotationsCompleted == 1);
-    assert(eng.getPlayers()[0].money == 25000);
+    assert(eng.getPlayers()[0].money == 45000);
     std::cout << "  \u2713 Board wraparound: pos 35 + 2 = space 1 (Bombay). "
                  "Starting capital awarded.\n";
   }
@@ -139,7 +139,7 @@ void runRegressionTests() {
   {
     GameRules r;
     r.doublesRuleEnabled = true;
-    r.defaultStartingMoney = 25000;
+    r.defaultStartingMoney = 45000;
     GameEngine eng(r);
     eng.addPlayer("Beta", "blue", "B");
     eng.startGame();
@@ -164,7 +164,7 @@ void runRegressionTests() {
   {
     GameRules r;
     r.doublesRuleEnabled = true;
-    r.defaultStartingMoney = 25000;
+    r.defaultStartingMoney = 45000;
     GameEngine eng(r);
     eng.addPlayer("Beta", "blue", "B");
     eng.startGame();
@@ -219,7 +219,7 @@ void runRegressionTests() {
   {
     GameRules r;
     r.doublesRuleEnabled = false;
-    r.defaultStartingMoney = 25000;
+    r.defaultStartingMoney = 45000;
     r.requireLandingToBuild =
         false; // Turn off landing requirement to test ownership check only
     GameEngine eng(r);
@@ -231,7 +231,7 @@ void runRegressionTests() {
     eng.rollAndMove(
         std::make_pair(12, 13)); // pos (11+25)=36 -> 0 (passed start)
     assert(eng.getPlayers()[0].rotationsCompleted == 1);
-    assert(eng.getPlayers()[0].money == 25000);
+    assert(eng.getPlayers()[0].money == 45000);
 
     // Try to build on Bombay which Gamma doesn't own
     bool builtUnowned = eng.buildHouseOrHotel(0, "bombay");
@@ -243,7 +243,7 @@ void runRegressionTests() {
   {
     GameRules r;
     r.doublesRuleEnabled = false;
-    r.defaultStartingMoney = 20000;
+    r.defaultStartingMoney = 45000;
     GameEngine eng(r);
     eng.addPlayer("P1", "red", "1");
     eng.addPlayer("P2", "blue", "2");
@@ -262,7 +262,7 @@ void runRegressionTests() {
         std::make_pair(1, 2)); // P1: pos 2  (35+3=38%36=2, crosses start)
 
     assert(eng.getPlayers()[0].rotationsCompleted == 1);
-    assert(eng.getPlayers()[0].money == 20000); // P1 got starting capital
+    assert(eng.getPlayers()[0].money == 45000); // P1 got starting capital
     assert(eng.getPlayers()[1].rotationsCompleted ==
            0);                              // P2 still in first rotation
     assert(eng.getPlayers()[1].money == 0); // P2 gets nothing yet
@@ -769,7 +769,7 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
   }
 
   if (action == "init" || action == "reset" || action == "start" || action == "resetToLobby") {
-    int startingMoney = getJsonIntField(line, "startingMoney", 25000);
+    int startingMoney = getJsonIntField(line, "startingMoney", 45000);
     if (line.find("\"defaultStartingMoney\"") != std::string::npos) {
       startingMoney = getJsonIntField(line, "defaultStartingMoney", startingMoney);
     }

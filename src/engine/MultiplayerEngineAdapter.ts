@@ -31,6 +31,16 @@ export class MultiplayerEngineAdapter implements IGameEngine {
           ...snap.rules,
         }
       }
+      if (snap.players && snap.players.length > 0) {
+        snap.gameState.players = snap.players.map((p, idx) => ({
+          ...p,
+          token: p.token || String(idx + 1),
+          isHuman: p.isHuman !== undefined ? p.isHuman : true,
+          ownedProperties: p.ownedProperties || [],
+          buildings: p.buildings || {},
+          mortgages: p.mortgages || {},
+        }))
+      }
       return snap.gameState
     }
 
@@ -50,6 +60,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       currentTurnId: snap?.gameState?.currentTurnId ?? 1,
       turnPurchasedProperties: snap?.gameState?.turnPurchasedProperties ?? [],
       turnBuildingsBuilt: snap?.gameState?.turnBuildingsBuilt ?? [],
+      propertyOwnerCrossings: snap?.gameState?.propertyOwnerCrossings ?? {},
       activeLanding: snap?.gameState?.activeLanding,
       players: (snap?.players || []).map((p, idx) => ({
         id: p.id,
@@ -79,15 +90,33 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     }
   }
 
+  private mapSnapshotToState(snap: any): GameState {
+    if (!snap) return this.getFallbackState()
+    const base = snap.gameState || this.getFallbackState()
+    const snapPlayers = (snap.players && snap.players.length > 0) ? snap.players : base.players
+    return {
+      ...base,
+      players: snapPlayers.map((p: any, idx: number) => ({
+        ...p,
+        token: p.token || String(idx + 1),
+        isHuman: p.isHuman !== undefined ? p.isHuman : true,
+        ownedProperties: p.ownedProperties || [],
+        buildings: p.buildings || {},
+        mortgages: p.mortgages || {},
+      })),
+      propertyOwnerCrossings: base.propertyOwnerCrossings ?? snap.gameState?.propertyOwnerCrossings ?? {},
+    }
+  }
+
   async getState(): Promise<GameState> {
     return this.getFallbackState()
   }
 
   async startGame(
-    _rules?: GameRules,
+    rules?: GameRules,
     _playerConfigs?: PlayerSetup[],
   ): Promise<GameState> {
-    await multiplayerClient.startGame()
+    await multiplayerClient.startGame(rules)
     return this.getFallbackState()
   }
 
@@ -128,7 +157,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.buyProperty()
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Purchase failed." }
@@ -139,7 +168,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.declineProperty()
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Decline failed." }
@@ -149,7 +178,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
   async endTurn(_playerId: number): Promise<{ state: GameState }> {
     try {
       const res = await multiplayerClient.endTurn()
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { state }
     } catch (_) {
       return { state: this.getFallbackState() }
@@ -160,7 +189,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.buildBuilding(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error, reason: res?.reason }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Building request rejected.", reason: err?.reason }
@@ -171,7 +200,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.sellBuilding(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Sell request rejected." }
@@ -182,7 +211,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.mortgageProperty(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Mortgage request rejected." }
@@ -193,7 +222,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     try {
       const res = await multiplayerClient.unmortgageProperty(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
-      const state = res?.snapshot?.gameState || this.getFallbackState()
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       return { success, state, error: res?.error }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Unmortgage request rejected." }
@@ -217,7 +246,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
           error: res?.message || res?.error || "Failed to sell property.",
         }
       }
-      const state = res?.snapshot?.gameState || (await this.getState())
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
       const sellPrice = typeof res?.sellPrice === "number" ? res.sellPrice : undefined
       return { success: true, state, sellPrice }
     } catch (e: any) {

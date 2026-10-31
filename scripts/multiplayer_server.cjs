@@ -190,9 +190,10 @@ class Room {
       readyPlayers: new Set(),
     };
     this.isRematching = false;
+    this.chatHistory = [];
 
     this.rules = {
-      defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
+      defaultStartingMoney: rules.defaultStartingMoney ?? 45000,
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
       maxPlayers: Math.max(2, Math.min(6, rules.maxPlayers ?? 4)),
       minPlayers: 2,
@@ -299,6 +300,44 @@ class Room {
     console.log(`[MULTIPLAYER SERVER] Room ${this.roomCode} expired after 10 continuous minutes with 0 players.`);
     this.destroy();
     rooms.delete(this.roomCode);
+  }
+
+  addChatMessage(player, text) {
+    const rawText = String(text || '').trim();
+    if (!rawText) {
+      throw new Error('Empty or whitespace-only messages are rejected.');
+    }
+    const charCount = [...rawText].length;
+    if (charCount > 64) {
+      throw new Error('Message exceeds maximum limit of 64 characters.');
+    }
+    const sanitizedText = rawText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const chatMsg = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      roomCode: this.roomCode,
+      senderId: player.id,
+      senderName: player.name,
+      senderColor: player.color,
+      text: sanitizedText,
+      timestamp: Date.now(),
+    };
+
+    if (!this.chatHistory) this.chatHistory = [];
+    this.chatHistory.push(chatMsg);
+    if (this.chatHistory.length > 50) this.chatHistory.shift();
+
+    broadcastToRoom(this, {
+      type: 'CHAT_MESSAGE',
+      message: chatMsg,
+    });
+
+    return chatMsg;
   }
 
   hasActiveHost() {
@@ -885,9 +924,9 @@ class Room {
     const defaultStartingMoney = newRules.defaultStartingMoney ?? newRules.startingMoney;
     if (defaultStartingMoney !== undefined) {
       const parsedMoney = parseInt(defaultStartingMoney, 10);
-      const validStartingOptions = [25000, 30000, 35000, 40000, 45000, 50000, 55000];
+      const validStartingOptions = [30000, 35000, 40000, 45000, 50000, 55000, 60000, 65000, 70000];
       if (!validStartingOptions.includes(parsedMoney)) {
-        throw new Error(`Invalid starting money: ₹${defaultStartingMoney}. Supported options: ₹25,000 to ₹55,000 in increments of ₹5,000.`);
+        throw new Error(`Invalid starting money: ₹${defaultStartingMoney}. Supported options: ₹30,000 to ₹70,000 in increments of ₹5,000.`);
       }
       this.rules.defaultStartingMoney = parsedMoney;
     }
@@ -1009,8 +1048,8 @@ class Room {
         p6Name: this.players[5]?.name || 'Player 6',
         p6Color: this.players[5]?.color || 'purple',
         p6IsHuman: true,
-        defaultStartingMoney: this.rules.defaultStartingMoney ?? 25000,
-        startingMoney: this.rules.defaultStartingMoney ?? 25000,
+        defaultStartingMoney: this.rules.defaultStartingMoney ?? 45000,
+        startingMoney: this.rules.defaultStartingMoney ?? 45000,
         doublesRuleEnabled: this.rules.doublesRuleEnabled ?? true,
         timerEnabled: this.rules.timerEnabled ?? false,
         timerSeconds: this.rules.timerSeconds ?? 60,
@@ -1069,7 +1108,7 @@ class Room {
         if (action === 'roll') {
           const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
           if (process.env.REST_HOUSE_DEBUG === '1') { console.log(`[REST_DIAGNOSTIC] Roll attempt: player=${playerId}, pos=${engPlayer?.position}, restHouseTurns=${engPlayer?.restHouseTurns ?? 0}, inRestHouse=${engPlayer?.inRestHouse}`); }
-          if (engPlayer?.inRestHouse || engPlayer?.cardJailSkip || (engPlayer?.restHouseTurns || 0) > 0 || (engPlayer?.cardJailSkipTurns || 0) > 0) {
+          if (engPlayer?.inRestHouse || (engPlayer?.restHouseTurns || 0) > 0 || engPlayer?.cardJailSkip || (engPlayer?.cardJailSkipTurns || 0) > 0) {
             throw new Error('Cannot roll: your turn is skipped.');
           }
           const curTurnState = this.gameState.turnState;
@@ -1201,7 +1240,7 @@ class Room {
 
       // 3. Start Crossing: First rotation capital or pass start bonus (RENT_PAYMENTS)
       if (res.startingCapitalAwarded) {
-        const capAmount = this.rules.defaultStartingMoney || 25000;
+        const capAmount = this.rules.defaultStartingMoney || 45000;
         this.addEvent({
           id: `ev_cap_${now}_${player.id}_${seq}`,
           type: 'START_PASS',
@@ -1303,7 +1342,7 @@ class Room {
           playerName: player.name,
           playerColor: player.color,
           sequenceNumber: seq,
-          description: res.eventDescription || `${player.name} stopped at the Rest House (must skip next turn).`,
+          description: res.eventDescription || `${player.name} stopped at the Rest House.`,
         });
       }
 
@@ -1944,6 +1983,7 @@ class Room {
       gameState: this.gameState,
       eventLog: this.eventLog,
       transactionLedger: this.transactionLedger,
+      chatHistory: this.chatHistory || [],
     };
   }
 
@@ -2390,6 +2430,9 @@ async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0
         requestId,
       });
     } else if (type === 'START_GAME') {
+      if (payload && payload.rules && !room.settingsLocked) {
+        try { room.updateRules(player.id, payload.rules); } catch (_) {}
+      }
       const snapshot = await room.startGame(player.id);
       broadcastToRoom(room, {
         type: 'GAME_STARTED',
@@ -2449,6 +2492,24 @@ async function handleClientMessage(msg, socket, bindContext, clientIp = '127.0.0
       socket.write(encodeWsTextFrame(JSON.stringify({
         type: 'KICK_PLAYER_ACK',
         ...result,
+        requestId,
+      })));
+    } else if (type === 'CHAT_MESSAGE') {
+      const rateKey = `chat_${player.sessionToken || player.id}`;
+      const rateCheck = globalRateLimiter.consume('CHAT_MESSAGE', rateKey);
+      if (!rateCheck.allowed) {
+        socket.write(encodeWsTextFrame(JSON.stringify({
+          type: 'ERROR',
+          message: 'Chat rate limit exceeded. Please wait a moment.',
+          requestId,
+        })));
+        return;
+      }
+      const msgText = payload?.text !== undefined ? payload.text : msg.text;
+      const chatMsg = room.addChatMessage(player, msgText);
+      socket.write(encodeWsTextFrame(JSON.stringify({
+        type: 'CHAT_ACK',
+        messageId: chatMsg.id,
         requestId,
       })));
     }
@@ -2945,6 +3006,38 @@ const server = http.createServer((req, res) => {
         return sendJson(res, 404, result);
       }
       return sendJson(res, 200, result);
+    }
+
+    // Send Chat via HTTP POST: POST /api/multiplayer/room/:code/chat
+    const chatMatch = pathname.match(/^\/api\/multiplayer\/room\/([A-Za-z0-9-]+)\/chat$/);
+    if (req.method === 'POST' && chatMatch) {
+      const roomCode = chatMatch[1].toUpperCase();
+      const room = rooms.get(roomCode);
+      if (!room || room.isExpired) {
+        return sendJson(res, 404, { ok: false, error: 'Room not found or expired.' });
+      }
+      let body;
+      try {
+        body = await parseBody(req);
+      } catch (e) {
+        return sendJson(res, 400, { ok: false, error: 'Malformed JSON payload.' });
+      }
+      const { sessionToken, reconnectToken, text } = body || {};
+      const player = room.getPlayerByToken(sessionToken || reconnectToken);
+      if (!player) {
+        return sendJson(res, 403, { ok: false, error: 'Unauthorized player session.' });
+      }
+      const rateKey = `chat_${player.sessionToken || player.id}`;
+      const rateCheck = globalRateLimiter.consume('CHAT_MESSAGE', rateKey);
+      if (!rateCheck.allowed) {
+        return sendJson(res, 429, { ok: false, error: 'Chat rate limit reached. Please wait a moment.' });
+      }
+      try {
+        const chatMsg = room.addChatMessage(player, text);
+        return sendJson(res, 200, { ok: true, message: chatMsg });
+      } catch (err) {
+        return sendJson(res, 400, { ok: false, error: err.message });
+      }
     }
 
     // Leave Room: POST /api/multiplayer/room/:code/leave

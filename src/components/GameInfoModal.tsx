@@ -307,7 +307,7 @@ export function GameInfoModal({
 
         {/* Panel Body: Persistent subtab views to prevent resetting state/forms/history */}
         <div
-          className="game-info-subtabs-body"
+          className="game-info-subtabs-body custom-scrollbar"
           style={{
             flex: 1,
             overflowY: "auto",

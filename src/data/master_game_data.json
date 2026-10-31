@@ -334,7 +334,7 @@
       "purchasePrice": 9500,
       "mortgageValue": 4800,
       "rentAlone": "\u20b9600 fixed",
-      "rentWithPair": "\u20b91,200 fixed",
+      "rentWithPair": "max(\u20b91,000 \u00d7 Hotels, \u20b92,000)",
       "pair": "Railway + Roadways"
     },
     {
@@ -361,7 +361,7 @@
       "purchasePrice": 10500,
       "mortgageValue": 5300,
       "rentAlone": "\u20b9800 fixed",
-      "rentWithPair": "\u20b91,500 fixed",
+      "rentWithPair": "max(\u20b91,500 \u00d7 Hotels, \u20b92,500)",
       "pair": "Electrical Company + Air India"
     },
     {
@@ -594,12 +594,12 @@
     {
       "section": "Game Setup",
       "rule": "Starting money options",
-      "value": "\u20b920,000 / \u20b925,000 / \u20b930,000"
+      "value": "₹30,000 / ₹35,000 / ₹40,000 / ₹45,000 / ₹50,000 / ₹55,000 / ₹60,000 / ₹65,000 / ₹70,000"
     },
     {
       "section": "Game Setup",
       "rule": "Default starting money",
-      "value": "\u20b925,000"
+      "value": "₹45,000"
     },
     {
       "section": "Game Setup",
@@ -649,7 +649,7 @@
     {
       "section": "Movement",
       "rule": "Pass Start",
-      "value": "\u20b91,500 after first rotation; landing exactly on Start counts"
+      "value": "5% of starting capital (rounded to nearest \u20b9100) after first rotation; landing exactly on Start counts"
     },
     {
       "section": "First Rotation",
@@ -679,7 +679,7 @@
     {
       "section": "First Rotation",
       "rule": "Start bonus",
-      "value": "No \u20b91,500 bonus; starting capital awarded when first rotation completes"
+      "value": "No 5% Start bonus; starting capital awarded when first rotation completes"
     },
     {
       "section": "Property Purchase",

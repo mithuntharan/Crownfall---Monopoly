@@ -25,11 +25,9 @@ export const BoardCenterPurchaseControl: React.FC<BoardCenterPurchaseControlProp
   onDecline,
   isSubmitting = false,
 }) => {
-  if (!pending) return null
+  if (!pending || !pending.canAfford) return null
 
   const price = pending.purchasePrice
-  const buyerCash = pending.buyerMoney
-  const canAfford = buyerCash >= price
 
   return (
     <div
@@ -80,7 +78,7 @@ export const BoardCenterPurchaseControl: React.FC<BoardCenterPurchaseControlProp
             type="button"
             className="btn-purchase-buy"
             onClick={onBuy}
-            disabled={!canAfford || isSubmitting}
+            disabled={isSubmitting}
             title={`Buy ${pending.propertyName} for ₹${price.toLocaleString()}`}
           >
             {isSubmitting ? "BUYING..." : `BUY ₹${price.toLocaleString()}`}

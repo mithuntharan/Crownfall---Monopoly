@@ -28,7 +28,8 @@ export class CppEngineClient implements IGameEngine {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        startingMoney: rules?.defaultStartingMoney ?? 25000,
+        startingMoney: rules?.defaultStartingMoney ?? 45000,
+        passStartBonus: rules?.passStartBonus ?? Math.floor(((rules?.defaultStartingMoney ?? 45000) * 5 + 5000) / 10000) * 100,
         doubles: rules?.doublesRuleEnabled ?? true,
         timerEnabled: rules?.timerEnabled ?? false,
         timerSeconds: rules?.timerSeconds ?? 60,
@@ -64,7 +65,8 @@ export class CppEngineClient implements IGameEngine {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        startingMoney: rules?.defaultStartingMoney ?? 25000,
+        startingMoney: rules?.defaultStartingMoney ?? 45000,
+        passStartBonus: rules?.passStartBonus ?? Math.floor(((rules?.defaultStartingMoney ?? 45000) * 5 + 5000) / 10000) * 100,
         doubles: rules?.doublesRuleEnabled ?? true,
         timerEnabled: rules?.timerEnabled ?? false,
         timerSeconds: rules?.timerSeconds ?? 60,
@@ -88,6 +90,7 @@ export class CppEngineClient implements IGameEngine {
       body: JSON.stringify({
         requesterId,
         startingMoney: rules.defaultStartingMoney,
+        passStartBonus: rules.passStartBonus ?? (rules.defaultStartingMoney ? Math.floor((rules.defaultStartingMoney * 5 + 5000) / 10000) * 100 : undefined),
         doubles: rules.doublesRuleEnabled,
         timerEnabled: rules.timerEnabled,
         timerSeconds: rules.timerSeconds,

@@ -20,7 +20,9 @@ GameEngine::GameEngine(GameRules rules)
             static_cast<uint32_t>(rd())
         };
         return std::mt19937(seq);
-    }()) {}
+    }()) {
+    m_rules.passStartBonus = ((m_rules.defaultStartingMoney * 5 + 5000) / 10000) * 100;
+}
 
 void GameEngine::addPlayer(const std::string& name, const std::string& color, const std::string& token, bool isHuman) {
     Player p;
@@ -71,7 +73,7 @@ void GameEngine::startGame() {
         p.constructionCount = 0;
         p.destructionCount = 0;
         if (m_devMode && p.rotationsCompleted == 0 && p.money == 0) {
-            p.money = m_rules.defaultStartingMoney > 0 ? m_rules.defaultStartingMoney : 25000;
+            p.money = m_rules.defaultStartingMoney > 0 ? m_rules.defaultStartingMoney : 45000;
         }
     }
     if (!m_players.empty()) {
@@ -172,12 +174,84 @@ int GameEngine::calculatePlayerNetWorth(int playerId) const {
     return total;
 }
 
+RoundEarnings GameEngine::calculatePlayerRoundEarnings(int playerId) const {
+    RoundEarnings earnings;
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) {
+        return earnings;
+    }
+
+    for (const auto& tx : m_transactionLedger) {
+        if (tx.turnNumber != m_roundNumber) continue;
+        if (tx.type == "MORTGAGE" || tx.type == "UNMORTGAGE" || tx.type == "RESIGNATION") {
+            continue;
+        }
+
+        // Primary player payments/receipts
+        if (tx.primaryPlayerId == playerId) {
+            if (tx.type == "RENT" || tx.type == "PURCHASE" || tx.type == "CONSTRUCTION" ||
+                tx.type == "FEE" || tx.type == "TAX" || tx.type == "TRADE") {
+                earnings.expenses += tx.amount;
+            } else if (tx.type == "START_REWARD" || tx.type == "CAPITAL_REWARD" ||
+                       tx.type == "DESTRUCTION_REFUND" || tx.type == "PROPERTY_SALE") {
+                earnings.income += tx.amount;
+            }
+        }
+
+        // Counterparty player receipts (e.g. RENT or TRADE cash received)
+        if (tx.counterpartyPlayerId == playerId) {
+            if (tx.type == "RENT" || tx.type == "TRADE") {
+                earnings.income += tx.amount;
+            }
+        }
+    }
+
+    earnings.net = std::max(0, earnings.income - earnings.expenses);
+    return earnings;
+}
+
+WealthTaxBreakdown GameEngine::calculatePlayerWealthTax(int playerId) const {
+    WealthTaxBreakdown breakdown;
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) {
+        return breakdown;
+    }
+
+    const Player& player = m_players[playerId];
+    for (const auto& propId : player.ownedProperties) {
+        int bCount = 0;
+        auto itB = player.buildings.find(propId);
+        if (itB != player.buildings.end()) {
+            bCount = itB->second;
+        }
+
+        auto city = BusinessData::getCityPropertyById(propId);
+        if (city.has_value() && bCount > 0) {
+            if (bCount >= 4) {
+                // Hotel: ₹150 per hotel. Do NOT add ₹50 property charge, do NOT count converted houses.
+                breakdown.hotelsCount++;
+                breakdown.hotelsTax += 150;
+            } else {
+                // Houses (1-3): ₹100 per house. Do NOT add ₹50 property charge.
+                breakdown.housesCount += bCount;
+                breakdown.housesTax += bCount * 100;
+            }
+        } else {
+            // Undeveloped property (either city with 0 buildings or special property)
+            // Mortgaged properties remain owned and subject to standard undeveloped tariff
+            breakdown.undevelopedCount++;
+            breakdown.undevelopedTax += 50;
+        }
+    }
+
+    breakdown.totalTax = breakdown.undevelopedTax + breakdown.housesTax + breakdown.hotelsTax;
+    return breakdown;
+}
+
 void GameEngine::setDevMode(bool enabled) {
     m_devMode = enabled;
     if (enabled) {
         for (auto& p : m_players) {
             if (p.rotationsCompleted == 0 && p.money == 0) {
-                p.money = m_rules.defaultStartingMoney > 0 ? m_rules.defaultStartingMoney : 25000;
+                p.money = m_rules.defaultStartingMoney > 0 ? m_rules.defaultStartingMoney : 45000;
             }
         }
     }
@@ -280,20 +354,20 @@ void GameEngine::advanceTurn(bool extraTurn) {
             continue;
         }
 
-        // Authoritatively consume Rest House or card-induced Jail skip
+        // Authoritatively activate Rest House skip or consume card-induced Jail skip
         bool skipped = false;
-        if (candidate.restHouseTurns > 0 || candidate.inRestHouse) {
+        if (candidate.restHouseTurns > 0) {
             if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
                 if (std::string(dbg) == "1") {
-                    std::cerr << "[REST_DIAGNOSTIC] Consumed Rest House skip: player=" << candidate.id
+                    std::cerr << "[REST_DIAGNOSTIC] Activated Rest House skip turn: player=" << candidate.id
                               << " name=" << candidate.name << " turnId=" << m_currentTurnId
-                              << " pos=" << candidate.position << " restHouseTurns: 1 -> 0\n";
+                              << " pos=" << candidate.position << " restHouseTurns: 1 -> 0, inRestHouse -> true\n";
                 }
             }
             candidate.restHouseTurns = 0;
-            candidate.inRestHouse = false;
-            addLogEntry(candidate.id, "rest", candidate.name + " skipped their turn at Rest House.");
-            skipped = true;
+            candidate.inRestHouse = true;
+            addLogEntry(candidate.id, "rest", candidate.name + " is resting at the Rest House (turn skipped).");
+            break;
         }
         if (candidate.cardJailSkipTurns > 0 || candidate.cardJailSkip) {
             candidate.cardJailSkipTurns = 0;
@@ -312,7 +386,7 @@ void GameEngine::advanceTurn(bool extraTurn) {
     }
 
     m_activePlayerIndex = nextIdx;
-    m_turnState = TurnState::WAITING_FOR_ROLL;
+    m_turnState = m_players[m_activePlayerIndex].inRestHouse ? TurnState::WAITING_FOR_ACTION : TurnState::WAITING_FOR_ROLL;
     m_turnStartedAt = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -429,6 +503,22 @@ bool GameEngine::playerOwnsSpecialPair(int playerId, const std::string& specialI
     return hasThis && hasPair;
 }
 
+int GameEngine::getPlayerHotelCount(int playerId) const {
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return 0;
+    const Player& player = m_players[playerId];
+    int count = 0;
+    for (const auto& propId : player.ownedProperties) {
+        auto it = player.buildings.find(propId);
+        if (it != player.buildings.end() && it->second >= 4) {
+            auto city = BusinessData::getCityPropertyById(propId);
+            if (city.has_value()) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 int GameEngine::calculateRent(const std::string& propertyId, int diceTotal) const {
     int ownerIdx = -1;
     findOwnerOfProperty(propertyId, ownerIdx);
@@ -467,11 +557,131 @@ int GameEngine::calculateRent(const std::string& propertyId, int diceTotal) cons
             int mult = hasPair ? sp->pairMultiplierOrFixed : sp->aloneMultiplierOrFixed;
             return mult * diceTotal;
         } else {
+            if (propertyId == "railway") {
+                if (hasPair) {
+                    int hotels = getPlayerHotelCount(ownerIdx);
+                    return std::max(1000 * hotels, 2000);
+                }
+                return 600;
+            } else if (propertyId == "air_india" || propertyId == "airways") {
+                if (hasPair) {
+                    int hotels = getPlayerHotelCount(ownerIdx);
+                    return std::max(1500 * hotels, 2500);
+                }
+                return 800;
+            }
             return hasPair ? sp->pairMultiplierOrFixed : sp->aloneMultiplierOrFixed;
         }
     }
 
     return 0;
+}
+
+void GameEngine::recordOwnerCrossings(int playerId, int fromPos, int steps) {
+    if (steps <= 0) return;
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return;
+    const Player& player = m_players[playerId];
+    if (player.ownedProperties.empty()) return;
+
+    const auto& spaces = BusinessData::getBoardSpaces();
+    for (const auto& propId : player.ownedProperties) {
+        int spaceIndex = -1;
+        for (const auto& sp : spaces) {
+            if (sp.propertyId == propId) {
+                spaceIndex = sp.index;
+                break;
+            }
+        }
+        if (spaceIndex == -1) continue;
+        int offset = (spaceIndex - fromPos + 36) % 36;
+        if (offset > 0 && offset <= steps) {
+            m_propertyOwnerCrossings[propId]++;
+        }
+    }
+}
+
+void GameEngine::handleClubLanding(Player& player, TurnResult& result) {
+    struct OppTransfer {
+        int oppId;
+        int amount;
+    };
+    std::vector<OppTransfer> oppTransfers;
+    for (const auto& opp : m_players) {
+        if (opp.id == player.id || opp.isBankrupt) continue;
+        RoundEarnings oppE = calculatePlayerRoundEarnings(opp.id);
+        int posNet = std::max(0, oppE.net);
+        // Round to nearest 100 with 50 ties upward: (val + 50) / 100 * 100
+        int amt = ((posNet * 5 + 5000) / 10000) * 100;
+        if (amt > 0) {
+            oppTransfers.push_back({opp.id, amt});
+        }
+    }
+
+    int totalPaid = 0;
+    for (const auto& t : oppTransfers) {
+        player.money -= t.amount;
+        m_players[t.oppId].money += t.amount;
+        player.totalRentPaid += t.amount;
+        m_players[t.oppId].totalRentReceived += t.amount;
+        totalPaid += t.amount;
+        recordTransaction("FEE", player.name + " paid \u20b9" + std::to_string(t.amount) + " to " + m_players[t.oppId].name + " at Royal Club (5% of round earnings).", t.amount, player.id, t.oppId);
+        addLogEntry(player.id, "fee", player.name + " paid \u20b9" + std::to_string(t.amount) + " to " + m_players[t.oppId].name + " at Royal Club.");
+    }
+
+    result.moneyChange = -totalPaid;
+    if (totalPaid > 0) {
+        if (player.money < 0) {
+            result.eventDescription = player.name + " visited the Royal Club and paid \u20b9" + std::to_string(totalPaid) + " total to opponents (Shortfall / Debt: \u20b9" + std::to_string(-player.money) + "). Must settle debt or resign.";
+            addLogEntry(player.id, "debt", player.name + " incurred debt paying at Royal Club.");
+        } else {
+            result.eventDescription = player.name + " visited the Royal Club and paid \u20b9" + std::to_string(totalPaid) + " total to opponents (5% of current-round earnings).";
+        }
+    } else {
+        result.eventDescription = player.name + " entered the Royal Club (no opponents have positive current-round earnings).";
+    }
+}
+
+void GameEngine::handleRestHouseLanding(Player& player, TurnResult& result) {
+    player.restHouseTurns = 1;
+    player.inRestHouse = false;
+    result.mustGoToRestHouse = false;
+
+    struct OppTransfer {
+        int oppId;
+        int amount;
+    };
+    std::vector<OppTransfer> oppTransfers;
+    for (const auto& opp : m_players) {
+        if (opp.id == player.id || opp.isBankrupt) continue;
+        RoundEarnings oppE = calculatePlayerRoundEarnings(opp.id);
+        int posNet = std::max(0, oppE.net);
+        // Round to nearest 100 with 50 ties upward: (val + 50) / 100 * 100
+        int amt = ((posNet * 5 + 5000) / 10000) * 100;
+        if (amt > 0) {
+            oppTransfers.push_back({opp.id, amt});
+        }
+    }
+
+    int totalCollected = 0;
+    for (const auto& t : oppTransfers) {
+        m_players[t.oppId].money -= t.amount;
+        player.money += t.amount;
+        m_players[t.oppId].totalRentPaid += t.amount;
+        player.totalRentReceived += t.amount;
+        totalCollected += t.amount;
+        recordTransaction("FEE", player.name + " collected \u20b9" + std::to_string(t.amount) + " from " + m_players[t.oppId].name + " at Rest House (5% of round earnings).", t.amount, t.oppId, player.id);
+        addLogEntry(player.id, "fee", player.name + " collected \u20b9" + std::to_string(t.amount) + " from " + m_players[t.oppId].name + " at Rest House.");
+        if (m_players[t.oppId].money < 0) {
+            addLogEntry(t.oppId, "debt", m_players[t.oppId].name + " incurred debt paying Rest House fee to " + player.name + ".");
+        }
+    }
+
+    result.moneyChange = totalCollected;
+    if (totalCollected > 0) {
+        result.eventDescription = player.name + " stopped at the Rest House, collected \u20b9" + std::to_string(totalCollected) + " total from opponents (5% of earnings), and will skip their next turn.";
+    } else {
+        result.eventDescription = player.name + " visited the Rest House and will skip their next turn (no opponents have positive current-round earnings).";
+    }
 }
 
 TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice) {
@@ -574,6 +784,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     result.previousPosition = player.position;
     int nextPos = (player.position + result.diceTotal) % 36;
     int prevPos = player.position;
+    recordOwnerCrossings(player.id, prevPos, result.diceTotal);
 
     // Check completion of rotation
     bool passedStart = (player.position + result.diceTotal >= 36);
@@ -589,10 +800,12 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
             addLogEntry(player.id, "capital", player.name + " completed first rotation and received ₹" + std::to_string(m_rules.defaultStartingMoney) + " starting capital!", m_rules.defaultStartingMoney);
             recordTransaction("CAPITAL_REWARD", player.name + " completed first rotation and received ₹" + std::to_string(m_rules.defaultStartingMoney) + " starting capital.", m_rules.defaultStartingMoney, player.id, -1);
         } else {
-            player.money += m_rules.passStartBonus;
+            int bonus = ((m_rules.defaultStartingMoney * 5 + 5000) / 10000) * 100;
+            m_rules.passStartBonus = bonus;
+            player.money += bonus;
             result.passStartBonusAwarded = true;
-            addLogEntry(player.id, "start_bonus", player.name + " passed Start and collected ₹" + std::to_string(m_rules.passStartBonus) + " bonus.", m_rules.passStartBonus);
-            recordTransaction("START_REWARD", player.name + " passed Start and collected ₹" + std::to_string(m_rules.passStartBonus) + " bonus.", m_rules.passStartBonus, player.id, -1);
+            addLogEntry(player.id, "start_bonus", player.name + " passed Start and collected ₹" + std::to_string(bonus) + " bonus.", bonus);
+            recordTransaction("START_REWARD", player.name + " passed Start and collected ₹" + std::to_string(bonus) + " bonus.", bonus, player.id, -1);
         }
     }
 
@@ -688,7 +901,12 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                         player.money += m_rules.passStartBonus;
                         result.moneyChange = m_rules.passStartBonus;
                         result.passStartBonusAwarded = true;
+                        int cardFrom = player.position;
                         player.position = 23; // Darjeeling
+                        int cardSteps = (23 - cardFrom + 36) % 36;
+                        if (cardSteps > 0) {
+                            recordOwnerCrossings(player.id, cardFrom, cardSteps);
+                        }
                         result.eventDescription = player.name + " drew Chance: Passed Start (+₹" + std::to_string(m_rules.passStartBonus) + ") and went to " + spaces[23].name + ".";
                     }
                     result.newPosition = player.position;
@@ -793,27 +1011,66 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
             if (nextPos == 9) {
                 result.eventDescription = player.name + " is just visiting Jail.";
             } else if (nextPos == 18) {
-                result.eventDescription = player.name + " entered the Royal Club.";
+                handleClubLanding(player, result);
             } else if (nextPos == 27 && prevPos != 27) {
-                player.restHouseTurns = 1;
-                player.inRestHouse = false;
-                result.mustGoToRestHouse = true;
-                result.eventDescription = player.name + " stopped at the Rest House (must skip next turn).";
-                if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
-                    if (std::string(dbg) == "1") {
-                        std::cerr << "[REST_DIAGNOSTIC] Landed on Rest House: player=" << player.id
-                                  << " name=" << player.name << " turnId=" << m_currentTurnId
-                                  << " prevPos=" << prevPos << " newPos=" << nextPos << " restHouseTurns set to 1\n";
-                    }
-                }
+                handleRestHouseLanding(player, result);
             }
         } else if (space.type == SpaceType::Tax) {
-            int tax = 500;
-            player.money -= tax;
-            result.moneyChange = -tax;
-            result.eventDescription = player.name + " paid ₹" + std::to_string(tax) + " " + space.name + " to the Bank.";
-            addLogEntry(player.id, "tax", result.eventDescription, -tax);
-            recordTransaction("TAX", player.name + " paid ₹" + std::to_string(tax) + " " + space.name + " to the Bank.", tax, player.id, -1);
+            if (nextPos == 5 || space.name.find("INCOME") != std::string::npos) {
+                // Space 5: INCOME TAX - 10% of net earnings in the current round
+                RoundEarnings earnings = calculatePlayerRoundEarnings(player.id);
+                int netEarnings = earnings.net;
+                int tax = static_cast<int>(std::round(netEarnings * 0.10));
+                player.money -= tax;
+                result.moneyChange = -tax;
+
+                std::string desc;
+                if (tax > 0) {
+                    desc = player.name + " paid ₹" + std::to_string(tax) + " Income Tax to the Bank (10% of ₹" +
+                           std::to_string(netEarnings) + " net earnings [income ₹" + std::to_string(earnings.income) +
+                           " - expenses ₹" + std::to_string(earnings.expenses) + "] in Round " +
+                           std::to_string(m_roundNumber) + ").";
+                } else {
+                    desc = player.name + " owed ₹0 Income Tax to the Bank (Round " + std::to_string(m_roundNumber) +
+                           " income ₹" + std::to_string(earnings.income) + " - expenses ₹" +
+                           std::to_string(earnings.expenses) + " <= ₹0).";
+                }
+                result.eventDescription = desc;
+                addLogEntry(player.id, "tax", desc, -tax);
+                recordTransaction("TAX", desc, tax, player.id, -1);
+            } else {
+                // Space 31: WEALTH TAX - Per-property development tariff
+                WealthTaxBreakdown breakdown = calculatePlayerWealthTax(player.id);
+                int tax = breakdown.totalTax;
+                player.money -= tax;
+                result.moneyChange = -tax;
+
+                std::ostringstream desc;
+                desc << player.name << " paid ₹" << tax << " Wealth Tax to the Bank";
+                if (tax > 0) {
+                    desc << " (";
+                    bool needSep = false;
+                    if (breakdown.undevelopedCount > 0) {
+                        desc << breakdown.undevelopedCount << " undeveloped @ ₹50 = ₹" << breakdown.undevelopedTax;
+                        needSep = true;
+                    }
+                    if (breakdown.housesCount > 0) {
+                        if (needSep) desc << ", ";
+                        desc << breakdown.housesCount << " house" << (breakdown.housesCount > 1 ? "s" : "") << " @ ₹100 = ₹" << breakdown.housesTax;
+                        needSep = true;
+                    }
+                    if (breakdown.hotelsCount > 0) {
+                        if (needSep) desc << ", ";
+                        desc << breakdown.hotelsCount << " hotel" << (breakdown.hotelsCount > 1 ? "s" : "") << " @ ₹150 = ₹" << breakdown.hotelsTax;
+                    }
+                    desc << ").";
+                } else {
+                    desc << " (No properties owned).";
+                }
+                result.eventDescription = desc.str();
+                addLogEntry(player.id, "tax", result.eventDescription, -tax);
+                recordTransaction("TAX", result.eventDescription, tax, player.id, -1);
+            }
         }
     }
 
@@ -864,12 +1121,13 @@ bool GameEngine::updateRules(const GameRules& newRules, int requesterId, std::st
         outError = "Player limit must be between 2 and 6.";
         return false;
     }
-    const std::vector<int> validStartingOptions = { 25000, 30000, 35000, 40000, 45000, 50000, 55000 };
+    const std::vector<int> validStartingOptions = { 40000, 45000, 50000, 55000, 60000, 65000 };
     if (std::find(validStartingOptions.begin(), validStartingOptions.end(), newRules.defaultStartingMoney) == validStartingOptions.end()) {
-        outError = "Starting money must be one of: ₹25,000, ₹30,000, ₹35,000, ₹40,000, ₹45,000, ₹50,000, ₹55,000.";
+        outError = "Starting money must be one of: ₹40,000, ₹45,000, ₹50,000, ₹55,000, ₹60,000, ₹65,000.";
         return false;
     }
     m_rules = newRules;
+    m_rules.passStartBonus = ((m_rules.defaultStartingMoney * 5 + 5000) / 10000) * 100;
     return true;
 }
 
@@ -985,6 +1243,7 @@ bool GameEngine::buyCurrentProperty(int playerId) {
 
     player.money -= price;
     player.ownedProperties.push_back(space.propertyId);
+    m_propertyOwnerCrossings[space.propertyId] = 0;
     m_propertyPurchasedTurn[space.propertyId] = m_currentTurnId;
     m_propertyPurchasedOwner[space.propertyId] = playerId;
     m_lastTurnResult.eligibleToBuy = false;
@@ -1249,26 +1508,20 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
         player.destructionCount += currentBuildings;
     }
 
-    int boughtRound = 1;
-    for (const auto& tx : m_transactionLedger) {
-        if (tx.propertyId == propertyId && tx.type == "PURCHASE") {
-            boughtRound = tx.turnNumber;
-            break;
-        }
+    int crossings = 0;
+    auto cIt = m_propertyOwnerCrossings.find(propertyId);
+    if (cIt != m_propertyOwnerCrossings.end()) {
+        crossings = cIt->second;
     }
 
-    int roundsElapsed = std::max(0, m_roundNumber - boughtRound);
-    int depreciationPercent = std::min(90, roundsElapsed * 5);
-    int depreciatedValue = std::max(
-        static_cast<int>(std::round(basePrice * 0.1)),
-        static_cast<int>(std::round(basePrice * (1.0 - depreciationPercent / 100.0)))
-    );
-    // Currency multiple of 100 rounding
-    depreciatedValue = (depreciatedValue / 100) * 100;
+    bool isSpecial = !city.has_value() && BusinessData::getSpecialPropertyById(propertyId).has_value();
+
+    int depreciationPercent = isSpecial ? 0 : std::min(100, crossings * 5);
+    int resalePercentage = isSpecial ? 100 : std::max(0, 100 - depreciationPercent);
+    int depreciatedValue = isSpecial ? basePrice : static_cast<int>(std::round(basePrice * (resalePercentage / 100.0)));
 
     bool isMortgaged = (player.mortgages.find(propertyId) != player.mortgages.end() && player.mortgages[propertyId]);
     int mortgageDeduction = isMortgaged ? (mortgageVal > 0 ? mortgageVal : static_cast<int>(std::round(basePrice * 0.5))) : 0;
-    mortgageDeduction = (mortgageDeduction / 100) * 100;
 
     int totalProceedsBeforeMortgage = depreciatedValue + buildingRefund;
     int netCashProceeds = std::max(0, totalProceedsBeforeMortgage - mortgageDeduction);
@@ -1283,6 +1536,7 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
     m_propertyPurchasedTurn.erase(propertyId);
     m_propertyPurchasedOwner.erase(propertyId);
     m_propertyBuildTurn.erase(propertyId);
+    m_propertyOwnerCrossings.erase(propertyId);
     player.money += netCashProceeds;
     outSellPrice = netCashProceeds;
 
@@ -1290,7 +1544,11 @@ bool GameEngine::sellProperty(int playerId, const std::string& propertyId, int& 
     if (isMortgaged) {
         desc += " (depreciated ₹" + std::to_string(depreciatedValue) + (buildingRefund > 0 ? (" + building refund ₹" + std::to_string(buildingRefund)) : "") + " minus mortgage payoff ₹" + std::to_string(mortgageDeduction) + ").";
     } else {
-        desc += " (" + std::to_string(depreciationPercent) + "% depreciation over " + std::to_string(roundsElapsed) + " round(s)" + (buildingRefund > 0 ? (", building refund ₹" + std::to_string(buildingRefund)) : "") + ").";
+        if (isSpecial) {
+            desc += " (zero depreciation for special property).";
+        } else {
+            desc += " (" + std::to_string(depreciationPercent) + "% depreciation over " + std::to_string(crossings) + " owner crossing" + (crossings == 1 ? "" : "s") + (buildingRefund > 0 ? (", building refund ₹" + std::to_string(buildingRefund)) : "") + ").";
+        }
     }
 
     addLogEntry(playerId, "sell_property", desc, netCashProceeds);
@@ -1586,6 +1844,7 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
         receiver.ownedProperties.push_back(propId);
         m_propertyPurchasedTurn[propId] = m_currentTurnId;
         m_propertyPurchasedOwner[propId] = receiver.id;
+        m_propertyOwnerCrossings[propId] = 0;
         m_propertyBuildTurn.erase(propId);
         if (sender.mortgages[propId]) {
             receiver.mortgages[propId] = true;
@@ -1601,6 +1860,7 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
         sender.ownedProperties.push_back(propId);
         m_propertyPurchasedTurn[propId] = m_currentTurnId;
         m_propertyPurchasedOwner[propId] = sender.id;
+        m_propertyOwnerCrossings[propId] = 0;
         m_propertyBuildTurn.erase(propId);
         if (receiver.mortgages[propId]) {
             sender.mortgages[propId] = true;
@@ -1757,6 +2017,16 @@ std::string GameEngine::exportStateJson() const {
         }
     }
     ss << "],\n";
+    ss << "  \"propertyOwnerCrossings\": {";
+    {
+        bool firstC = true;
+        for (const auto& kv : m_propertyOwnerCrossings) {
+            if (!firstC) ss << ", ";
+            ss << "\"" << escapeJson(kv.first) << "\": " << kv.second;
+            firstC = false;
+        }
+    }
+    ss << "},\n";
     ss << "  \"activeLanding\": {\n";
     ss << "    \"propertyId\": \"" << escapeJson(m_landingPropertyId) << "\",\n";
     ss << "    \"position\": " << m_landingPosition << ",\n";

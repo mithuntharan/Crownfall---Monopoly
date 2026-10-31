@@ -4,7 +4,7 @@
  */
 
 export interface GamePreferences {
-  theme?: "light"
+  theme?: "light" | "dark"
   animationSpeed: "slow" | "normal" | "fast"
   soundEffects: boolean
   masterVolume: number // 0 to 100
@@ -14,7 +14,7 @@ export interface GamePreferences {
 }
 
 export const DEFAULT_PREFERENCES: GamePreferences = {
-  theme: "light",
+  theme: "dark",
   animationSpeed: "normal",
   soundEffects: true,
   masterVolume: 80,
@@ -31,7 +31,8 @@ export function loadPreferences(): GamePreferences {
     const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      return { ...DEFAULT_PREFERENCES, ...parsed, theme: "light" }
+      const theme: "light" | "dark" = parsed.theme === "light" ? "light" : "dark"
+      return { ...DEFAULT_PREFERENCES, ...parsed, theme }
     }
   } catch (_) {}
   return { ...DEFAULT_PREFERENCES }
@@ -39,7 +40,8 @@ export function loadPreferences(): GamePreferences {
 
 export function savePreferences(prefs: GamePreferences): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prefs, theme: "light" }))
+    const theme: "light" | "dark" = prefs.theme === "light" ? "light" : "dark"
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prefs, theme }))
   } catch (_) {}
 }
 

@@ -194,6 +194,7 @@ export class MultiplayerClient {
   private kickedListeners: ((reason: string) => void)[] = []
   private playerKickedListeners: ((playerId: number, playerName: string, reason?: string) => void)[] = []
   private hostChangeListeners: ((newHostId: number | null, originalHostId?: number, actingHostId?: number | null) => void)[] = []
+  private chatMessageListeners: ((message: any) => void)[] = []
   private pendingJoinRequestId: string | null = null
   private pendingRequests = new Map<
     string,
@@ -352,6 +353,13 @@ export class MultiplayerClient {
     this.hostChangeListeners.push(cb)
     return () => {
       this.hostChangeListeners = this.hostChangeListeners.filter((l) => l !== cb)
+    }
+  }
+
+  public onChatMessage(cb: (message: any) => void): () => void {
+    this.chatMessageListeners.push(cb)
+    return () => {
+      this.chatMessageListeners = this.chatMessageListeners.filter((l) => l !== cb)
     }
   }
 
@@ -930,6 +938,8 @@ export class MultiplayerClient {
               this.connectWebSocket()
             }
             this.joinDecisionListeners.forEach((l) => l(msg.status, msg.reason, msg.playerId))
+          } else if (msg.type === "CHAT_MESSAGE" && msg.message) {
+            this.chatMessageListeners.forEach((l) => l(msg.message))
           } else if (msg.type === "REMATCH_STATE_CHANGED") {
             if (msg.snapshot) {
               this.latestSnapshot = msg.snapshot
@@ -1153,8 +1163,8 @@ export class MultiplayerClient {
     return this.sendWsOrHttp("UPDATE_PLAYER", { name, color })
   }
 
-  public startGame() {
-    return this.sendWsOrHttp("START_GAME", {})
+  public startGame(rules?: Partial<GameRules>) {
+    return this.sendWsOrHttp("START_GAME", rules ? { rules } : {})
   }
 
   public roll(riggedDice?: [number, number]) {
@@ -1281,6 +1291,18 @@ export class MultiplayerClient {
 
   public async removePlayer(targetPlayerId: number): Promise<{ ok: boolean; message?: string }> {
     return this.kickPlayer(targetPlayerId, "Removed from lobby by host")
+  }
+
+  public async sendChatMessage(text: string): Promise<any> {
+    const trimmed = (text || "").trim()
+    if (!trimmed) {
+      throw new Error("Empty or whitespace-only messages are rejected.")
+    }
+    const charCount = [...trimmed].length
+    if (charCount > 64) {
+      throw new Error(`Message exceeds maximum limit of 64 characters (got ${charCount}).`)
+    }
+    return this.sendWsOrHttp("CHAT_MESSAGE", { text: trimmed })
   }
 }
 

@@ -18,6 +18,8 @@ import type {
   TransactionRecord,
   TurnTimerState,
   TradeOffer,
+  RoundEarningsSummary,
+  WealthTaxBreakdown,
 } from "./GameEngineInterface"
 
 export class LocalGameEngine implements IGameEngine {
@@ -46,6 +48,7 @@ export class LocalGameEngine implements IGameEngine {
   private propertyPurchasedTurn: Record<string, number> = {}
   private propertyPurchasedOwner: Record<string, number> = {}
   private propertyBuildTurn: Record<string, number> = {}
+  private propertyOwnerCrossings: Record<string, number> = {}
   private landingActive = false
   private landingTurnId = -1
   private landingPlayerId = -1
@@ -109,15 +112,8 @@ export class LocalGameEngine implements IGameEngine {
         if (sp) {
           total += sp.purchasePrice
           if (p.mortgages[propId]) {
-            const repayment =
-              Math.ceil(
-                (sp.mortgageValue +
-                  (sp.mortgageValue *
-                    (this.rules.unmortgageInterestRatePercent || 10)) /
-                    100) /
-                  100,
-              ) * 100
-            total -= repayment
+            // Special properties have ZERO mortgage interest liability
+            total -= sp.mortgageValue
           }
         }
       }
@@ -125,15 +121,97 @@ export class LocalGameEngine implements IGameEngine {
     return total
   }
 
+  calculatePlayerRoundEarnings(playerId: number): RoundEarningsSummary {
+    const earnings: RoundEarningsSummary = { income: 0, expenses: 0, net: 0, incomeTax: 0 }
+    if (playerId < 0 || playerId >= this.players.length) return earnings
+
+    for (const tx of this.transactionLedger) {
+      if (tx.turnNumber !== this.roundNumber) continue
+      if (tx.type === "MORTGAGE" || tx.type === "UNMORTGAGE" || tx.type === "RESIGNATION") {
+        continue
+      }
+
+      // Primary player payments/receipts
+      if (tx.primaryPlayerId === playerId) {
+        if (
+          tx.type === "RENT" ||
+          tx.type === "PURCHASE" ||
+          tx.type === "CONSTRUCTION" ||
+          tx.type === "FEE" ||
+          tx.type === "TAX" ||
+          tx.type === "TRADE"
+        ) {
+          earnings.expenses += tx.amount
+        } else if (
+          tx.type === "START_REWARD" ||
+          tx.type === "CAPITAL_REWARD" ||
+          tx.type === "DESTRUCTION_REFUND" ||
+          tx.type === "PROPERTY_SALE"
+        ) {
+          earnings.income += tx.amount
+        }
+      }
+
+      // Counterparty player receipts (e.g. RENT or TRADE cash received, or FEE collected)
+      if (tx.counterpartyPlayerId === playerId) {
+        if (tx.type === "RENT" || tx.type === "TRADE" || tx.type === "FEE") {
+          earnings.income += tx.amount
+        }
+      }
+    }
+
+    earnings.net = Math.max(0, earnings.income - earnings.expenses)
+    earnings.incomeTax = Math.round(earnings.net * 0.1)
+    return earnings
+  }
+
+  calculatePlayerWealthTax(playerId: number): WealthTaxBreakdown {
+    const breakdown: WealthTaxBreakdown = {
+      undevelopedCount: 0,
+      undevelopedTax: 0,
+      housesCount: 0,
+      housesTax: 0,
+      hotelsCount: 0,
+      hotelsTax: 0,
+      totalTax: 0,
+    }
+    if (playerId < 0 || playerId >= this.players.length) return breakdown
+
+    const player = this.players[playerId]
+    for (const propId of player.ownedProperties) {
+      const bCount = player.buildings[propId] || 0
+      const isCity = CITY_PROPERTIES[propId] !== undefined
+
+      if (isCity && bCount > 0) {
+        if (bCount >= 4) {
+          // Hotel: ₹150 per hotel. Do NOT add ₹50 property charge, do NOT count converted houses.
+          breakdown.hotelsCount++
+          breakdown.hotelsTax += 150
+        } else {
+          // Houses (1 to 3): ₹100 per house. Do NOT add ₹50 property charge.
+          breakdown.housesCount += bCount
+          breakdown.housesTax += bCount * 100
+        }
+      } else {
+        // Undeveloped property (either city with 0 buildings, or special property that cannot build)
+        // Mortgaged properties remain owned and subject to standard undeveloped tariff
+        breakdown.undevelopedCount++
+        breakdown.undevelopedTax += 50
+      }
+    }
+    breakdown.totalTax = breakdown.undevelopedTax + breakdown.housesTax + breakdown.hotelsTax
+    return breakdown
+  }
+
   constructor(rules: GameRules = {}) {
     this.rules = {
       minPlayers: rules.minPlayers ?? 2,
       maxPlayers: rules.maxPlayers ?? 6,
       playerCount: rules.playerCount ?? 4,
-      defaultStartingMoney: rules.defaultStartingMoney ?? 25000,
-      startingMoneyOptions: rules.startingMoneyOptions ?? [25000, 30000, 35000, 40000, 45000, 50000, 55000],
+      defaultStartingMoney: rules.defaultStartingMoney ?? 45000,
+      startingMoneyOptions: rules.startingMoneyOptions ?? [40000, 45000, 50000, 55000, 60000, 65000],
       doublesRuleEnabled: rules.doublesRuleEnabled ?? true,
-      passStartBonus: rules.passStartBonus ?? 1500,
+      passStartBonus: rules.passStartBonus ?? Math.floor(((rules.defaultStartingMoney ?? 45000) * 5 + 5000) / 10000) * 100,
       requireLandingToBuild: rules.requireLandingToBuild ?? false, // New rule: anywhere building
       buildingRule: rules.buildingRule ?? (rules.requireLandingToBuild ? "land" : "anywhere"),
       baseRentDoublesForSet: rules.baseRentDoublesForSet ?? true,
@@ -178,6 +256,7 @@ export class LocalGameEngine implements IGameEngine {
     if (rules && !this.settingsLocked) {
       if (rules.defaultStartingMoney !== undefined) {
         this.rules.defaultStartingMoney = rules.defaultStartingMoney
+        this.rules.passStartBonus = Math.floor((rules.defaultStartingMoney * 5 + 5000) / 10000) * 100
       }
       if (rules.doublesRuleEnabled !== undefined) {
         this.rules.doublesRuleEnabled = rules.doublesRuleEnabled
@@ -332,6 +411,10 @@ export class LocalGameEngine implements IGameEngine {
     this.activityLog = []
     this.transactionLedger = []
     this.tradeOffers = []
+    this.propertyOwnerCrossings = {}
+    this.propertyPurchasedTurn = {}
+    this.propertyPurchasedOwner = {}
+    this.propertyBuildTurn = {}
 
     return this.getState()
   }
@@ -355,14 +438,15 @@ export class LocalGameEngine implements IGameEngine {
       }
     }
     if (newRules.defaultStartingMoney !== undefined) {
-      const validStartingOptions = [25000, 30000, 35000, 40000, 45000, 50000, 55000]
+      const validStartingOptions = [40000, 45000, 50000, 55000, 60000, 65000]
       if (!validStartingOptions.includes(newRules.defaultStartingMoney)) {
         return {
           success: false,
           state: await this.getState(),
-          error: "Starting money must be one of: ₹25,000, ₹30,000, ₹35,000, ₹40,000, ₹45,000, ₹50,000, ₹55,000.",
+          error: "Starting money must be one of: ₹40,000, ₹45,000, ₹50,000, ₹55,000, ₹60,000, ₹65,000.",
         }
       }
+      this.rules.passStartBonus = Math.floor((newRules.defaultStartingMoney * 5 + 5000) / 10000) * 100
     }
     this.rules = {
       ...this.rules,
@@ -441,6 +525,18 @@ export class LocalGameEngine implements IGameEngine {
     )
   }
 
+  getPlayerHotelCount(playerId: number): number {
+    const player = this.players[playerId]
+    if (!player || !player.ownedProperties || !player.buildings) return 0
+    let count = 0
+    for (const propId of player.ownedProperties) {
+      if ((player.buildings[propId] || 0) >= 4 && CITY_PROPERTIES[propId]) {
+        count++
+      }
+    }
+    return count
+  }
+
   calculateRent(propertyId: string, diceTotal: number): number {
     const ownerIdx = this.findOwnerOfProperty(propertyId)
     if (ownerIdx === -1) return 0
@@ -484,10 +580,23 @@ export class LocalGameEngine implements IGameEngine {
                 : 50
         return mult * diceTotal
       } else {
+        if (propertyId === "railway") {
+          if (hasPair) {
+            const hotels = this.getPlayerHotelCount(ownerIdx)
+            return Math.max(1000 * hotels, 2000)
+          }
+          return 600
+        } else if (propertyId === "air_india" || propertyId === "airways") {
+          if (hasPair) {
+            const hotels = this.getPlayerHotelCount(ownerIdx)
+            return Math.max(1500 * hotels, 2500)
+          }
+          return 800
+        }
         return hasPair
           ? propertyId === "railway"
-            ? 1200
-            : 1500
+            ? 2000
+            : 2500
           : propertyId === "railway"
             ? 600
             : 800
@@ -495,6 +604,21 @@ export class LocalGameEngine implements IGameEngine {
     }
 
     return 0
+  }
+
+  private recordOwnerCrossings(playerId: number, fromPos: number, steps: number) {
+    if (steps <= 0) return
+    const player = this.players[playerId]
+    if (!player || !player.ownedProperties || player.ownedProperties.length === 0) return
+
+    for (const propId of player.ownedProperties) {
+      const spaceIndex = BOARD_SPACES.findIndex((s) => s.propertyId === propId)
+      if (spaceIndex === -1) continue
+      const offset = (spaceIndex - fromPos + 36) % 36
+      if (offset > 0 && offset <= steps) {
+        this.propertyOwnerCrossings[propId] = (this.propertyOwnerCrossings[propId] || 0) + 1
+      }
+    }
   }
 
   async rollAndMove(riggedDice?: [number, number], playerId?: number): Promise<{
@@ -519,7 +643,7 @@ export class LocalGameEngine implements IGameEngine {
     // Calling advanceTurn() here would double-advance the turn and skip the wrong player.
     if (player.inRestHouse || (player.restHouseTurns ?? 0) > 0 || player.cardJailSkip || (player.cardJailSkipTurns ?? 0) > 0) {
       throw new Error(
-        `Cannot roll: ${player.name}'s turn is being skipped (Rest House penalty). End your turn instead.`
+        `Cannot roll: ${player.name}'s turn is being skipped. End your turn instead.`
       )
     }
 
@@ -554,25 +678,28 @@ export class LocalGameEngine implements IGameEngine {
       rentRecipientId: -1,
     }
 
-    // Check Jail status
+    // Check Jail status - 2-turn maximum detention with doubles escape attempt
     const wasInJail = player.inJail
     if (player.inJail) {
-      player.jailTurns = (player.jailTurns || 0) + 1
-      if (isDouble || player.jailTurns >= 3) {
+      const attempt = (player.jailTurns || 0) + 1
+      if (isDouble) {
         player.inJail = false
         player.jailTurns = 0
-        res.eventDescription = `${player.name} ${
-          isDouble
-            ? "rolled doubles and was released from Jail!"
-            : "served 3 turns and is released from Jail!"
-        }`
+        res.eventDescription = `${player.name} rolled doubles and was released from Jail!`
+        // Note: movement proceeds below using this roll. wasInJail prevents extra doubles turn.
       } else {
+        player.jailTurns = attempt
+        if (attempt >= 2) {
+          player.inJail = false // Sentence completed after consuming 2nd detention turn!
+          res.eventDescription = `${player.name} failed to roll doubles (attempt 2 of 2). Jail sentence served; released for next turn.`
+        } else {
+          res.eventDescription = `${player.name} failed to roll doubles (attempt 1 of 2) and remains in Jail.`
+        }
         res.previousPosition = player.position
         res.newPosition = player.position
         res.spaceName = "JAIL"
         res.spaceType = "corner"
         res.mustGoToJail = false
-        res.eventDescription = `${player.name} remains in Jail (turn ${player.jailTurns}/3).`
         if (player.isHuman) {
           this.turnState = "WAITING_FOR_ACTION"
         } else {
@@ -608,6 +735,7 @@ export class LocalGameEngine implements IGameEngine {
 
     // Movement and Start crossing
     const nextPos = (prevPos + total) % 36
+    this.recordOwnerCrossings(player.id, prevPos, total)
     const passedStart = prevPos + total >= 36
     const startCrossings = Math.floor((prevPos + total) / 36)
     if (passedStart) {
@@ -633,18 +761,19 @@ export class LocalGameEngine implements IGameEngine {
           -1,
         )
       } else {
-        player.money += this.rules.passStartBonus
+        const bonus = this.rules.passStartBonus ?? Math.floor((this.rules.defaultStartingMoney * 5 + 5000) / 10000) * 100
+        player.money += bonus
         res.passStartBonusAwarded = true
         this.addLog(
           player.id,
           "start_bonus",
-          `${player.name} passed Start and collected ₹${this.rules.passStartBonus.toLocaleString()} bonus.`,
-          this.rules.passStartBonus,
+          `${player.name} passed Start and collected ₹${bonus.toLocaleString()} bonus.`,
+          bonus,
         )
         this.recordTransaction(
           "START_REWARD",
-          `${player.name} passed Start and collected ₹${this.rules.passStartBonus.toLocaleString()} bonus.`,
-          this.rules.passStartBonus,
+          `${player.name} passed Start and collected ₹${bonus.toLocaleString()} bonus.`,
+          bonus,
           player.id,
           -1,
         )
@@ -748,25 +877,37 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Chance: Go to Jail.`
           } else if (decl.kind === "rest") {
-            player.restHouseTurns = 1
+            player.restHouseTurns = 0
             player.inRestHouse = false
             player.position = 27
-            res.mustGoToRestHouse = true
+            res.mustGoToRestHouse = false
             res.newPosition = 27
             res.spaceName = "REST HOUSE"
             res.spaceType = "corner"
-            res.eventDescription = `${player.name} drew Chance: Rest House (skips next turn).`
+            this.handleRestHouseLanding(player, res)
           } else if (decl.kind === "move" && total === 9) {
-            if (player.position > 1) {
-              this.rules.unmortgageInterestRatePercent =
-                Math.round((this.rules.unmortgageInterestRatePercent ?? 10) * 1.05 * 10000) / 10000
+            if (player.position === 7) {
               player.position = 1
+              res.eventDescription = `${player.name} drew Chance: Go back to ${BOARD_SPACES[1].name}.`
             } else {
-              player.money += 1500
-              res.moneyChange = 1500
+              const bonus = this.rules.passStartBonus ?? Math.floor((this.rules.defaultStartingMoney * 5 + 5000) / 10000) * 100
+              player.money += bonus
+              res.moneyChange = bonus
+              res.passStartBonusAwarded = true
+              const cardFrom = player.position
               player.position = 23
+              const cardSteps = (23 - cardFrom + 36) % 36
+              if (cardSteps > 0) {
+                this.recordOwnerCrossings(player.id, cardFrom, cardSteps)
+              }
+              res.eventDescription = `${player.name} drew Chance: Passed Start (+₹${bonus}) and went to ${BOARD_SPACES[23].name}.`
             }
             res.newPosition = player.position
+            const destSpace = BOARD_SPACES[player.position]
+            if (destSpace) {
+              res.spaceName = destSpace.name
+              res.spaceType = destSpace.type
+            }
           }
         }
       } else if (space.type === "chest") {
@@ -808,14 +949,14 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             res.eventDescription = `${player.name} drew Community Chest: Go to Jail.`
           } else if (decl.kind === "rest") {
-            player.restHouseTurns = 1
+            player.restHouseTurns = 0
             player.inRestHouse = false
             player.position = 27
-            res.mustGoToRestHouse = true
+            res.mustGoToRestHouse = false
             res.newPosition = 27
             res.spaceName = "REST HOUSE"
             res.spaceType = "corner"
-            res.eventDescription = `${player.name} drew Community Chest: Rest House (skips next turn).`
+            this.handleRestHouseLanding(player, res)
           } else if (decl.kind === "players" && total === 2) {
             let collected = 0
             for (const other of this.players) {
@@ -841,18 +982,54 @@ export class LocalGameEngine implements IGameEngine {
         if (nextPos === 9) {
           res.eventDescription = `${player.name} is just visiting Jail.`
         } else if (nextPos === 18) {
-          res.eventDescription = `${player.name} entered the Royal Club.`
+          this.handleClubLanding(player, res)
         } else if (nextPos === 27 && prevPos !== 27) {
-          player.restHouseTurns = 1
-          player.inRestHouse = false
-          res.mustGoToRestHouse = true
-          res.eventDescription = `${player.name} stopped at the Rest House (must skip next turn).`
+          this.handleRestHouseLanding(player, res)
         }
       } else if (space.type === "tax") {
-        const tax = 500
-        player.money -= tax
-        res.moneyChange = -tax
-        res.eventDescription = `${player.name} paid ₹${tax} ${space.name} to the Bank.`
+        if (nextPos === 5 || space.name.toUpperCase().includes("INCOME")) {
+          // Space 5: INCOME TAX - 10% of net earnings in the current round
+          const earnings = this.calculatePlayerRoundEarnings(player.id)
+          const netEarnings = earnings.net
+          const tax = Math.round(netEarnings * 0.1)
+          player.money -= tax
+          res.moneyChange = -tax
+          const desc = tax > 0
+            ? `${player.name} paid ₹${tax.toLocaleString()} Income Tax to the Bank (10% of ₹${netEarnings.toLocaleString()} net earnings [income ₹${earnings.income.toLocaleString()} - expenses ₹${earnings.expenses.toLocaleString()}] in Round ${this.roundNumber}).`
+            : `${player.name} owed ₹0 Income Tax to the Bank (Round ${this.roundNumber} income ₹${earnings.income.toLocaleString()} - expenses ₹${earnings.expenses.toLocaleString()} <= ₹0).`
+          res.eventDescription = desc
+          this.addLog(player.id, "tax", desc, -tax)
+          this.recordTransaction("TAX", desc, tax, player.id, -1)
+        } else {
+          // Space 31: WEALTH TAX - Per-property development tariff
+          const breakdown = this.calculatePlayerWealthTax(player.id)
+          const tax = breakdown.totalTax
+          player.money -= tax
+          res.moneyChange = -tax
+          let detail = ""
+          if (tax > 0) {
+            const parts: string[] = []
+            if (breakdown.undevelopedCount > 0) {
+              parts.push(`${breakdown.undevelopedCount} undeveloped @ ₹50 = ₹${breakdown.undevelopedTax.toLocaleString()}`)
+            }
+            if (breakdown.housesCount > 0) {
+              parts.push(`${breakdown.housesCount} house${breakdown.housesCount > 1 ? "s" : ""} @ ₹100 = ₹${breakdown.housesTax.toLocaleString()}`)
+            }
+            if (breakdown.hotelsCount > 0) {
+              parts.push(`${breakdown.hotelsCount} hotel${breakdown.hotelsCount > 1 ? "s" : ""} @ ₹150 = ₹${breakdown.hotelsTax.toLocaleString()}`)
+            }
+            detail = ` (${parts.join(", ")}).`
+          } else {
+            detail = ` (No properties owned).`
+          }
+          const desc = `${player.name} paid ₹${tax.toLocaleString()} Wealth Tax to the Bank${detail}`
+          res.eventDescription = desc
+          this.addLog(player.id, "tax", desc, -tax)
+          this.recordTransaction("TAX", desc, tax, player.id, -1)
+        }
+
+
+
       }
     }
 
@@ -935,6 +1112,7 @@ export class LocalGameEngine implements IGameEngine {
 
     player.money -= price
     player.ownedProperties.push(space.propertyId!)
+    this.propertyOwnerCrossings[space.propertyId!] = 0
     this.propertyPurchasedTurn[space.propertyId!] = this.currentTurnId
     this.propertyPurchasedOwner[space.propertyId!] = playerId
     this.recordTransaction(
@@ -988,6 +1166,117 @@ export class LocalGameEngine implements IGameEngine {
     return { success: true, state: await this.getState() }
   }
 
+  private handleClubLanding(player: EnginePlayer, res: TurnResult) {
+    // Round exact 50 ties upward: Math.floor((val + 50) / 100) * 100
+    // Pre-transaction snapshot: evaluate all active opponents first
+    const opponentPayments: { opponent: EnginePlayer; payment: number }[] = []
+    for (const opp of this.players) {
+      if (opp.id === player.id) continue
+      if (opp.isBankrupt || opp.isLeft) continue
+      const oppEarnings = this.calculatePlayerRoundEarnings(opp.id)
+      const positiveNet = Math.max(0, oppEarnings.net)
+      const payment = Math.floor((positiveNet * 0.05 + 50) / 100) * 100
+      if (payment > 0) {
+        opponentPayments.push({ opponent: opp, payment })
+      }
+    }
+
+    let totalPaid = 0
+    for (const { opponent, payment } of opponentPayments) {
+      player.money -= payment
+      opponent.money += payment
+      player.totalRentPaid = (player.totalRentPaid || 0) + payment
+      opponent.totalRentReceived = (opponent.totalRentReceived || 0) + payment
+      totalPaid += payment
+      this.recordTransaction(
+        "FEE",
+        `${player.name} paid ₹${payment.toLocaleString()} to ${opponent.name} at the Royal Club (5% of current-round earnings).`,
+        payment,
+        player.id,
+        opponent.id,
+      )
+      this.addLog(
+        player.id,
+        "fee",
+        `${player.name} paid ₹${payment.toLocaleString()} to ${opponent.name} at the Royal Club.`,
+        -payment,
+      )
+    }
+
+    res.moneyChange = -totalPaid
+    if (totalPaid > 0) {
+      if (player.money < 0) {
+        res.eventDescription = `${player.name} visited the Royal Club and paid ₹${totalPaid.toLocaleString()} total to opponents (Shortfall / Debt: ₹${(-player.money).toLocaleString()}). Must settle debt or resign.`
+        this.addLog(
+          player.id,
+          "debt",
+          `${player.name} incurred debt paying at Royal Club. Balance: -₹${(-player.money).toLocaleString()}`,
+          -totalPaid,
+        )
+      } else {
+        res.eventDescription = `${player.name} visited the Royal Club and paid ₹${totalPaid.toLocaleString()} total to opponents (5% of current-round earnings).`
+      }
+    } else {
+      res.eventDescription = `${player.name} entered the Royal Club (no opponents have positive current-round earnings).`
+    }
+  }
+
+  private handleRestHouseLanding(player: EnginePlayer, res: TurnResult) {
+    player.restHouseTurns = 1
+    player.inRestHouse = false
+    res.mustGoToRestHouse = false
+
+    // Pre-transaction snapshot: evaluate all active opponents first
+    const opponentCollections: { opponent: EnginePlayer; collection: number }[] = []
+    for (const opp of this.players) {
+      if (opp.id === player.id) continue
+      if (opp.isBankrupt || opp.isLeft) continue
+      const oppEarnings = this.calculatePlayerRoundEarnings(opp.id)
+      const positiveNet = Math.max(0, oppEarnings.net)
+      const collection = Math.floor((positiveNet * 0.05 + 50) / 100) * 100
+      if (collection > 0) {
+        opponentCollections.push({ opponent: opp, collection })
+      }
+    }
+
+    let totalCollected = 0
+    for (const { opponent, collection } of opponentCollections) {
+      opponent.money -= collection
+      player.money += collection
+      opponent.totalRentPaid = (opponent.totalRentPaid || 0) + collection
+      player.totalRentReceived = (player.totalRentReceived || 0) + collection
+      totalCollected += collection
+      this.recordTransaction(
+        "FEE",
+        `${player.name} collected ₹${collection.toLocaleString()} from ${opponent.name} at the Rest House (5% of current-round earnings).`,
+        collection,
+        opponent.id,
+        player.id,
+      )
+      this.addLog(
+        player.id,
+        "fee",
+        `${player.name} collected ₹${collection.toLocaleString()} from ${opponent.name} at the Rest House.`,
+        collection,
+      )
+      if (opponent.money < 0) {
+        this.addLog(
+          opponent.id,
+          "debt",
+          `${opponent.name} incurred debt paying Rest House fee to ${player.name}. Balance: -₹${(-opponent.money).toLocaleString()}`,
+          -collection,
+        )
+      }
+    }
+
+    res.moneyChange = totalCollected
+    if (totalCollected > 0) {
+      res.eventDescription = `${player.name} stopped at the Rest House, collected ₹${totalCollected.toLocaleString()} total from opponents (5% of earnings), and will skip their next turn.`
+    } else {
+      res.eventDescription = `${player.name} visited the Rest House and will skip their next turn (no opponents have positive current-round earnings).`
+    }
+  }
+
   private advanceTurn(extraTurn: boolean = false) {
     if (!extraTurn) {
       this.consecutiveDoubles = 0
@@ -1012,17 +1301,17 @@ export class LocalGameEngine implements IGameEngine {
           continue
         }
         let skipped = false
-        if ((candidate?.restHouseTurns || 0) > 0 || candidate?.inRestHouse) {
-          candidate.restHouseTurns = 0
-          candidate.inRestHouse = false
-          this.addLog(candidate.id, "rest", `${candidate.name} skipped their turn at Rest House.`)
-          skipped = true
-        }
         if ((candidate?.cardJailSkipTurns || 0) > 0 || candidate?.cardJailSkip) {
           candidate.cardJailSkipTurns = 0
           candidate.cardJailSkip = false
           this.addLog(candidate.id, "jail", `${candidate.name} skipped their turn in Jail from a card.`)
           skipped = true
+        }
+        if (candidate && (candidate.restHouseTurns || 0) > 0) {
+          candidate.restHouseTurns = 0
+          candidate.inRestHouse = true
+          this.addLog(candidate.id, "rest", `${candidate.name} is resting at the Rest House (turn skipped).`)
+          break
         }
         if (skipped) {
           nextIdx = (nextIdx + 1) % this.players.length
@@ -1036,7 +1325,7 @@ export class LocalGameEngine implements IGameEngine {
       if (nextPlayer && !nextPlayer.isBankrupt) {
         this.addLog(nextPlayer.id, "turn_start", `${nextPlayer.name}'s turn began (Round ${this.roundNumber}).`)
       }
-      this.turnState = "WAITING_FOR_ROLL"
+      this.turnState = (nextPlayer && nextPlayer.inRestHouse) ? "WAITING_FOR_ACTION" : "WAITING_FOR_ROLL"
       this.turnStartedAt = Date.now()
     } else {
       this.turnState = "EXTRA_TURN"
@@ -1064,6 +1353,10 @@ export class LocalGameEngine implements IGameEngine {
       } else {
         return { state: await this.getState() }
       }
+    }
+    if (player && player.inRestHouse) {
+      player.inRestHouse = false
+      this.addLog(player.id, "rest", `${player.name} finished resting at the Rest House.`)
     }
     this.advanceTurn(false)
     return { state: await this.getState() }
@@ -1285,17 +1578,14 @@ export class LocalGameEngine implements IGameEngine {
 
     let mortgageVal = 0
     const city = CITY_PROPERTIES[propertyId]
+    const sp = SPECIAL_PROPERTIES[propertyId]
     if (city) mortgageVal = city.mortgageValue
-    else {
-      const sp = SPECIAL_PROPERTIES[propertyId]
-      if (sp) mortgageVal = sp.mortgageValue
-    }
+    else if (sp) mortgageVal = sp.mortgageValue
 
-    const rate = this.rules.unmortgageInterestRatePercent ?? 10
-    const rawRepay =
-      mortgageVal +
-      (mortgageVal * rate) / 100
-    const repay = Math.ceil(rawRepay / 100) * 100
+    const isSpecial = !city && Boolean(sp)
+    const rate = isSpecial ? 0 : (this.rules.unmortgageInterestRatePercent ?? 10)
+    const rawRepay = isSpecial ? mortgageVal : mortgageVal + (mortgageVal * rate) / 100
+    const repay = isSpecial ? mortgageVal : Math.ceil(rawRepay / 100) * 100
 
     if (player.money < repay)
       return { success: false, state: await this.getState() }
@@ -1342,22 +1632,15 @@ export class LocalGameEngine implements IGameEngine {
       player.destructionCount = (player.destructionCount || 0) + currentBuildings
     }
 
-    const purchaseTx = this.transactionLedger.find(
-      (tx) => tx.propertyId === propertyId && tx.type === "PURCHASE",
-    )
-    const boughtRound = purchaseTx ? purchaseTx.turnNumber : 1
-    const roundsElapsed = Math.max(0, this.roundNumber - boughtRound)
-    const depreciationPercent = Math.min(90, roundsElapsed * 5)
-    let depreciatedValue = Math.max(
-      Math.round(basePrice * 0.1),
-      Math.round(basePrice * (1 - depreciationPercent / 100)),
-    )
-    depreciatedValue = Math.floor(depreciatedValue / 100) * 100
+    const isSpecial = !city && Boolean(sp)
+    const crossings = this.propertyOwnerCrossings[propertyId] ?? 0
+    const depreciationPercent = isSpecial ? 0 : Math.min(100, crossings * 5)
+    const resalePercentage = isSpecial ? 100 : Math.max(0, 100 - depreciationPercent)
+    const depreciatedValue = isSpecial ? basePrice : Math.round((basePrice * resalePercentage) / 100)
 
     const isMortgaged = !!player.mortgages[propertyId]
     const mortgageValue = city?.mortgageValue || sp?.mortgageValue || Math.round(basePrice * 0.5)
-    let mortgageDeduction = isMortgaged ? mortgageValue : 0
-    mortgageDeduction = Math.floor(mortgageDeduction / 100) * 100
+    const mortgageDeduction = isMortgaged ? mortgageValue : 0
 
     const totalProceedsBeforeMortgage = depreciatedValue + buildingRefund
     const netSellProceeds = Math.max(0, totalProceedsBeforeMortgage - mortgageDeduction)
@@ -1368,11 +1651,14 @@ export class LocalGameEngine implements IGameEngine {
     delete this.propertyPurchasedTurn[propertyId]
     delete this.propertyPurchasedOwner[propertyId]
     delete this.propertyBuildTurn[propertyId]
+    delete this.propertyOwnerCrossings[propertyId]
     player.money += netSellProceeds
 
     const desc = isMortgaged
       ? `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (depreciated ₹${depreciatedValue.toLocaleString()}${buildingRefund > 0 ? ` + building refund ₹${buildingRefund.toLocaleString()}` : ""} minus mortgage payoff ₹${mortgageDeduction.toLocaleString()}).`
-      : `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (${depreciationPercent}% depreciation over ${roundsElapsed} round(s)${buildingRefund > 0 ? `, building refund ₹${buildingRefund.toLocaleString()}` : ""}).`
+      : isSpecial
+      ? `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (zero depreciation for special property).`
+      : `${player.name} sold ${propName} back to the bank for ₹${netSellProceeds.toLocaleString()} (${depreciationPercent}% depreciation over ${crossings} owner crossing${crossings === 1 ? "" : "s"}${buildingRefund > 0 ? `, building refund ₹${buildingRefund.toLocaleString()}` : ""}).`
 
     this.recordTransaction(
       "PROPERTY_SALE",
@@ -1415,6 +1701,7 @@ export class LocalGameEngine implements IGameEngine {
       turnPurchasedProperties: Object.entries(this.propertyPurchasedTurn)
         .filter(([_, tId]) => tId === this.currentTurnId)
         .map(([propId]) => propId),
+      propertyOwnerCrossings: { ...this.propertyOwnerCrossings },
       activeLanding: {
         propertyId: this.landingPropertyId,
         position: this.landingPosition,
@@ -1581,6 +1868,7 @@ export class LocalGameEngine implements IGameEngine {
       receiver.ownedProperties.push(p)
       this.propertyPurchasedTurn[p] = this.currentTurnId
       this.propertyPurchasedOwner[p] = receiver.id
+      this.propertyOwnerCrossings[p] = 0
       delete this.propertyBuildTurn[p]
       if (sender.mortgages[p]) {
         receiver.mortgages[p] = true
@@ -1592,6 +1880,7 @@ export class LocalGameEngine implements IGameEngine {
       sender.ownedProperties.push(p)
       this.propertyPurchasedTurn[p] = this.currentTurnId
       this.propertyPurchasedOwner[p] = sender.id
+      this.propertyOwnerCrossings[p] = 0
       delete this.propertyBuildTurn[p]
       if (receiver.mortgages[p]) {
         sender.mortgages[p] = true
@@ -1719,7 +2008,7 @@ export class LocalGameEngine implements IGameEngine {
     if (enabled) {
       for (const p of this.players) {
         if (p.rotationsCompleted === 0 && p.money === 0) {
-          p.money = this.rules.defaultStartingMoney || 25000
+          p.money = this.rules.defaultStartingMoney || 45000
         }
       }
     }

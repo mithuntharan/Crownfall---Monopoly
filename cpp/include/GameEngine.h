@@ -34,6 +34,24 @@ struct TurnResult {
     int rentRecipientId; // -1 for bank
 };
 
+// Authoritative Round Earnings for Income Tax Assessment (10% of net round earnings)
+struct RoundEarnings {
+    int income = 0;
+    int expenses = 0;
+    int net = 0;
+};
+
+// Authoritative Development Breakdown for Wealth Tax Assessment
+struct WealthTaxBreakdown {
+    int undevelopedCount = 0;
+    int undevelopedTax = 0;
+    int housesCount = 0;
+    int housesTax = 0;
+    int hotelsCount = 0;
+    int hotelsTax = 0;
+    int totalTax = 0;
+};
+
 class GameEngine {
 public:
     GameEngine(GameRules rules = GameRules());
@@ -60,7 +78,10 @@ public:
     bool playerOwnsCompleteGroup(int playerId, ColorGroup group) const;
     int playerOwnedCountInGroup(int playerId, ColorGroup group) const;
     bool playerOwnsSpecialPair(int playerId, const std::string& specialId) const;
+    int getPlayerHotelCount(int playerId) const;
     int calculatePlayerNetWorth(int playerId) const;
+    RoundEarnings calculatePlayerRoundEarnings(int playerId) const;
+    WealthTaxBreakdown calculatePlayerWealthTax(int playerId) const;
 
     void updatePlayerName(int playerId, const std::string& newName);
     bool updatePlayerColor(int playerId, const std::string& newColor, std::string& outError);
@@ -124,6 +145,7 @@ public:
     const std::map<std::string, int>& getPropertyPurchasedTurn() const { return m_propertyPurchasedTurn; }
     const std::map<std::string, int>& getPropertyPurchasedOwner() const { return m_propertyPurchasedOwner; }
     const std::map<std::string, int>& getPropertyBuildTurn() const { return m_propertyBuildTurn; }
+    const std::map<std::string, int>& getPropertyOwnerCrossings() const { return m_propertyOwnerCrossings; }
 
     // Serialization
     std::string exportStateJson() const;
@@ -142,11 +164,16 @@ private:
     std::map<std::string, int> m_propertyPurchasedTurn; // propertyId -> logical turnId when purchased/acquired
     std::map<std::string, int> m_propertyPurchasedOwner; // propertyId -> playerId who purchased/acquired it
     std::map<std::string, int> m_propertyBuildTurn;     // propertyId -> logical turnId when built (Mode B allowance)
+    std::map<std::string, int> m_propertyOwnerCrossings; // propertyId -> subsequent owner crossings
     int m_landingTurnId = -1;
     int m_landingPlayerId = -1;
     int m_landingPosition = -1;
     std::string m_landingPropertyId;
     bool m_landingActive = false;
+
+    void recordOwnerCrossings(int playerId, int fromPos, int steps);
+    void handleClubLanding(Player& player, TurnResult& result);
+    void handleRestHouseLanding(Player& player, TurnResult& result);
 
     bool m_devMode = false;
     std::vector<ActivityLogEntry> m_activityLog;

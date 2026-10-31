@@ -168,7 +168,7 @@ export function TransactionLedgerContent({
                 <div className="ledger-entry-top">
                   <div className="ledger-meta-left">
                     <span className="ledger-id-pill">#{tx.id}</span>
-                    <span className="ledger-turn-pill">Turn #{tx.turnNumber}</span>
+                    <span className="ledger-turn-pill">Round #{tx.turnNumber}</span>
                     <span className="activity-log-time">{timeStr}</span>
                   </div>
                   <span className={`ledger-type-badge ${tx.type}`}>

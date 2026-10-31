@@ -6,9 +6,8 @@
    ============================================================================== */
 
 :root,
-[data-theme="light"],
-[data-theme="dark"] {
-  /* ─── Warm Ivory & Beige Foundations (Permanent Light Theme) ───────── */
+[data-theme="light"] {
+  /* ─── Warm Ivory & Beige Foundations (Light Theme) ─────────────────── */
   --bg-void: #f7f4ed;
   --bg-midnight: #eee8dc;
   --bg-deep-navy: #faf7f0;
@@ -49,6 +48,10 @@
   --gold-ivory: #1e2024;
   --gold-glow: rgba(180, 130, 40, 0.2);
   --gold-glow-soft: rgba(217, 119, 6, 0.1);
+  --gold-300: #d97706;
+  --gold-400: #b45309;
+  --gold-500: #92400e;
+  --red: #dc2626;
 
   /* ─── Restrained Burgundy & Crimson Accents ─────────────────────────── */
   --burgundy: #9f1239;
@@ -129,6 +132,189 @@
   --duration-panel: 260ms;
   --duration-notification: 240ms;
   --duration-drawer: 240ms;
+
+  /* ─── Financial & Status Semantic Tokens ────────────────────────────── */
+  --financial-gain: #15803d;
+  --financial-gain-bg: rgba(34, 197, 94, 0.16);
+  --financial-gain-border: rgba(34, 197, 94, 0.4);
+  --financial-loss: #be123c;
+  --financial-loss-bg: rgba(239, 68, 68, 0.16);
+  --financial-loss-border: rgba(239, 68, 68, 0.4);
+  --status-success: #059669;
+  --status-warning: #d97706;
+  --status-error: #dc2626;
+  --status-info: #2563eb;
+
+  /* ─── Universal Input Semantic Tokens ───────────────────────────────── */
+  --input-bg: #ffffff;
+  --input-color: #0f172a;
+  --input-border: rgba(148, 163, 184, 0.38);
+  --input-placeholder: #64748b;
+  --input-focus-ring: rgba(180, 83, 9, 0.18);
+  --input-disabled-bg: #f1f5f9;
+
+  /* --- Liquid-Glass Scrollbar Semantic Tokens (Light Theme) --- */
+  --scrollbar-track: rgba(235, 228, 216, 0.45);
+  --scrollbar-thumb: rgba(185, 165, 140, 0.65);
+  --scrollbar-thumb-hover: rgba(155, 130, 95, 0.90);
+}
+
+/* ==============================================================================
+   CROWNFALL — DARK THEME SEMANTIC TOKEN ARCHITECTURE
+   Premium Charcoal & Graphite Liquid Glass with Restrained Champagne Accents
+   ============================================================================== */
+
+[data-theme="dark"] {
+  /* ─── Deep Charcoal & Graphite Foundations ──────────────────────────── */
+  --bg-void: #0c0e12;
+  --bg-midnight: #12151b;
+  --bg-deep-navy: #161a22;
+  --bg-surface: rgba(20, 24, 32, 0.90);
+  --bg-surface-elevated: rgba(26, 31, 42, 0.96);
+
+  /* ─── Translucent Dark Smoked Glass Surfaces ────────────────────────── */
+  --glass-heavy: rgba(22, 27, 36, 0.94);
+  --glass-medium: rgba(20, 24, 32, 0.84);
+  --glass-light: rgba(28, 34, 46, 0.72);
+  --glass-floating: rgba(26, 32, 44, 0.97);
+  --glass-border: rgba(212, 175, 55, 0.20);
+  --glass-border-subtle: rgba(255, 255, 255, 0.08);
+  --glass-border-accent: rgba(212, 175, 55, 0.35);
+  --glass-border-gold: rgba(212, 175, 55, 0.42);
+  --glass-border-gold-strong: rgba(245, 158, 11, 0.70);
+  --glass-border-crimson: rgba(225, 29, 72, 0.35);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 60%, transparent 100%);
+  --glass-blur: blur(16px);
+  --glass-blur-heavy: blur(24px);
+
+  /* ─── High-Contrast Warm Off-White Typography ───────────────────────── */
+  --text-primary: #f3f4f6;
+  --text-ivory: #f5f0e6;
+  --text-ivory-soft: #e2ded4;
+  --text-secondary: #cbd5e1;
+  --text-subtle: #94a3af;
+  --text-muted: #94a3af;
+  --text-dim: #64748b;
+
+  /* ─── Restrained Champagne Accents & Imperial Gold ──────────────────── */
+  --accent-primary: #6366f1;
+  --accent-periwinkle: #818cf8;
+  --gold: #d4af37;
+  --gold-light: #fde68a;
+  --gold-bright: #ffd57e;
+  --gold-antique: #c5a059;
+  --gold-ivory: #f5f0e6;
+  --gold-glow: rgba(212, 175, 55, 0.25);
+  --gold-glow-soft: rgba(212, 175, 55, 0.12);
+  --gold-300: #ffd57e;
+  --gold-400: #d4af37;
+  --gold-500: #aa820a;
+  --red: #f87171;
+
+  /* ─── Restrained Burgundy & Crimson Accents ─────────────────────────── */
+  --burgundy: #be123c;
+  --burgundy-deep: #4c0519;
+  --crimson: #e11d48;
+  --crimson-bright: #fb7185;
+  --crimson-glow: rgba(225, 29, 72, 0.30);
+
+  /* ─── Board & Perimeter Tile Dark Graphite Tokens ───────────────────── */
+  --board-bg: #12151b;
+  --board-border: rgba(212, 175, 55, 0.35);
+  --board-center-bg: radial-gradient(circle at center, rgba(22, 27, 36, 0.98) 0%, rgba(14, 18, 25, 0.98) 100%);
+  --tile-bg: rgba(20, 25, 34, 0.96);
+  --tile-border: rgba(255, 255, 255, 0.08);
+  --tile-hover-bg: rgba(28, 35, 48, 0.98);
+  --corner-bg: radial-gradient(circle at center, #1e2430 0%, #141822 100%);
+
+  /* ─── Coordinated Special Squares & Price Chips ──────────────────────── */
+  --special-card-bg: rgba(26, 32, 44, 0.94);
+  --special-card-border: rgba(212, 175, 55, 0.30);
+  --special-card-text: #f3f4f6;
+  --price-chip-bg: rgba(28, 34, 46, 0.95);
+  --price-chip-border: rgba(212, 175, 55, 0.30);
+  --price-chip-text: #ffd57e;
+
+  /* ─── Tactile Dice Tokens ────────────────────────────────────────────── */
+  --die-bg: linear-gradient(145deg, #242b38, #181d26);
+  --die-border: rgba(212, 175, 55, 0.45);
+  --die-pip: radial-gradient(circle at 35% 35%, #fde68a, #d4af37);
+
+  /* ─── Property Color Group Accents (Vibrant & Legible in Dark Mode) ─── */
+  --group-green: #10b981;
+  --group-green-dark: #064e3b;
+  --group-yellow: #f59e0b;
+  --group-yellow-dark: #78350f;
+  --group-red: #ef4444;
+  --group-red-dark: #7f1d1d;
+  --group-blue: #3b82f6;
+  --group-blue-dark: #1e3a8a;
+
+  /* Compatibility aliases */
+  --green: var(--group-green);
+  --yellow: var(--group-yellow);
+  --red: var(--group-red);
+  --blue: var(--group-blue);
+  --teal: #14b8a6;
+  --plum: #a855f7;
+  --saffron: #f59e0b;
+  --forest: var(--bg-deep-navy);
+  --forest-light: var(--bg-surface-elevated);
+  --paper: var(--glass-heavy);
+  --paper-deep: var(--bg-midnight);
+  --surface: var(--bg-surface);
+  --ink: var(--text-ivory);
+  --ink-soft: var(--text-muted);
+  --border-subtle: var(--glass-border);
+  --bg-card: var(--glass-medium);
+  --line: rgba(255, 255, 255, 0.10);
+
+  /* ─── Financial & Status Semantic Tokens ────────────────────────────── */
+  --financial-gain: #4ade80;
+  --financial-gain-bg: rgba(34, 197, 94, 0.20);
+  --financial-gain-border: rgba(34, 197, 94, 0.50);
+  --financial-loss: #f87171;
+  --financial-loss-bg: rgba(239, 68, 68, 0.20);
+  --financial-loss-border: rgba(239, 68, 68, 0.50);
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+
+  /* ─── Universal Input Semantic Tokens ───────────────────────────────── */
+  --input-bg: rgba(18, 23, 32, 0.95);
+  --input-color: #f3f4f6;
+  --input-border: rgba(255, 255, 255, 0.15);
+  --input-placeholder: #64748b;
+  --input-focus-ring: rgba(212, 175, 55, 0.25);
+  --input-disabled-bg: rgba(255, 255, 255, 0.04);
+
+  /* --- Liquid-Glass Scrollbar Semantic Tokens (Dark Theme) --- */
+  --scrollbar-track: rgba(18, 23, 32, 0.55);
+  --scrollbar-thumb: rgba(215, 195, 155, 0.42);
+  --scrollbar-thumb-hover: rgba(255, 213, 126, 0.85);
+
+  /* ─── Refined Dark Shadows with Specular Borders ─────────────────────── */
+  --shadow-subtle: 0 4px 14px rgba(0, 0, 0, 0.40);
+  --shadow-glass: 0 12px 30px rgba(0, 0, 0, 0.50), 0 0 1px rgba(255, 255, 255, 0.10) inset;
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(212, 175, 55, 0.25);
+  --shadow-floating: 0 10px 28px rgba(0, 0, 0, 0.60), 0 0 16px rgba(212, 175, 55, 0.15);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* ─── Exponential Animation Tokens ───────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-expo-decel: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --duration-btn: 140ms;
+  --duration-btn-press: 100ms;
+  --duration-indicator: 180ms;
+  --duration-tab: 200ms;
+  --duration-panel: 260ms;
+  --duration-notification: 240ms;
+  --duration-drawer: 240ms;
 }
 
 /* ==============================================================================
@@ -165,6 +351,17 @@ body[data-theme="light"],
     radial-gradient(circle at 50% 0%, rgba(245, 238, 224, 0.75) 0%, transparent 60%),
     radial-gradient(circle at 10% 90%, rgba(243, 232, 218, 0.55) 0%, transparent 50%),
     radial-gradient(circle at 90% 80%, rgba(246, 240, 228, 0.65) 0%, transparent 45%);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+[data-theme="dark"] {
+  background-color: var(--bg-void);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(35, 42, 54, 0.60) 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, rgba(22, 28, 38, 0.50) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(28, 35, 48, 0.55) 0%, transparent 45%);
   color: var(--text-primary);
 }
 
@@ -379,6 +576,20 @@ button:focus-visible, input:focus-visible {
   background: rgba(240, 232, 216, 0.85);
   border-color: var(--gold);
   color: #78350f;
+  box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #78350f;
+  border: 1.5px solid var(--glass-border-gold);
+  min-height: 48px;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: rgba(180, 130, 40, 0.12);
+  border-color: var(--gold);
+  color: #92400e;
   box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
 }
 
@@ -1843,8 +2054,10 @@ button:focus-visible, input:focus-visible {
   left: 0;
   right: 0;
   height: 18%;
-  flex-direction: row;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 2px;
 }
 
 .tile-buildings-container.side-top {
@@ -1852,8 +2065,10 @@ button:focus-visible, input:focus-visible {
   left: 0;
   right: 0;
   height: 18%;
-  flex-direction: row;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 2px;
 }
 
 .tile-buildings-container.side-left {
@@ -1861,8 +2076,10 @@ button:focus-visible, input:focus-visible {
   top: 0;
   bottom: 0;
   width: 18%;
-  flex-direction: column;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 1px;
 }
 
 .tile-buildings-container.side-right {
@@ -1870,39 +2087,83 @@ button:focus-visible, input:focus-visible {
   top: 0;
   bottom: 0;
   width: 18%;
-  flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 1px;
+}
+
+.building-marker-house-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
   gap: 2px;
+  flex-shrink: 0;
+  color: #ffffff;
+  user-select: none;
+  white-space: nowrap;
+  transform-origin: center center;
 }
 
 .building-marker-house {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 10px;
-  height: 10px;
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
-  animation: building-pop var(--duration-indicator) var(--ease-out-expo);
+  color: #ffffff;
 }
 
 .building-marker-hotel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
-  border-radius: 2px;
-  border: 1.5px solid #fbbf24;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7), 0 0 6px rgba(251, 191, 36, 0.5);
-  animation: building-pop var(--duration-indicator) var(--ease-out-expo);
+  color: #ffffff;
+  transform-origin: center center;
 }
 
-@keyframes building-pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+.building-count-badge {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+  user-select: none;
+  display: inline-block;
+}
+
+/* ─── Board-Relative Building & Multiplier Orientations ─────────────────────────
+   Every building faces OUTWARD (roof points outward, base points toward interior).
+   The multiplier (×2, ×3, ×4) rotates coherently with the house icon.
+   - Bottom side: Roof points Down, Base points Up (180deg)
+   - Top side:    Roof points Up, Base points Down (0deg)
+   - Left side:   Roof points Left, Base points Right (-90deg)
+   - Right side:  Roof points Right, Base points Left (90deg)
+─────────────────────────────────────────────────────────────────────────────── */
+.tile-buildings-container.side-bottom .building-marker-house-group,
+.tile-buildings-container.side-bottom .building-marker-hotel {
+  transform: rotate(180deg);
+}
+
+.tile-buildings-container.side-top .building-marker-house-group,
+.tile-buildings-container.side-top .building-marker-hotel {
+  transform: rotate(0deg);
+}
+
+.tile-buildings-container.side-left .building-marker-house-group,
+.tile-buildings-container.side-left .building-marker-hotel {
+  transform: rotate(-90deg);
+}
+
+.tile-buildings-container.side-right .building-marker-house-group,
+.tile-buildings-container.side-right .building-marker-hotel {
+  transform: rotate(90deg);
 }
 
 /* ==============================================================================
@@ -3413,7 +3674,7 @@ button:focus-visible, input:focus-visible {
    PERMANENT LIGHT THEME MODAL & COMPONENT ADAPTATIONS
    ============================================================================== */
 
-.modal-sheet,
+/* ─── Light Theme Modal & Component Scoping ─────────────────────────── */
 [data-theme="light"] .modal-sheet {
   background: rgba(255, 255, 255, 0.94);
   color: #0f172a;
@@ -3421,14 +3682,10 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12), 0 0 1px rgba(255, 255, 255, 0.8) inset;
 }
 
-.modal-backdrop,
 [data-theme="light"] .modal-backdrop {
   background: rgba(15, 23, 42, 0.45);
 }
 
-.settings-card,
-.room-code,
-.lobby-player,
 [data-theme="light"] .settings-card,
 [data-theme="light"] .room-code,
 [data-theme="light"] .lobby-player {
@@ -3437,41 +3694,141 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 4px 16px rgba(60, 50, 40, 0.06);
 }
 
-.ps-player,
 [data-theme="light"] .ps-player {
   background: rgba(253, 250, 244, 0.94);
   border-color: rgba(196, 184, 166, 0.35);
 }
 
-.human-turn-timer-badge,
 [data-theme="light"] .human-turn-timer-badge {
   background: rgba(246, 240, 228, 0.95);
   border-color: rgba(196, 184, 166, 0.45);
   color: #1e2024;
 }
 
-.modal-sheet div[style*="rgba(0,0,0"],
-.modal-sheet div[style*="rgba(0, 0, 0"],
+[data-theme="light"] .modal-sheet div[style*="rgba(0,0,0"],
+[data-theme="light"] .modal-sheet div[style*="rgba(0, 0, 0"],
 [data-theme="light"] .preferences-modal div[style*="rgba(0,0,0"] {
   background: rgba(241, 245, 249, 0.7) !important;
   border-color: rgba(148, 163, 184, 0.25) !important;
 }
 
-.modal-sheet strong,
+[data-theme="light"] .modal-sheet strong,
 [data-theme="light"] .preferences-modal strong {
   color: var(--text-primary) !important;
 }
 
-.modal-header strong,
-[data-theme="light"] .modal-header strong {
+[data-theme="light"] .modal-header strong,
+[data-theme="light"] .preferences-modal .modal-header strong {
   color: var(--text-primary) !important;
 }
 
-.modal-sheet span[style*="color: #fff"],
-.modal-sheet span[style*="color: rgb(255, 255, 255)"],
-.modal-sheet button[style*="color: #fff"],
-.modal-sheet strong[style*="color: #fff"] {
+[data-theme="light"] .modal-sheet span[style*="color: #fff"],
+[data-theme="light"] .modal-sheet span[style*="color: rgb(255, 255, 255)"],
+[data-theme="light"] .modal-sheet button[style*="color: #fff"],
+[data-theme="light"] .modal-sheet strong[style*="color: #fff"] {
   color: var(--text-primary) !important;
+}
+
+/* ─── Dark Theme Modal & Component Scoping ──────────────────────────── */
+[data-theme="dark"] .modal-sheet {
+  background: rgba(20, 24, 34, 0.96) !important;
+  color: #f3f4f6 !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+}
+
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(4, 6, 10, 0.82) !important;
+}
+
+[data-theme="dark"] .sheet-handle {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .modal-header strong {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .modal-header button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .modal-header button:hover {
+  background: rgba(212, 175, 55, 0.2) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .settings-card,
+[data-theme="dark"] .room-code,
+[data-theme="dark"] .lobby-player {
+  background: rgba(22, 27, 38, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .lobby-player:hover {
+  border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+[data-theme="dark"] .room-code small {
+  color: var(--gold-light) !important;
+}
+
+[data-theme="dark"] .room-code strong {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .room-code button {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .room-code button:hover {
+  background: var(--gold) !important;
+  color: #0c0e12 !important;
+}
+
+[data-theme="dark"] .ps-player {
+  background: rgba(22, 27, 36, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .ps-player.ps-active {
+  background: rgba(212, 175, 55, 0.18) !important;
+  border-color: var(--gold-bright) !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.25), inset 0 0 8px rgba(212, 175, 55, 0.1) !important;
+}
+
+[data-theme="dark"] .human-turn-timer-badge {
+  background: rgba(20, 24, 34, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .modal-sheet div[style*="rgba(0,0,0"],
+[data-theme="dark"] .modal-sheet div[style*="rgba(0, 0, 0"],
+[data-theme="dark"] .preferences-modal div[style*="rgba(0,0,0"] {
+  background: rgba(14, 18, 26, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .modal-sheet strong,
+[data-theme="dark"] .preferences-modal strong {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal-sheet span[style*="color: #fff"],
+[data-theme="dark"] .modal-sheet span[style*="color: rgb(255, 255, 255)"],
+[data-theme="dark"] .modal-sheet button[style*="color: #fff"],
+[data-theme="dark"] .modal-sheet strong[style*="color: #fff"] {
+  color: #f3f4f6 !important;
 }
 
 /* ─── AUTHORITATIVE FINANCIAL LEDGER CARDS & TRANSFER FLOW ────────────────── */
@@ -3910,7 +4267,7 @@ button:focus-visible, input:focus-visible {
 }
 
 /* Subtle, elegant landing-tile highlight with smooth exponential fade-out */
-.board-space.is-landing-highlighted::after {
+.board-space.is-landing-highlighted:not(:has(.tile-ownership-ring))::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -3937,6 +4294,7 @@ button:focus-visible, input:focus-visible {
   }
   100% {
     opacity: 0;
+    visibility: hidden;
     transform: scale(1);
   }
 }
@@ -3949,15 +4307,15 @@ button:focus-visible, input:focus-visible {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── 3. Neutral Elegant Ownership Ring ── */
+/* ── 3. Neutral Crisp Ownership Border (Non-Glowing) ── */
 .tile-ownership-ring {
   position: absolute;
   inset: 1.5px;
   pointer-events: none;
   z-index: 2;
   border-radius: inherit;
-  border: 1.5px solid rgba(220, 195, 155, 0.65);
-  box-shadow: inset 0 0 4px rgba(220, 195, 155, 0.22), 0 0 5px rgba(220, 195, 155, 0.3);
+  border: 1px solid rgba(196, 184, 166, 0.35);
+  box-shadow: none;
 }
 
 /* ── 4. Property Comparison View (Redesigned 3-Property System) ── */
@@ -4430,5 +4788,2532 @@ button:focus-visible, input:focus-visible {
   }
 }
 
+/* ─── SELL PROPERTY MODAL & BREAKDOWN ────────────────────────────── */
+.sell-property-modal {
+  max-width: 440px !important;
+  width: 95% !important;
+}
+
+.sell-property-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-surface-elevated, rgba(255, 253, 248, 0.96));
+  border: 1px solid var(--glass-border-gold, rgba(180, 130, 40, 0.35));
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(60, 50, 40, 0.05);
+}
+
+.sell-property-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sell-property-title-name {
+  font-family: "Oswald", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #1e2024);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sell-property-type-tag {
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #686d76);
+  text-transform: uppercase;
+}
+
+.sell-property-owner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(246, 240, 228, 0.85);
+  border: 1px solid var(--glass-border, rgba(196, 184, 166, 0.35));
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-family: "Oswald", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary, #1e2024);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sell-property-owner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sell-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: var(--radius-sm, 8px);
+  padding: 10px 12px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.sell-warning-card.warning-restriction {
+  background: rgba(254, 242, 242, 0.95);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-left: 4px solid #dc2626;
+  color: #991b1b;
+}
+
+.sell-warning-card.warning-mortgage {
+  background: rgba(255, 251, 235, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-left: 4px solid #d97706;
+  color: #92400e;
+}
+
+.sell-warning-label {
+  font-family: "Oswald", sans-serif;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.sell-breakdown-card {
+  background: var(--bg-surface-elevated, rgba(255, 253, 248, 0.96));
+  border: 1px solid var(--glass-border, rgba(196, 184, 166, 0.35));
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(60, 50, 40, 0.04);
+}
+
+.sell-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 12px;
+  color: var(--text-secondary, #4b4f56);
+}
+
+.sell-breakdown-row b {
+  font-family: "Oswald", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #1e2024);
+  letter-spacing: 0.02em;
+}
+
+.sell-breakdown-divider {
+  height: 1px;
+  background: var(--glass-border-subtle, rgba(196, 184, 166, 0.22));
+  margin: 4px 0;
+}
+
+.sell-breakdown-row.net-proceeds-row {
+  padding: 6px 0;
+  color: var(--text-primary, #1e2024);
+}
+
+.sell-breakdown-row.net-proceeds-row span {
+  font-family: "Oswald", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--gold-antique, #92400e);
+}
+
+.sell-breakdown-row.net-proceeds-row b {
+  font-size: 16px;
+  color: var(--gold-bright, #b45309);
+}
+
+.sell-breakdown-row.projected-cash-row {
+  color: var(--text-secondary, #4b4f56);
+}
+
+.sell-breakdown-row.projected-cash-row b {
+  color: #15803d;
+  font-size: 14px;
+}
+
+.sell-action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.sell-btn-confirm {
+  background: linear-gradient(135deg, #be123c 0%, #9f1239 60%, #881337 100%) !important;
+  color: #fff !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(190, 18, 60, 0.3) !important;
+  font-family: "Oswald", sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  padding: 10px 14px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.sell-btn-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 60%, #9f1239 100%) !important;
+  box-shadow: 0 6px 16px rgba(190, 18, 60, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+/* ─── PROPERTY CARD 2×2 ACTIONS GRID ────────────────────────────── */
+.property-actions-2x2-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.prop-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  font-family: "Oswald", sans-serif;
+  text-align: center;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: all var(--duration-btn, 0.2s) var(--ease-out-expo, ease);
+  user-select: none;
+}
+
+.prop-action-btn.prop-btn-build {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #881337 100%);
+  color: #fff;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+}
+
+.prop-action-btn.prop-btn-build:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #9f1239 100%);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.5);
+  transform: translateY(-1px);
+}
+
+.prop-action-btn.prop-btn-neutral {
+  background: rgba(250, 246, 238, 0.95);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border-gold);
+  color: #78350f;
+  box-shadow: 0 2px 6px rgba(60, 50, 40, 0.06);
+}
+
+.prop-action-btn.prop-btn-neutral:hover:not(:disabled) {
+  background: rgba(246, 240, 228, 0.98);
+  border-color: var(--gold-bright);
+  color: #92400e;
+  box-shadow: 0 3px 10px rgba(60, 50, 40, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Restrained destructive styling for Destroy and Sell */
+.prop-action-btn.prop-btn-destructive {
+  background: rgba(255, 241, 242, 0.92);
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  color: #9f1239;
+  box-shadow: 0 2px 6px rgba(159, 18, 57, 0.06);
+}
+
+.prop-action-btn.prop-btn-destructive:hover:not(:disabled) {
+  background: rgba(255, 228, 230, 0.98);
+  border-color: rgba(225, 29, 72, 0.6);
+  color: #881337;
+  box-shadow: 0 3px 10px rgba(159, 18, 57, 0.15);
+  transform: translateY(-1px);
+}
+
+.prop-action-btn:disabled {
+  opacity: 0.45;
+  background: rgba(240, 236, 228, 0.5) !important;
+  border-color: rgba(196, 184, 166, 0.3) !important;
+  color: var(--text-dim, #9398a2) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.prop-action-btn .prop-btn-main {
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.prop-action-btn .prop-btn-sub {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.92;
+  letter-spacing: 0.02em;
+  margin-top: 1px;
+}
+
+@media (max-width: 480px) {
+  .sell-action-buttons {
+    grid-template-columns: 1fr;
+  }
+  .property-actions-2x2-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .prop-action-btn {
+    min-height: 44px;
+    padding: 6px 8px;
+  }
+}
 
 
+
+
+
+
+/* ==============================================================================
+   CROWNFALL — COMPREHENSIVE DARK THEME COMPONENT & BUTTON RULES
+   ============================================================================== */
+
+/* ─── Header & Navigation in Dark Theme ─────────────────────────────── */
+[data-theme="dark"] .header-title {
+  background: linear-gradient(180deg, #ffffff 20%, #fde68a 65%, #d4af37 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="dark"] .header-title small {
+  color: var(--gold-light) !important;
+  -webkit-text-fill-color: var(--gold-light) !important;
+}
+
+/* ─── Form Inputs in Dark Theme ─────────────────────────────────────── */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="url"],
+[data-theme="dark"] input:not([type]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color: #f3f4f6 !important;
+  background-color: rgba(18, 23, 32, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25) !important;
+  background-color: rgba(22, 28, 40, 0.98) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] textarea:disabled,
+[data-theme="dark"] select:disabled {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: #64748b !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .field input {
+  background: rgba(18, 23, 32, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f3f4f6 !important;
+}
+
+/* ─── Buttons in Dark Theme ─────────────────────────────────────────── */
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(251, 191, 36, 0.55) !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
+  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: rgba(28, 34, 46, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: var(--gold-bright) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background: rgba(36, 44, 60, 0.98) !important;
+  border-color: var(--gold-bright) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .btn-ghost {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .btn-ghost:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: var(--gold) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .btn-outline {
+  background: transparent !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.4) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .btn-outline:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: var(--gold-bright) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-danger {
+  background: linear-gradient(135deg, #be123c 0%, #701a35 100%) !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%) !important;
+  box-shadow: 0 6px 18px rgba(190, 18, 60, 0.55) !important;
+}
+
+[data-theme="dark"] .btn:disabled {
+  opacity: 0.45 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+}
+
+/* ─── Topbar Controls in Dark Theme ─────────────────────────────────── */
+[data-theme="dark"] .topbar-action-btn {
+  background: rgba(26, 32, 44, 0.9) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .topbar-action-btn:hover {
+  background: rgba(35, 43, 60, 0.98) !important;
+  border-color: var(--gold-bright) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.game-info-btn {
+  background: linear-gradient(135deg, rgba(32, 40, 56, 0.98) 0%, rgba(24, 30, 42, 0.95) 100%) !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.game-info-btn:hover {
+  border-color: var(--gold-light) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.kick-btn,
+[data-theme="dark"] .topbar-action-btn.resign-btn {
+  background: rgba(45, 18, 24, 0.9) !important;
+  border-color: rgba(244, 63, 94, 0.4) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.kick-btn:hover,
+[data-theme="dark"] .topbar-action-btn.resign-btn:hover {
+  background: rgba(60, 22, 30, 0.98) !important;
+  border-color: #f43f5e !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.end-session-btn,
+[data-theme="dark"] .end-session-topbar-btn {
+  background: rgba(45, 18, 24, 0.9) !important;
+  border-color: rgba(244, 63, 94, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .topbar-action-btn.end-session-btn:hover,
+[data-theme="dark"] .end-session-topbar-btn:hover {
+  background: #be123c !important;
+  color: #ffffff !important;
+  border-color: #e11d48 !important;
+}
+
+[data-theme="dark"] .topbar-player-badge {
+  background: rgba(26, 32, 44, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .topbar-player-label {
+  color: var(--gold-antique) !important;
+}
+
+[data-theme="dark"] .topbar-player-name {
+  color: var(--text-ivory) !important;
+}
+
+/* ─── Board & Perimeter Tiles in Dark Theme ──────────────────────────── */
+[data-theme="dark"] .space-special,
+[data-theme="dark"] .space-chance,
+[data-theme="dark"] .space-chest,
+[data-theme="dark"] .space-tax {
+  background: rgba(24, 30, 42, 0.96) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .space-special b,
+[data-theme="dark"] .space-chance b,
+[data-theme="dark"] .space-chest b,
+[data-theme="dark"] .space-tax b,
+[data-theme="dark"] .space-special .board-space-label,
+[data-theme="dark"] .space-chance .board-space-label,
+[data-theme="dark"] .space-chest .board-space-label,
+[data-theme="dark"] .space-tax .board-space-label,
+[data-theme="dark"] .space-special .space-name-line,
+[data-theme="dark"] .space-chance .space-name-line,
+[data-theme="dark"] .space-chest .space-name-line,
+[data-theme="dark"] .space-tax .space-name-line {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="dark"] .space-special.space-railway {
+  background: rgba(24, 30, 42, 0.96) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .space-special.space-railway .board-space-label {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .space-corner b {
+  color: var(--gold-bright) !important;
+}
+
+/* ─── Roll & End Turn Controls in Dark Theme ────────────────────────── */
+[data-theme="dark"] .roll-button {
+  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
+  border: 1px solid rgba(251, 191, 36, 0.55) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.4) !important;
+}
+
+[data-theme="dark"] .roll-button:not(:disabled):hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
+  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.55) !important;
+}
+
+[data-theme="dark"] .roll-button.end-turn-mode,
+[data-theme="dark"] .end-turn-button {
+  background: linear-gradient(135deg, #be123c 0%, #881337 100%) !important;
+  color: #ffffff !important;
+  border-color: var(--gold-bright) !important;
+  box-shadow: 0 4px 18px rgba(190, 18, 60, 0.5), 0 0 12px rgba(212, 175, 55, 0.35) !important;
+}
+
+/* ─── Property Cards & Actions in Dark Theme ────────────────────────── */
+[data-theme="dark"] .property-card {
+  background: rgba(20, 24, 34, 0.96) !important;
+  border: 1.5px solid var(--gold) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .property-card[data-group="NONE"] .property-head {
+  background: linear-gradient(135deg, #242b38 0%, #161c26 100%) !important;
+  color: #f3f4f6 !important;
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .property-card[data-group="NONE"] .property-head strong,
+[data-theme="dark"] .property-card[data-group="NONE"] .property-head small,
+[data-theme="dark"] .property-card[data-group="NONE"] .property-head span {
+  color: #f3f4f6 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .property-price {
+  background: rgba(26, 31, 42, 0.95) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+[data-theme="dark"] .property-foot {
+  background: rgba(20, 24, 34, 0.95) !important;
+  border-top: 1px solid var(--glass-border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .property-foot b {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .property-card-edition {
+  background: rgba(16, 20, 28, 0.95) !important;
+  border-top: 1px solid var(--glass-border-subtle) !important;
+  color: var(--gold-antique) !important;
+}
+
+[data-theme="dark"] .property-card-mortgage-section {
+  background: rgba(24, 30, 42, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .mortgage-info-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .mortgage-info-header strong {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .mortgage-info-grid b {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .unowned-inspection-note {
+  background: rgba(24, 30, 42, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .unowned-status-heading {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .unowned-status-desc {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .rent-tier-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .rent-tier-row span {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .rent-tier-row b {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .rent-tier-row.is-active-tier {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.22) 0%, rgba(180, 130, 40, 0.32) 100%) !important;
+  border: 1.5px solid var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .rent-tier-row.is-active-tier span {
+  color: #fde68a !important;
+}
+
+[data-theme="dark"] .rent-tier-row.is-active-tier b {
+  color: #ffd57e !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-build {
+  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(251, 191, 36, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-build:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-neutral {
+  background: rgba(28, 34, 46, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-neutral:hover:not(:disabled) {
+  background: rgba(36, 44, 60, 0.98) !important;
+  border-color: var(--gold-bright) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-destructive {
+  background: rgba(45, 18, 28, 0.85) !important;
+  border: 1px solid rgba(244, 63, 94, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .prop-action-btn.prop-btn-destructive:hover:not(:disabled) {
+  background: rgba(60, 22, 35, 0.95) !important;
+  border-color: rgba(244, 63, 94, 0.6) !important;
+  color: #fee2e2 !important;
+}
+
+[data-theme="dark"] .prop-action-btn:disabled {
+  opacity: 0.45 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+}
+
+/* ─── Sell Property Modal in Dark Theme ─────────────────────────────── */
+[data-theme="dark"] .sell-property-header-card {
+  background: rgba(26, 32, 44, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .sell-property-title-name {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .sell-property-type-tag {
+  color: var(--gold-antique) !important;
+}
+
+[data-theme="dark"] .sell-property-owner-pill {
+  background: rgba(32, 40, 54, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .sell-breakdown-card {
+  background: rgba(26, 32, 44, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .sell-breakdown-row {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .sell-breakdown-row b {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .sell-breakdown-row.net-proceeds-row span {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .sell-breakdown-row.net-proceeds-row b {
+  color: var(--gold-light) !important;
+}
+
+[data-theme="dark"] .sell-breakdown-row.projected-cash-row b {
+  color: #4ade80 !important;
+}
+
+[data-theme="dark"] .sell-breakdown-divider {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ─── Board Center Overlays in Dark Theme ───────────────────────────── */
+[data-theme="dark"] .board-center-purchase-card {
+  background: rgba(20, 24, 34, 0.97) !important;
+  border: 1.5px solid var(--gold-bright) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .purchase-card-badge {
+  background: rgba(212, 175, 55, 0.22) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .purchase-card-close {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .purchase-card-close:hover {
+  background: var(--gold) !important;
+  color: #0c0e12 !important;
+}
+
+[data-theme="dark"] .purchase-name {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .purchase-price-tag {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .board-center-notification-card {
+  background: rgba(20, 24, 34, 0.96) !important;
+  border-color: var(--gold-bright) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .board-center-notification-card .notification-message {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .board-center-recent-events {
+  background: rgba(18, 23, 32, 0.78) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .board-center-recent-events-header {
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+}
+
+[data-theme="dark"] .board-center-recent-events-title {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .board-center-recent-events-dot {
+  background: var(--gold-bright) !important;
+  box-shadow: 0 0 6px rgba(255, 213, 126, 0.6) !important;
+}
+
+[data-theme="dark"] .board-center-recent-events-log-link {
+  color: var(--gold-light) !important;
+  background: rgba(212, 175, 55, 0.12) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .board-center-recent-events-log-link:hover {
+  background: var(--gold) !important;
+  color: #0c0e12 !important;
+}
+
+[data-theme="dark"] .board-center-recent-event-item {
+  color: #cbd5e1 !important;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .board-center-recent-event-item.is-newest {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .board-center-recent-event-time {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .cash-transfer-pill {
+  background: rgba(22, 27, 36, 0.96) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #f3f4f6 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.2) !important;
+}
+
+[data-theme="dark"] .cash-transfer-pill .bank-party-label {
+  color: var(--gold-bright) !important;
+}
+
+/* ─── Game Info Modal & Subtabs in Dark Theme ────────────────────────── */
+[data-theme="dark"] .game-info-subtabs-nav {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .game-info-subtab-btn {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .game-info-subtab-btn.active {
+  background: rgba(212, 175, 55, 0.25) !important;
+  border-color: var(--gold-bright) !important;
+  color: #ffd57e !important;
+}
+
+/* ─── Financial Transaction Ledger in Dark Theme ─────────────────────── */
+[data-theme="dark"] .ledger-entry-card {
+  background: rgba(20, 25, 36, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .ledger-entry-card:hover {
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  background: rgba(26, 33, 48, 0.95) !important;
+}
+
+[data-theme="dark"] .ledger-party-chip {
+  background: rgba(28, 35, 50, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .ledger-party-chip strong {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .ledger-party-chip.is-bank-party {
+  background: rgba(36, 45, 64, 0.98) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+[data-theme="dark"] .ledger-party-chip.is-bank-party strong {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .ledger-stats-banner {
+  background: rgba(16, 21, 30, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: var(--gold) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn.active {
+  background: rgba(212, 175, 55, 0.28) !important;
+  border-color: var(--gold-bright) !important;
+  color: var(--gold-bright) !important;
+}
+
+/* ─── Property Comparison View in Dark Theme ─────────────────────────── */
+[data-theme="dark"] .property-compare-header-controls {
+  background: rgba(16, 21, 30, 0.8) !important;
+  border: 1px solid rgba(212, 175, 55, 0.25) !important;
+}
+
+[data-theme="dark"] .compare-dropdown {
+  background: rgba(24, 30, 42, 0.95) !important;
+  color: #f3f4f6 !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .compare-dropdown option {
+  background: #181e2a !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .compare-dropdown option:disabled {
+  background: #141822 !important;
+  color: #64748b !important;
+}
+
+[data-theme="dark"] .property-compare-card {
+  background: rgba(22, 27, 38, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .prop-title {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .prop-highlight-board-btn {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .prop-highlight-board-btn:hover {
+  background: var(--gold) !important;
+  color: #0c0e12 !important;
+}
+
+[data-theme="dark"] .prop-owner-banner {
+  background: rgba(14, 18, 26, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .owner-name {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .metric-label {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .metric-value {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .highlight-box {
+  background: rgba(212, 175, 55, 0.12) !important;
+}
+
+[data-theme="dark"] .prop-rent-table {
+  background: rgba(14, 18, 26, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .current-development-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .dice-multiplier-notice {
+  background: rgba(14, 18, 26, 0.7) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .property-compare-empty-card {
+  background: rgba(22, 27, 38, 0.45) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+[data-theme="dark"] .property-compare-empty-card h4 {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .property-compare-empty-card p {
+  color: var(--text-muted) !important;
+}
+
+/* ─── Standings Modal in Dark Theme ──────────────────────────────────── */
+[data-theme="dark"] .standings-modal {
+  background: rgba(20, 24, 34, 0.96) !important;
+}
+
+[data-theme="dark"] .standings-card {
+  background: rgba(22, 27, 38, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .standings-card.rank-1 {
+  border-color: rgba(212, 175, 55, 0.55) !important;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2) !important;
+}
+
+[data-theme="dark"] .standings-player-name {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .standings-stat-tile {
+  background: rgba(16, 20, 28, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 6px !important;
+  padding: 6px 8px !important;
+}
+
+[data-theme="dark"] .standings-stat-tile strong {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .standings-inspect-btn {
+  background: rgba(212, 175, 55, 0.18) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  color: var(--gold-bright) !important;
+  font-family: "Oswald", sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+[data-theme="dark"] .standings-inspect-btn:hover {
+  background: var(--gold) !important;
+  color: #0c0e12 !important;
+}
+
+[data-theme="dark"] .standings-footer-note {
+  color: #94a3b8 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ─── Turn Overview & Replay Drawers in Dark Theme ───────────────────── */
+[data-theme="dark"] .turn-overview-card {
+  background: rgba(22, 27, 38, 0.97) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #f3f4f6 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .turn-overview-card strong {
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .dice-history-card {
+  background: rgba(22, 27, 38, 0.96) !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+  color: #f3f4f6 !important;
+}
+
+/* ─── Rankings in Game Over Screen in Dark Theme ─────────────────────── */
+[data-theme="dark"] .rankings {
+  background: rgba(22, 27, 38, 0.95) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+}
+
+[data-theme="dark"] .rankings-head {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .ranking-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .winner-name {
+  color: var(--gold-bright) !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* ─── Precision Cursor in Dark Theme ─────────────────────────────────── */
+[data-theme="dark"] .crownfall-cursor-dot {
+  background-color: #f3f4f6 !important;
+  box-shadow: 0 0 0 1.5px rgba(18, 23, 32, 0.95), 0 1px 4px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .crownfall-cursor-ring {
+  border-color: rgba(212, 175, 55, 0.75) !important;
+  background: rgba(212, 175, 55, 0.08) !important;
+}
+
+[data-theme="dark"] .crownfall-cursor-ring.is-hovering {
+  border-color: var(--gold-bright) !important;
+  background: rgba(212, 175, 55, 0.18) !important;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4) !important;
+}
+
+[data-theme="dark"] .crownfall-cursor-ring.is-clicking {
+  border-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ─── Toggle Switch Accessibility Across Themes ──────────────────────── */
+[data-theme="light"] .toggle:not(.on) {
+  background: rgba(196, 184, 166, 0.35);
+  border-color: rgba(196, 184, 166, 0.5);
+}
+
+[data-theme="dark"] .toggle:not(.on) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .toggle.on {
+  background: var(--gold) !important;
+  border-color: var(--gold-bright) !important;
+}
+
+/* ─── DARK THEME VISIBILITY FIXES & ENHANCED CONTRAST ───────────────────────── */
+
+/* ─── Owner Badges on Property Cards ────────────────────────────────────────── */
+[data-theme="light"] .owner-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="light"] .owner-badge.other-player-badge {
+  background: rgba(253, 250, 244, 0.94);
+  color: #1e2024;
+  border: 1px solid rgba(180, 130, 40, 0.45);
+}
+
+[data-theme="light"] .owner-badge.unowned-badge {
+  background: rgba(240, 236, 228, 0.94);
+  color: #4b4f56;
+  border: 1px dashed rgba(196, 184, 166, 0.45);
+}
+
+[data-theme="dark"] .owner-badge {
+  background: rgba(16, 185, 129, 0.22) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(52, 211, 153, 0.6) !important;
+}
+
+[data-theme="dark"] .owner-badge.other-player-badge {
+  background: rgba(28, 35, 48, 0.95) !important;
+  color: #f3f4f6 !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+}
+
+[data-theme="dark"] .owner-badge.unowned-badge {
+  background: rgba(26, 31, 42, 0.92) !important;
+  color: #cbd5e1 !important;
+  border: 1px dashed rgba(212, 175, 55, 0.4) !important;
+}
+
+/* ─── Owner Other Note on Property Details Sheet ────────────────────────────── */
+.owner-other-note {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--glass-border);
+  margin-bottom: 12px;
+}
+
+.owner-other-note strong {
+  font: 700 12px "Oswald", sans-serif;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.owner-other-note small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .owner-other-note {
+  background: rgba(24, 30, 42, 0.95) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+[data-theme="dark"] .owner-other-note strong {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .owner-other-note small {
+  color: #cbd5e1 !important;
+}
+
+/* ─── Property Action Button Typography & Subtitles ─────────────────────────── */
+[data-theme="dark"] .prop-action-btn .prop-btn-main {
+  color: inherit !important;
+}
+
+[data-theme="dark"] .prop-action-btn .prop-btn-sub {
+  color: inherit !important;
+  opacity: 0.88 !important;
+}
+
+[data-theme="dark"] .prop-action-btn:disabled .prop-btn-main,
+[data-theme="dark"] .prop-action-btn:disabled .prop-btn-sub {
+  color: #94a3b8 !important;
+  opacity: 0.85 !important;
+}
+
+/* ─── Financial Transaction Ledger Tab Enhancements ────────────────────────── */
+[data-theme="light"] .ledger-description-text {
+  color: #1e293b !important;
+}
+
+[data-theme="dark"] .ledger-description-text {
+  color: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn:hover {
+  background: rgba(212, 175, 55, 0.15) !important;
+  border-color: var(--gold) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .activity-log-filter-btn.active {
+  background: rgba(212, 175, 55, 0.28) !important;
+  border-color: var(--gold-bright) !important;
+  color: var(--gold-bright) !important;
+}
+
+[data-theme="dark"] .ledger-filter-label {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .ledger-stat-label {
+  color: #94a3af !important;
+}
+
+[data-theme="dark"] .ledger-stat-value {
+  color: #ffd57e !important;
+}
+
+[data-theme="dark"] .ledger-feed div[style*="textAlign: center"],
+[data-theme="dark"] .ledger-feed div[style*="text-align: center"] {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .ledger-content-wrap .btn-ghost {
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #cbd5e1 !important;
+}
+
+/* ─── Sell Property Warnings in Dark Theme ──────────────────────────────────── */
+[data-theme="dark"] .sell-warning-card.warning-restriction {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .sell-warning-card.warning-restriction .sell-warning-label {
+  color: #fda4af !important;
+}
+
+[data-theme="dark"] .sell-warning-card.warning-mortgage {
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  color: #fde68a !important;
+}
+
+[data-theme="dark"] .sell-warning-card.warning-mortgage .sell-warning-label {
+  color: #ffd57e !important;
+}
+
+/* ─── Property Comparison Controls in Dark Theme ────────────────────────────── */
+[data-theme="dark"] .picker-clear-slot-btn {
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .picker-clear-slot-btn:hover {
+  color: #fda4af !important;
+}
+
+[data-theme="dark"] .compare-clear-btn {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .compare-clear-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.35) !important;
+  color: #ffffff !important;
+}
+
+/* ─── Notification Queue Pill ───────────────────────────────────────────────── */
+.notification-queue-pill {
+  padding: 2px 7px;
+  border-radius: 10px;
+  font: 700 10px "Oswald", sans-serif;
+  background: var(--gold-bright);
+  color: #0c0e12;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+
+/* ==============================================================================
+   CROWNFALL - REFINED LIQUID-GLASS SCROLLBAR SYSTEM
+   Cross-browser (Chromium + Firefox), theme-adaptive, non-overlapping
+   ============================================================================== */
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.18s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Scoped liquid-glass scrollbars for modal sheets, deed cards, event logs, and tables */
+.modal-sheet,
+.property-details-sheet,
+.game-info-subtabs-body,
+.event-log-tabs-bar,
+.event-log-feed,
+.property-comparison-scroll-wrapper,
+.ledger-feed {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.modal-sheet::-webkit-scrollbar,
+.property-details-sheet::-webkit-scrollbar,
+.game-info-subtabs-body::-webkit-scrollbar,
+.event-log-tabs-bar::-webkit-scrollbar,
+.event-log-feed::-webkit-scrollbar,
+.property-comparison-scroll-wrapper::-webkit-scrollbar,
+.ledger-feed::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.modal-sheet::-webkit-scrollbar-track,
+.property-details-sheet::-webkit-scrollbar-track,
+.game-info-subtabs-body::-webkit-scrollbar-track,
+.event-log-tabs-bar::-webkit-scrollbar-track,
+.event-log-feed::-webkit-scrollbar-track,
+.property-comparison-scroll-wrapper::-webkit-scrollbar-track,
+.ledger-feed::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+
+.modal-sheet::-webkit-scrollbar-thumb,
+.property-details-sheet::-webkit-scrollbar-thumb,
+.game-info-subtabs-body::-webkit-scrollbar-thumb,
+.event-log-tabs-bar::-webkit-scrollbar-thumb,
+.event-log-feed::-webkit-scrollbar-thumb,
+.property-comparison-scroll-wrapper::-webkit-scrollbar-thumb,
+.ledger-feed::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.18s ease;
+}
+
+.modal-sheet::-webkit-scrollbar-thumb:hover,
+.property-details-sheet::-webkit-scrollbar-thumb:hover,
+.game-info-subtabs-body::-webkit-scrollbar-thumb:hover,
+.event-log-tabs-bar::-webkit-scrollbar-thumb:hover,
+.event-log-feed::-webkit-scrollbar-thumb:hover,
+.property-comparison-scroll-wrapper::-webkit-scrollbar-thumb:hover,
+.ledger-feed::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ==============================================================================
+   PROPERTY COMPARISON OVERFLOW & HORIZONTAL SCROLL CONTAINER
+   ============================================================================== */
+
+.property-comparison-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.property-comparison-scroll-wrapper .property-comparison-grid {
+  min-width: 620px;
+}
+
+@media (max-width: 768px) {
+  .property-comparison-scroll-wrapper {
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+  }
+  .property-comparison-scroll-wrapper .property-comparison-grid {
+    display: flex;
+    min-width: max-content;
+    gap: 12px;
+  }
+  .property-comparison-scroll-wrapper .property-compare-card,
+  .property-comparison-scroll-wrapper .property-compare-empty-card {
+    min-width: 280px;
+    max-width: 320px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
+
+/* ==============================================================================
+   GAME INFO -> EVENTS TAB & STANDALONE EVENT LOG STYLING (LIGHT & DARK THEMES)
+   ============================================================================== */
+
+/* Tabs Bar */
+.event-log-tabs-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-theme="light"] .event-log-tabs-bar {
+  background: var(--bg-midnight, #ede5d5);
+  border-bottom: 1px solid rgba(180, 130, 40, 0.25);
+}
+
+[data-theme="dark"] .event-log-tabs-bar {
+  background: rgba(18, 22, 30, 0.95);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+/* Category Filter Buttons */
+.event-log-cat-btn {
+  white-space: nowrap;
+  padding: 6px 11px;
+  min-height: 34px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-family: "Oswald", "DM Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+[data-theme="light"] .event-log-cat-btn {
+  border: 1px solid rgba(180, 130, 40, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-secondary, #475569);
+}
+
+[data-theme="light"] .event-log-cat-btn:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(180, 130, 40, 0.45);
+  color: var(--text-primary, #1e2024);
+}
+
+[data-theme="light"] .event-log-cat-btn.active {
+  border: 1px solid #711f31;
+  background: linear-gradient(135deg, #881337 0%, #9f1239 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(136, 19, 55, 0.35);
+}
+
+[data-theme="dark"] .event-log-cat-btn {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .event-log-cat-btn:hover {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: var(--gold-bright, #ffd57e);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .event-log-cat-btn.active {
+  border: 1px solid var(--gold-bright, #ffd57e);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(180, 130, 40, 0.45) 100%);
+  color: #ffd57e;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+}
+
+/* Category Count Badges */
+.event-log-cat-count {
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 800;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .event-log-cat-count {
+  background: rgba(0, 0, 0, 0.08);
+  color: #334155;
+}
+
+[data-theme="light"] .event-log-cat-count.active {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .event-log-cat-count {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .event-log-cat-count.active {
+  background: rgba(212, 175, 55, 0.30);
+  color: #ffd57e;
+}
+
+/* Events Feed Stream */
+.event-log-feed {
+  padding: 10px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+[data-theme="light"] .event-log-feed {
+  background: var(--bg-void, #f9f7f2);
+}
+
+[data-theme="dark"] .event-log-feed {
+  background: rgba(12, 15, 20, 0.95);
+}
+
+/* Event Entry Cards */
+.event-log-entry-card {
+  border-radius: 7px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .event-log-entry-card {
+  background: var(--glass-heavy, #fffdf9);
+  border: 1px solid rgba(202, 192, 175, 0.45);
+  box-shadow: 0 1px 3px rgba(60, 50, 40, 0.05);
+}
+
+[data-theme="light"] .event-log-entry-card:hover {
+  background: #ffffff;
+  border-color: rgba(180, 130, 40, 0.4);
+}
+
+[data-theme="dark"] .event-log-entry-card {
+  background: rgba(22, 27, 36, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .event-log-entry-card:hover {
+  background: rgba(28, 34, 46, 0.95);
+  border-color: rgba(212, 175, 55, 0.38);
+}
+
+/* Event Icon */
+.event-log-icon {
+  font-size: 16px;
+  line-height: 1;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* Event Type Badges (Base) */
+.event-type-badge {
+  font-size: 9.5px;
+  font-family: "Oswald", "DM Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+/* Dark Theme Overrides for Type Badges */
+[data-theme="dark"] .event-type-badge {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-roll,
+[data-theme="dark"] .event-type-badge.badge-roll_move {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-buy,
+[data-theme="dark"] .event-type-badge.badge-bought,
+[data-theme="dark"] .event-type-badge.badge-purchase {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-rent,
+[data-theme="dark"] .event-type-badge.badge-tax,
+[data-theme="dark"] .event-type-badge.badge-fine,
+[data-theme="dark"] .event-type-badge.badge-fee {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-build,
+[data-theme="dark"] .event-type-badge.badge-building,
+[data-theme="dark"] .event-type-badge.badge-house,
+[data-theme="dark"] .event-type-badge.badge-hotel {
+  background: rgba(34, 197, 94, 0.2) !important;
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  color: #86efac !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-jail,
+[data-theme="dark"] .event-type-badge.badge-jail_enter,
+[data-theme="dark"] .event-type-badge.badge-jail_exit {
+  background: rgba(249, 115, 22, 0.2) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+  color: #fdba74 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-rest,
+[data-theme="dark"] .event-type-badge.badge-rest_house {
+  background: rgba(234, 179, 8, 0.2) !important;
+  border-color: rgba(234, 179, 8, 0.5) !important;
+  color: #fde047 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-club {
+  background: rgba(212, 175, 55, 0.2) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+  color: #ffd57e !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-chance {
+  background: rgba(168, 85, 247, 0.2) !important;
+  border-color: rgba(168, 85, 247, 0.5) !important;
+  color: #d8b4fe !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-chest,
+[data-theme="dark"] .event-type-badge.badge-community_chest {
+  background: rgba(236, 72, 153, 0.2) !important;
+  border-color: rgba(236, 72, 153, 0.5) !important;
+  color: #f472b6 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-reward,
+[data-theme="dark"] .event-type-badge.badge-start_pass,
+[data-theme="dark"] .event-type-badge.badge-start_bonus,
+[data-theme="dark"] .event-type-badge.badge-unmortgage {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-mortgage {
+  background: rgba(139, 92, 246, 0.2) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  color: #c4b5fd !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-bankruptcy,
+[data-theme="dark"] .event-type-badge.badge-bankrupt,
+[data-theme="dark"] .event-type-badge.badge-system,
+[data-theme="dark"] .event-type-badge.badge-error {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-turn_change,
+[data-theme="dark"] .event-type-badge.badge-game_over {
+  background: rgba(212, 175, 55, 0.25) !important;
+  border-color: rgba(212, 175, 55, 0.6) !important;
+  color: #ffd57e !important;
+}
+
+[data-theme="dark"] .event-type-badge.badge-decline,
+[data-theme="dark"] .event-type-badge.badge-resign,
+[data-theme="dark"] .event-type-badge.badge-resignation {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #94a3af !important;
+}
+
+/* Turn Number Pill */
+.event-turn-pill {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+[data-theme="light"] .event-turn-pill {
+  color: var(--text-secondary, #4b4f56);
+  background: var(--glass-light, #f4ede0);
+}
+
+[data-theme="dark"] .event-turn-pill {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Timestamp */
+.event-timestamp {
+  font-size: 10px;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 500;
+}
+
+[data-theme="light"] .event-timestamp {
+  color: var(--text-muted, #94a3af);
+}
+
+[data-theme="dark"] .event-timestamp {
+  color: #94a3af;
+}
+
+/* Description Text */
+.event-desc-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+[data-theme="light"] .event-desc-text {
+  color: var(--text-primary, #1e2024);
+}
+
+[data-theme="dark"] .event-desc-text {
+  color: #e2e8f0;
+}
+
+/* Player Name */
+.event-player-name {
+  font-weight: 700;
+}
+
+[data-theme="light"] .event-player-name {
+  color: var(--text-primary, #1e2024);
+}
+
+[data-theme="dark"] .event-player-name {
+  color: #ffd57e;
+}
+
+/* Financial Amount Pills */
+.event-amount-wrapper {
+  margin-top: 3px;
+}
+
+.event-amount-pill {
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+[data-theme="light"] .event-amount-pill.gain {
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  color: var(--financial-gain, #15803d);
+}
+
+[data-theme="light"] .event-amount-pill.loss {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: var(--financial-loss, #b91c1c);
+}
+
+[data-theme="dark"] .event-amount-pill.gain {
+  background: rgba(34, 197, 94, 0.22);
+  border: 1px solid rgba(34, 197, 94, 0.55);
+  color: var(--financial-gain, #4ade80);
+}
+
+[data-theme="dark"] .event-amount-pill.loss {
+  background: rgba(239, 68, 68, 0.22);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  color: var(--financial-loss, #f87171);
+}
+
+/* Empty State */
+.event-log-empty-state {
+  padding: 48px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-log-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+[data-theme="light"] .event-log-empty-title {
+  color: var(--gold-400, #b45309);
+}
+
+[data-theme="dark"] .event-log-empty-title {
+  color: var(--gold-bright, #ffd57e);
+}
+
+.event-log-empty-desc {
+  font-size: 13px;
+}
+
+[data-theme="light"] .event-log-empty-desc {
+  color: #64748b;
+}
+
+[data-theme="dark"] .event-log-empty-desc {
+  color: #94a3af;
+}
+
+/* Footer */
+.event-log-footer {
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .event-log-footer {
+  border-top: 1.5px solid rgba(180, 130, 40, 0.25);
+  background: #f4ede0;
+  color: #64748b;
+}
+
+[data-theme="dark"] .event-log-footer {
+  border-top: 1.5px solid rgba(212, 175, 55, 0.25);
+  background: rgba(18, 22, 30, 0.95);
+  color: #cbd5e1;
+}
+
+/* Standalone Modal Card */
+.event-log-card {
+  width: 580px;
+  max-width: min(580px, 96vw);
+  max-height: calc(100dvh - 24px);
+  height: min(640px, calc(100dvh - 24px));
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  font-family: "DM Sans", sans-serif;
+  overflow: hidden;
+}
+
+[data-theme="light"] .event-log-card {
+  background: linear-gradient(180deg, #fefdfb 0%, #f7f3ea 100%);
+  border: 1.5px solid var(--gold, #b45309);
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="dark"] .event-log-card {
+  background: linear-gradient(180deg, #141822 0%, #0e1219 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  color: #f3f4f6;
+}
+
+/* Standalone Header */
+.event-log-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .event-log-card-header {
+  background: #f4ede0;
+  border-bottom: 1.5px solid rgba(180, 130, 40, 0.3);
+}
+
+[data-theme="dark"] .event-log-card-header {
+  background: rgba(20, 25, 35, 0.96);
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.3);
+}
+
+.event-log-card-title {
+  font-family: "Playfair Display", serif;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+}
+
+[data-theme="light"] .event-log-card-title {
+  color: #451a03;
+}
+
+[data-theme="dark"] .event-log-card-title {
+  color: #ffd57e;
+}
+
+.event-log-card-subtitle {
+  font-size: 11px;
+  display: block;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+[data-theme="light"] .event-log-card-subtitle {
+  color: #64748b;
+}
+
+[data-theme="dark"] .event-log-card-subtitle {
+  color: #94a3af;
+}
+
+/* Standalone Close Button */
+.event-log-close-btn {
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .event-log-close-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(180, 130, 40, 0.35);
+  color: #475569;
+}
+
+[data-theme="light"] .event-log-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1e2024;
+}
+
+[data-theme="dark"] .event-log-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .event-log-close-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+  color: #ffd57e;
+}
+
+/* Game Info Subtab Button Count Badges in Dark Theme */
+[data-theme="dark"] .game-info-subtab-btn span:not(:first-child) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .game-info-subtab-btn.active span:not(:first-child) {
+  background: rgba(212, 175, 55, 0.35) !important;
+  color: #ffd57e !important;
+}
+
+
+/* ==============================================================================
+   SPECIAL PROPERTY CUSTOM SVG ICONS THEME STYLING
+   ============================================================================== */
+
+.special-space-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  line-height: 1;
+  opacity: 0.95;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.special-space-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+[data-theme="light"] .special-space-icon {
+  color: #78350f;
+}
+
+[data-theme="dark"] .special-space-icon {
+  color: #ffd57e;
+}
+
+@media (max-width: 768px) {
+  .special-space-icon {
+    width: 12px;
+    height: 12px;
+    margin-bottom: 1px;
+  }
+}
+
+/* ==============================================================================
+   STARTING CAPITAL SELECTOR THEME ARCHITECTURE (LIGHT & DARK THEMES)
+   ============================================================================== */
+
+.starting-capital-group {
+  border-radius: 8px;
+  padding: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  transition: all 0.2s ease;
+}
+
+[data-theme="light"] .starting-capital-group {
+  background: rgba(241, 245, 249, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .starting-capital-group {
+  background: rgba(14, 18, 26, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.starting-capital-label {
+  font-size: 13px;
+  font-weight: 700;
+  display: block;
+}
+
+[data-theme="light"] .starting-capital-label {
+  color: var(--text-primary, #1e2024);
+}
+
+[data-theme="dark"] .starting-capital-label {
+  color: #f3f4f6;
+}
+
+.starting-capital-desc {
+  font-size: 11px;
+  margin: 2px 0 0;
+  line-height: 1.35;
+}
+
+[data-theme="light"] .starting-capital-desc {
+  color: var(--text-muted, #64748b);
+}
+
+[data-theme="dark"] .starting-capital-desc {
+  color: #94a3af;
+}
+
+.starting-capital-current-val {
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: "Oswald", sans-serif;
+}
+
+[data-theme="light"] .starting-capital-current-val {
+  color: var(--gold-400, #b45309);
+}
+
+[data-theme="dark"] .starting-capital-current-val {
+  color: var(--gold-bright, #ffd57e);
+}
+
+.starting-capital-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.starting-capital-btn {
+  padding: 8px 4px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-family: "Oswald", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Light Theme starting capital buttons */
+[data-theme="light"] .starting-capital-btn {
+  border: 1px solid rgba(180, 130, 40, 0.30);
+  background: rgba(255, 255, 255, 0.90);
+  color: var(--text-secondary, #475569);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .starting-capital-btn:hover:not(:disabled) {
+  background: #ffffff;
+  border-color: rgba(180, 130, 40, 0.55);
+  color: var(--text-primary, #1e2024);
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .starting-capital-btn.selected {
+  border: 1.5px solid var(--gold, #b45309);
+  background: linear-gradient(135deg, rgba(200, 155, 69, 0.28) 0%, rgba(200, 155, 69, 0.16) 100%);
+  color: var(--gold-antique, #92400e);
+  box-shadow: 0 2px 6px rgba(180, 130, 40, 0.25);
+}
+
+/* Dark Theme starting capital buttons */
+[data-theme="dark"] .starting-capital-btn {
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(26, 32, 44, 0.95);
+  color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .starting-capital-btn:hover:not(:disabled) {
+  background: rgba(36, 44, 60, 0.98);
+  border-color: var(--gold-bright, #ffd57e);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+}
+
+[data-theme="dark"] .starting-capital-btn.selected {
+  border: 1.5px solid var(--gold-bright, #ffd57e);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.32) 0%, rgba(180, 130, 40, 0.42) 100%);
+  color: #ffd57e;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+/* Focus and disabled states */
+.starting-capital-btn:focus-visible {
+  outline: 2px solid var(--gold-bright, #ffd57e);
+  outline-offset: 2px;
+}
+
+.starting-capital-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Jail Split Tile Layout (Space 9) */
+.jail-tile-split {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.jail-cell-zone {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 58%;
+  height: 58%;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1.5px solid var(--gold-antique, #b45309);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 3px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .jail-cell-zone {
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(245, 158, 11, 0.7);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.55);
+}
+
+.jail-bars-svg {
+  width: 22px;
+  height: 18px;
+  color: var(--gold-antique, #b45309);
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .jail-bars-svg {
+  color: #fbbf24;
+}
+
+.jail-cell-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--gold-antique, #b45309);
+  text-transform: uppercase;
+  font-family: "Playfair Display", serif;
+  line-height: 1;
+}
+
+[data-theme="dark"] .jail-cell-label {
+  color: #fbbf24;
+}
+
+.jail-visiting-zone {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.jail-visiting-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  line-height: 1.1;
+  font-family: inherit;
+}
+
+[data-theme="dark"] .jail-visiting-label {
+  color: #cbd5e1;
+}
+
+
+/* ─── Modal Dialog Shared Components (Build, Sell, Mortgage, Unmortgage) ────────── */
+.build-property {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 12px;
+}
+.build-property .tiny-building {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.build-property span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.build-property small {
+  font-size: 11px;
+  color: var(--text-muted, #94a3af);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.build-property strong {
+  font-size: 13.5px;
+  color: var(--text-primary, #f8fafc);
+  font-weight: 700;
+}
+
+.rent-change {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 10px;
+}
+.rent-change div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rent-change small {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3af);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rent-change b {
+  font-size: 14px;
+  font-family: "Oswald", sans-serif;
+  color: var(--text-primary, #f8fafc);
+}
+
+.balance-check {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 6px;
+  column-gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.balance-check span {
+  color: var(--text-secondary, #cbd5e1);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+.balance-check b {
+  color: var(--text-primary, #f8fafc);
+  font-family: "Oswald", sans-serif;
+  font-size: 13px;
+  text-align: right;
+}
+
+.lobby-tip {
+  padding: 8px 12px;
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.03));
+  border-left: 3px solid var(--gold, #d4af37);
+  border-radius: 0 6px 6px 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary, #cbd5e1);
+  margin-bottom: 12px;
+}
+.lobby-tip span {
+  display: block;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  color: var(--gold-bright, #ffd57e);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+/* Light Theme overrides for modal components */
+[data-theme="light"] .build-property {
+  background: rgba(248, 245, 238, 0.95);
+  border-color: rgba(180, 130, 40, 0.25);
+}
+[data-theme="light"] .build-property small {
+  color: var(--text-muted, #686d76);
+}
+[data-theme="light"] .build-property strong {
+  color: #1e2024;
+}
+[data-theme="light"] .rent-change {
+  background: rgba(248, 245, 238, 0.95);
+  border-color: rgba(180, 130, 40, 0.25);
+}
+[data-theme="light"] .rent-change small {
+  color: #686d76;
+}
+[data-theme="light"] .rent-change b {
+  color: #1e2024;
+}
+[data-theme="light"] .balance-check {
+  background: rgba(248, 245, 238, 0.95);
+  border-color: rgba(180, 130, 40, 0.25);
+}
+[data-theme="light"] .balance-check span {
+  color: #4b4f56;
+}
+[data-theme="light"] .balance-check b {
+  color: #1e2024;
+}
+[data-theme="light"] .lobby-tip {
+  background: rgba(248, 245, 238, 0.95);
+  color: #4b4f56;
+}
+[data-theme="light"] .lobby-tip span {
+  color: var(--gold, #b45309);
+}
+
+/* Dark Theme overrides for modal components */
+[data-theme="dark"] .build-property {
+  background: rgba(18, 23, 32, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .build-property strong {
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .build-property small {
+  color: #94a3af !important;
+}
+[data-theme="dark"] .rent-change {
+  background: rgba(18, 23, 32, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .rent-change small {
+  color: #94a3af !important;
+}
+[data-theme="dark"] .rent-change b {
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .balance-check {
+  background: rgba(18, 23, 32, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+[data-theme="dark"] .balance-check span {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .balance-check b {
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .lobby-tip {
+  background: rgba(18, 23, 32, 0.78) !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .lobby-tip span {
+  color: var(--gold-bright, #ffd57e) !important;
+}
+
+/* Board Center Notifications dismiss button polish */
+[data-theme="dark"] .notification-dismiss-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .notification-dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+[data-theme="light"] .notification-dismiss-btn {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #4b4f56 !important;
+}
+[data-theme="light"] .notification-dismiss-btn:hover {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+}
