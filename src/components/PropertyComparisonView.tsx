@@ -83,16 +83,16 @@ export function PropertyComparisonView({
   const renderPropertyCard = (prop: AnyProperty, slotIndex: number) => {
     const owner = getOwner(prop.id)
     const isMortgaged = owner ? !!owner.mortgages?.[prop.id] : false
-    const currentRentInfo = owner
-      ? calculatePropertyRent(prop.id, owner)
-      : { rent: prop.baseRent ?? 0, note: "Unowned" }
-
     const isCity = !prop.isSpecial
     const city = isCity ? (prop as PropertyDefinition) : null
     const sp = !isCity ? (prop as SpecialPropertyDefinition) : null
 
+    const currentRentInfo = owner
+      ? calculatePropertyRent(prop.id, owner)
+      : { rent: city ? city.baseRent : 0, note: "Unowned" }
+
     const groupColor =
-      isCity && city.colorGroup !== "NONE" && ROYAL_COLOR_THEMES[city.colorGroup]
+      city && city.colorGroup !== "NONE" && ROYAL_COLOR_THEMES[city.colorGroup]
         ? ROYAL_COLOR_THEMES[city.colorGroup].accent
         : "#c89b45"
 
@@ -122,7 +122,7 @@ export function PropertyComparisonView({
                   : "rgba(120, 113, 108, 0.4)",
               }}
             >
-              {isCity ? `${city?.colorGroup} GROUP` : "SPECIAL UTILITY / SERVICE"}
+              {city ? `${city.colorGroup} GROUP` : "SPECIAL UTILITY / SERVICE"}
             </span>
             <button
               type="button"

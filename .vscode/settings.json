@@ -14,5 +14,6 @@
     "--compile-commands-dir=${workspaceFolder}",
     "--header-insertion=never",
     "--query-driver=C:/msys64/ucrt64/bin/g++.exe,C:/msys64/**"
-  ]
+  ],
+  "makefile.configureOnOpen": true
 }
