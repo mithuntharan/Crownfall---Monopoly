@@ -1,0 +1,11 @@
+{
+  "name": "Crownfall",
+  "short_name": "Crownfall",
+  "description": "Play Crownfall, a multiplayer board game with friends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#20242A",
+  "theme_color": "#C5B18A",
+  "icons": []
+}
+

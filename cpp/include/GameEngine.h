@@ -72,6 +72,7 @@ public:
     bool sellProperty(int playerId, const std::string& propertyId, int& outSellPrice);
     bool mortgageProperty(int playerId, const std::string& propertyId);
     bool unmortgageProperty(int playerId, const std::string& propertyId);
+    bool payJailFine(int playerId);
 
     // Rent & Calculations
     int calculateRent(const std::string& propertyId, int diceTotal) const;

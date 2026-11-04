@@ -50,12 +50,12 @@ export const ROYAL_COLOR_THEMES: Record<ColorGroupId, ColorThemeDefinition> = {
   RED: {
     id: "RED",
     label: "RED GROUP",
-    accent: "#be123c", // Royal Crimson
-    accentDark: "#4c0519",
-    border: "#e11d48",
-    tintBg: "rgba(190, 18, 60, 0.18)",
+    accent: "#e11d48", // Vibrant Royal Crimson
+    accentDark: "#881337",
+    border: "#f43f5e",
+    tintBg: "rgba(225, 29, 72, 0.20)",
     tintText: "#fecdd3",
-    contrastText: "#fff1f2",
+    contrastText: "#ffffff",
     cssClass: "color-red",
   },
   BLUE: {

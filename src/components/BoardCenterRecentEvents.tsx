@@ -83,11 +83,24 @@ export const BoardCenterRecentEvents: React.FC<BoardCenterRecentEventsProps> = (
       return b.timestamp - a.timestamp
     })
 
-    for (const evt of sorted) {
+        for (const evt of sorted) {
       if (seenIds.has(evt.id)) continue
 
       // Canonical logical action key to deduplicate multiple representations of the same event
       const normType = (evt.type || "").toUpperCase().trim()
+      const normCat = ((evt.category as string) || "").toUpperCase().trim()
+
+      // Omit dice roll events from the central board log per Crownfall specification
+      if (
+        normType === "ROLL" ||
+        normType === "ROLL_MOVE" ||
+        normType === "ROLL_DICE" ||
+        normType === "DICE" ||
+        (normCat === "TURNS_DICE" && (normType.includes("ROLL") || (evt.description || "").toLowerCase().includes("rolled")))
+      ) {
+        continue
+      }
+
       const pId = evt.playerId !== undefined ? evt.playerId : "sys"
       const propKey = evt.propertyId || evt.propertyName || ""
 

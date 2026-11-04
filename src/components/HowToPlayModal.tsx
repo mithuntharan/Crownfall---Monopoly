@@ -9,16 +9,16 @@ interface Section {
 const SECTIONS: Section[] = [
   {
     id: "objective",
-    title: "1. Objective & Winning",
+    title: "1. Objective & Winning Conditions",
     content: [
       "Crownfall is an authoritative real estate strategy game where tycoons build economic dominance through strategic property acquisition, development, and portfolio management.",
       "Win by bankrupting all rival tycoons, or by holding the highest calculated Net Worth when a match concludes.",
-      "Net Worth combines your current cash reserves, current depreciated property values, and building investments, minus any active mortgage liabilities.",
+      "Net Worth calculation combines your current cash reserves, current depreciated property values, and building investments (50% value), minus any active mortgage liabilities.",
     ],
   },
   {
-    id: "turns",
-    title: "2. Turns & Dice",
+    id: "turn_order",
+    title: "2. Authoritative Turns & Dice Rolls",
     content: [
       "Players take turns rolling two authoritative 6-sided dice in clockwise perimeter order.",
       "Rolling doubles awards an immediate subsequent roll.",
@@ -26,96 +26,143 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "capital",
-    title: "3. First Rotation & Starting Capital",
+    id: "starting_capital",
+    title: "3. Zero Starting Balance & Initial Lap",
     content: [
-      "Starting Capital: Host configures starting funds between Rs40,000 and Rs65,000 (Default: Rs45,000).",
-      "Zero Starting Balance: All players begin the match with Rs0 cash in hand.",
-      "First Lap Reward: Players receive their full configured Starting Capital only upon completing their first complete rotation around the board (crossing or landing on Start).",
-      "Subsequent Start Crossings: Each subsequent pass across Start awards a 5% dividend of starting capital, rounded to the nearest Rs100.",
+      "Zero Starting Balance: All tycoons enter the match with ₹0 starting cash in hand.",
+      "Configured Starting Capital: The host configures starting funds between ₹40,000 and ₹65,000 (Default: ₹45,000).",
+      "First Lap Payout: Players receive their full configured Starting Capital only upon completing their first complete rotation around the board (crossing or landing on Start).",
     ],
   },
   {
-    id: "buying",
-    title: "4. Buying Properties",
+    id: "rotation_rewards",
+    title: "4. Subsequent Rotation Dividends",
     content: [
-      "First-Rotation Restriction: Tycoons cannot purchase properties during their first rotation. You must complete your initial circuit before acquiring real estate.",
-      "After the first rotation, landing on an unowned property allows you to purchase it from the bank at the listed base price.",
-      "If declined, the property remains unowned until another player lands upon it.",
+      "Start Crossing Dividends: Each subsequent crossing of Start after your first rotation awards a 5% dividend of starting capital.",
+      "Rounding Precision: Dividends are rounded to the nearest ₹100 (for example, ₹2,300 on a ₹45,000 baseline).",
+      "Continuous Growth: Completing laps supplies regular liquidity to sustain developments and rent obligations.",
     ],
   },
   {
-    id: "building",
-    title: "5. Building Houses & Hotels",
+    id: "first_rotation_ban",
+    title: "5. First-Rotation Property Acquisition Ban",
     content: [
-      "Monopoly Requirement: You must own all properties within a color set before constructing buildings.",
-      "Mode A (Anywhere): Construct buildings on your monopolies at any time during your turn without needing to land on the tile.",
-      "Mode B (Landing): You must physically land on a property within your monopoly to construct on it.",
-      "Upgrade Progression: Construct up to 3 houses per property. The 4th upgrade converts the 3 houses into a premier Hotel.",
+      "Acquisition Restriction: Tycoons are strictly prohibited from purchasing any properties during their first rotation around the board.",
+      "Equal Starting Field: You must complete your initial circuit and collect your starting capital before acquiring real estate.",
+      "Strategic Positioning: Use the first rotation to assess opponents' trajectories and plan monopoly targets.",
     ],
   },
   {
-    id: "rent",
-    title: "6. Paying Rent",
+    id: "property_purchase",
+    title: "6. Property Purchasing & Decline",
     content: [
-      "Landing on an opponent's unmortgaged property requires paying the owner rent according to the property title deed.",
-      "Base Rent Doubling: If the owner holds all properties of that color group with zero buildings, the base unimproved rent doubles.",
-      "Buildings Exponential: Developing houses and hotels dramatically increases rent collection from visiting opponents.",
+      "Direct Acquisition: After completing your first rotation, landing on an unowned property grants you the right to purchase it at the listed deed price.",
+      "Decline Option: If you choose not to purchase, the property remains unowned until another tycoon lands on it.",
+      "Deed Registry: Purchased properties are immediately added to your title portfolio and begin collecting rent from visitors.",
     ],
   },
   {
-    id: "mortgages",
-    title: "7. Mortgages, Depreciation & Selling",
+    id: "monopolies",
+    title: "7. Color Monopolies & Set Ownership",
     content: [
-      "Mortgaging: Mortgaging an unimproved property to the bank awards 50% of its base purchase price. Mortgaged properties collect Rs0 rent.",
-      "Unmortgaging: Lift a mortgage by paying the mortgage value plus 10% interest.",
-      "Ordinary Property Depreciation: Ordinary city properties depreciate by 10% each time the owner completes a full rotation, down to a 50% minimum value floor.",
-      "Building Liquidation: Sell houses and hotels back to the bank for 50% of their construction cost.",
+      "Monopoly Formation: Owning every property within a color set completes the group monopoly.",
+      "Doubled Base Rent: Undeveloped properties within a completed monopoly collect double the base rent listed on the deed.",
+      "Development Unlock: Completing a color set is a mandatory prerequisite before constructing houses or hotels.",
     ],
   },
   {
-    id: "chance",
-    title: "8. Chance & Community Chest",
+    id: "build_modes",
+    title: "8. Build Modes (Mode A vs. Mode B)",
     content: [
-      "Landing on Chance or Community Chest draws an authoritative card from the deck.",
-      "Cards may deliver unexpected financial windfalls, municipal taxes, property assessment fees, board transit, or detention summons.",
+      "Host Configuration: The match host designates the building rule during room creation.",
+      "Mode A (Construct Anywhere): Construct improvements on your monopolies from anywhere at any time during your turn (up to 1 house per property per turn).",
+      "Mode B (Physical Landing): You must physically land on a property within your monopoly to construct an improvement on it.",
     ],
   },
   {
-    id: "jail",
-    title: "9. Jail & Rest House",
+    id: "building_progression",
+    title: "9. Houses & Hotel Upgrades",
     content: [
-      "Jail Detention: Entering Jail puts your puck inside the detention cell. You have up to 2 turns to attempt rolling doubles to escape for free.",
-      "Doubles Release: Rolling doubles immediately releases you and advances your token by the rolled count. If doubles are not rolled after 2 attempts, release requires a Rs500 administrative fine.",
-      "Just Visiting: Landing on Jail via normal roll places your token outside on the visiting strip without penalty.",
-      "Rest House: Landing on Rest House collects 5% of each active opponent's positive current-round net income for the visiting player. Visiting players skip exactly one subsequent scheduled turn.",
+      "Even Construction: Houses must be built evenly across all properties in a color group.",
+      "Upgrade Sequence: Construct up to 3 houses per property at the listed building cost.",
+      "Hotel Conversion: Purchasing the 4th upgrade converts 3 houses into a premier Hotel.",
+      "Rent Maximization: Developed hotels generate the highest rent collection on the board.",
     ],
   },
   {
-    id: "club",
-    title: "10. Club & Special Properties",
+    id: "rent_calculations",
+    title: "10. Rent Collection & Calculations",
     content: [
-      "Club: Landing on Club requires you to pay 5% of each opponent's positive current-round income to that opponent.",
-      "Special Properties: Electric Company, Water Works, Railway, and Airways are immune to ordinary crossing depreciation (they retain 100% resale value) and have zero mortgage interest.",
-      "Transport Scaling: Owning multiple railways or transit utilities scales rent multiplicatively based on dice rolls or station count.",
+      "Mandatory Settlement: Landing on an opponent's unmortgaged property requires immediate rent payment according to deed status.",
+      "Monopoly Multiplier: Undeveloped monopolies double base rent. Buildings scale rent exponentially.",
+      "Mortgage Immunity: Opponents landing on mortgaged properties pay ₹0 rent.",
     ],
   },
   {
-    id: "trading",
-    title: "11. Trading & Bankruptcy",
+    id: "mortgage_system",
+    title: "11. Mortgage System & Interest Rates",
     content: [
-      "Direct Trading: Propose trades to opponents exchanging cash and unmortgaged properties without buildings.",
-      "Bankruptcy: If you cannot settle an authoritative debt after liquidating all houses, hotels, and mortgaging assets, you must declare bankruptcy.",
-      "Liquidation: Upon bankruptcy, all remaining assets are surrendered to settle the debt or returned to the bank, and the player is eliminated.",
+      "Emergency Liquidity: Mortgaging an unimproved property to the Bank yields 50% of its base purchase price.",
+      "Zero Rent While Mortgaged: Mortgaged properties collect no rent from visiting players.",
+      "Unmortgage Repayment: City properties require repaying the mortgage value plus 10% interest. Special utilities require 0% interest.",
+      "Prerequisite: All buildings on a color set must be liquidated before mortgaging any property in the group.",
     ],
   },
   {
-    id: "multiplayer",
-    title: "12. Multiplayer Room & Turn Basics",
+    id: "depreciation",
+    title: "12. Ordinary Property Depreciation",
     content: [
-      "Room Hosting: The host sets match rules, selects starting capital, and manages the lobby.",
-      "Turn Progression: The active player rolls and moves. If turn timers are enabled, passing the timer automatically concludes the turn.",
-      "Rematch Lobby: After a match concludes, the host can initiate Another Match to return all connected tycoons to the rematch lobby with identical rules.",
+      "Rotation Wear: Ordinary city properties depreciate by 10% of their base price each time the owner completes a full rotation around the board.",
+      "Depreciation Floor: City properties stop depreciating once they reach a 50% minimum value floor.",
+      "Valuation Impact: Depreciated values affect player Net Worth and liquidation, while mortgage values and building costs remain constant.",
+    ],
+  },
+  {
+    id: "special_properties",
+    title: "13. Special Properties & Utilities",
+    content: [
+      "Unique Assets: Electric Company, Water Works, Railway, and Airways operate under specialized commercial rules.",
+      "Immune to Depreciation: Special properties retain 100% resale value and do not suffer rotation depreciation.",
+      "Zero Mortgage Interest: Special properties incur 0% interest when unmortgaged.",
+      "Dynamic Rent: Utilities scale rent by dice roll multipliers (4x for 1 utility, 10x for both). Transport stations scale rent exponentially based on the count of stations owned.",
+    ],
+  },
+  {
+    id: "chance_chest",
+    title: "14. Chance & Community Chest Cards",
+    content: [
+      "Authoritative Draws: Landing on Chance or Community Chest draws an authoritative card from the deck.",
+      "Diverse Events: Cards include municipal tax assessments, unexpected dividends, street repair charges, spatial teleportation, or detention orders.",
+      "Immediate Execution: Card effects execute automatically upon draw.",
+    ],
+  },
+  {
+    id: "jail_mechanics",
+    title: "15. Jail Detention & Escape Rules",
+    content: [
+      "Entering Detention: Sent to Jail via Go to Jail square, Chance/Chest card, or rolling 3 consecutive doubles.",
+      "Free Escape via Doubles: While detained, you have up to 2 turns to attempt rolling doubles. Rolling doubles immediately releases you and advances your token.",
+      "Administrative Release: If doubles are not rolled after 2 attempts, release requires paying a ₹500 administrative fine.",
+      "Just Visiting: Landing on the Jail tile during normal perimeter movement places your token on the outer strip with zero penalty.",
+    ],
+  },
+  {
+    id: "rest_club",
+    title: "16. Rest House & Club Mechanics",
+    content: [
+      "Rest House Dividend & Skip: Landing on Rest House awards the visitor 5% of each active rival's positive current-round net income. The visiting player skips exactly one subsequent scheduled turn.",
+      "Rest House Protection: Safe skip behavior ensures you miss exactly 1 turn without infinite lock.",
+      "Club Charge: Landing on Club requires the visitor to pay 5% of each opponent's positive current-round net income to that opponent.",
+    ],
+  },
+  {
+    id: "bankruptcy",
+    title: "17. Trading, Debt Settlement & Bankruptcy",
+    content: [
+      "Peer-to-Peer Trading: Propose mutually agreed exchanges of properties and cash with any active opponent.",
+      "Debt Settlement: When cash is insufficient to pay debts, liquidate buildings at 50% cost and mortgage unimproved properties.",
+      "Authoritative Bankruptcy: If a player cannot satisfy an outstanding debt after exhausting all liquidation options, they must declare Bankruptcy.",
+      "Elimination: All remaining assets are surrendered to the creditor or returned to the Bank, and the bankrupt player is eliminated from the match.",
     ],
   },
 ]
@@ -160,7 +207,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 20px",
-            borderBottom: "1px solid var(--border-subtle)",
+            borderBottom: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.25))",
             background: "var(--glass-header, rgba(255, 255, 255, 0.04))",
           }}
         >
@@ -184,7 +231,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
                 margin: "2px 0 0",
               }}
             >
-              Authoritative rules, rotation rewards & strategic financial mechanics
+              Authoritative rules, rotation rewards &amp; strategic financial mechanics
             </p>
           </div>
 
@@ -199,13 +246,17 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "16px",
-              fontWeight: 700,
+              borderRadius: "50%",
+              background: "rgba(0, 0, 0, 0.06)",
+              border: "1px solid rgba(200, 155, 69, 0.35)",
+              color: "var(--ink-soft, #44403c)",
               cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 700,
             }}
-            title="Close Instructions"
+            aria-label="Close guide"
           >
-            X
+            ✕
           </button>
         </div>
 
@@ -213,7 +264,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
         <div
           style={{
             padding: "10px 20px",
-            borderBottom: "1px solid var(--border-subtle)",
+            borderBottom: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.15))",
             background: "rgba(0, 0, 0, 0.02)",
           }}
         >
@@ -224,75 +275,75 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               width: "100%",
-              padding: "8px 12px",
+              padding: "7px 12px",
               fontSize: "12px",
               borderRadius: "6px",
-              border: "1px solid var(--border-subtle)",
-              background: "var(--surface, rgba(255, 255, 255, 0.05))",
-              color: "var(--ink, #1c1917)",
+              border: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.3))",
+              background: "var(--input-bg, #ffffff)",
+              color: "var(--text-primary, #1c1917)",
               outline: "none",
-              boxSizing: "border-box",
             }}
           />
         </div>
 
-        {/* Modal Body: Split 2-column on desktop, stacked on mobile */}
+        {/* Body content: split 2 columns (Topics / Detail) */}
         <div
           style={{
-            flex: 1,
             display: "grid",
             gridTemplateColumns: "240px 1fr",
-            minHeight: 0,
+            flex: 1,
             overflow: "hidden",
           }}
-          className="how-to-play-body"
         >
-          {/* Section Navigation List */}
+          {/* Table of contents */}
           <div
+            className="custom-scrollbar"
             style={{
-              borderRight: "1px solid var(--border-subtle)",
+              borderRight: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.15))",
               overflowY: "auto",
+              background: "rgba(0, 0, 0, 0.02)",
               padding: "8px",
               display: "flex",
               flexDirection: "column",
-              gap: "4px",
-              background: "rgba(0, 0, 0, 0.02)",
+              gap: "2px",
             }}
           >
-            {filteredSections.map((s) => {
-              const isSelected = s.id === activeSection.id
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setActiveSectionId(s.id)}
-                  style={{
-                    textAlign: "left",
-                    padding: "8px 10px",
-                    borderRadius: "6px",
-                    border: isSelected
-                      ? "1px solid var(--gold, #d97706)"
-                      : "1px solid transparent",
-                    background: isSelected
-                      ? "rgba(217, 119, 6, 0.12)"
-                      : "transparent",
-                    color: isSelected
+            {filteredSections.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActiveSectionId(s.id)}
+                style={{
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  fontSize: "12px",
+                  fontWeight: activeSection.id === s.id ? 700 : 500,
+                  color:
+                    activeSection.id === s.id
                       ? "var(--gold-bright, #d97706)"
                       : "var(--ink, #1c1917)",
-                    fontWeight: isSelected ? 700 : 500,
-                    fontSize: "12px",
-                    cursor: "pointer",
-                    transition: "all 140ms ease",
-                  }}
-                >
-                  {s.title}
-                </button>
-              )
-            })}
+                  background:
+                    activeSection.id === s.id
+                      ? "rgba(200, 155, 69, 0.18)"
+                      : "transparent",
+                  border:
+                    activeSection.id === s.id
+                      ? "1px solid rgba(200, 155, 69, 0.4)"
+                      : "1px solid transparent",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  lineHeight: 1.3,
+                }}
+              >
+                {s.title}
+              </button>
+            ))}
           </div>
 
-          {/* Section Content Display */}
+          {/* Section details */}
           <div
+            className="custom-scrollbar"
             style={{
               padding: "20px 24px",
               overflowY: "auto",
@@ -305,10 +356,11 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
               style={{
                 fontFamily: "'Playfair Display', Georgia, serif",
                 fontSize: "17px",
-                fontWeight: 700,
+                fontWeight: 800,
                 color: "var(--gold-bright, #d97706)",
                 margin: 0,
-                borderBottom: "1px solid var(--border-subtle)",
+                letterSpacing: "0.02em",
+                borderBottom: "1px solid rgba(200, 155, 69, 0.2)",
                 paddingBottom: "8px",
               }}
             >
@@ -320,14 +372,19 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
                 display: "flex",
                 flexDirection: "column",
                 gap: "10px",
-                fontSize: "13px",
-                lineHeight: 1.6,
-                color: "var(--ink, #1c1917)",
               }}
             >
-              {activeSection.content.map((p, idx) => (
-                <p key={idx} style={{ margin: 0 }}>
-                  {p}
+              {activeSection.content.map((paragraph, idx) => (
+                <p
+                  key={idx}
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: 1.6,
+                    color: "var(--text-primary, #1c1917)",
+                    margin: 0,
+                  }}
+                >
+                  {paragraph}
                 </p>
               ))}
             </div>
@@ -338,24 +395,24 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
         <div
           style={{
             padding: "10px 20px",
-            borderTop: "1px solid var(--border-subtle)",
+            borderTop: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.15))",
+            background: "var(--glass-header, rgba(255, 255, 255, 0.04))",
             display: "flex",
             justifyContent: "flex-end",
-            background: "var(--glass-header, rgba(255, 255, 255, 0.04))",
           }}
         >
           <button
             type="button"
             onClick={onClose}
-            className="action-btn"
+            className="btn btn-primary"
             style={{
               padding: "6px 18px",
               fontSize: "12px",
-              fontWeight: 600,
-              cursor: "pointer",
+              fontWeight: 700,
+              borderRadius: "6px",
             }}
           >
-            Close Guide
+            CLOSE GUIDE
           </button>
         </div>
       </section>

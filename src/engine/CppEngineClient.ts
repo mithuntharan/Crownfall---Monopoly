@@ -203,6 +203,21 @@ export class CppEngineClient implements IGameEngine {
     return { success: !!data.ok, state: data.state }
   }
 
+
+  async payJailFine(playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/payJailFine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "payJailFine", playerId }),
+      })
+      const data = await res.json()
+      return { success: data.ok !== false, state: data.state, error: data.error }
+    } catch (err: any) {
+      return { success: false, state: {} as any, error: err?.message }
+    }
+  }
+
   async unmortgageProperty(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState

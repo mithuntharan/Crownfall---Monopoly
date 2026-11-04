@@ -152,7 +152,7 @@ class CppEngineProcess {
 // ─── ROOM MANAGER ─────────────────────────────────────────────────────────────
 
 const AVAILABLE_COLORS = [
-  'saffron', 'teal', 'plum', 'blue', 'gold', 'burgundy', 'emerald', 'coral', 'bronze', 'purple'
+  'ruby', 'cobalt', 'emerald', 'violet', 'tangerine', 'teal', 'magenta', 'golden'
 ];
 
 const EMPTY_ROOM_TIMEOUT_MS = parseInt(process.env.EMPTY_ROOM_TIMEOUT_MS || String(10 * 60 * 1000), 10); // Exactly 10 minutes default
@@ -671,6 +671,18 @@ class Room {
 
     // Active host exists: create join request and notify host
     const requestId = 'req_' + crypto.randomBytes(8).toString('hex');
+    const occupiedNames = new Set(
+      this.players.filter(p => !p.isLeft).map(p => (p.name || '').trim().toLowerCase())
+    );
+    for (const req of this.joinRequests.values()) {
+      if (req.status === 'PENDING') {
+        occupiedNames.add((req.name || '').trim().toLowerCase());
+      }
+    }
+    if (cleanName && occupiedNames.has(cleanName.toLowerCase())) {
+      throw new Error(`Nickname '${cleanName}' is already taken in this room. Please choose another nickname.`);
+    }
+
     const cleanColor = validateColor(preferredColor);
     if (!cleanColor) {
       throw new Error(`Invalid color '${preferredColor}'.`);
@@ -837,6 +849,12 @@ class Room {
 
     const nextId = this.nextPlayerId++;
     const safeName = sanitizePlayerName(name, `Player ${nextId + 1}`);
+    const occupiedNames = new Set(
+      this.players.filter(p => !p.isLeft).map(p => (p.name || '').trim().toLowerCase())
+    );
+    if (safeName && occupiedNames.has(safeName.toLowerCase())) {
+      throw new Error(`Nickname '${safeName}' is already taken in this room. Please choose another nickname.`);
+    }
     const cleanColor = validateColor(preferredColor);
     const usedColors = new Set(
       this.players.filter(p => !p.isLeft).map(p => (p.color || '').toLowerCase())
@@ -1224,6 +1242,20 @@ class Room {
       return map[propId.toLowerCase()] || (propId.charAt(0).toUpperCase() + propId.slice(1));
     };
 
+    if (action === 'payJailFine') {
+      this.addEvent({
+        id: `ev_jailfine_${now}_${player.id}_${seq}`,
+        type: 'JAIL_FINE',
+        category: 'RENT_PAYMENTS',
+        timestamp: now,
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        sequenceNumber: seq,
+        description: `${player.name} paid ₹500 to leave Jail.`,
+      });
+    }
+
     if (action === 'roll' && res) {
       // 1. Dice Roll (TURNS_DICE & MOVEMENT)
       this.addEvent({
@@ -1235,7 +1267,7 @@ class Room {
         playerName: player.name,
         playerColor: player.color,
         sequenceNumber: seq,
-        description: `${player.name} rolled [${res.dice1}, ${res.dice2}] = ${res.diceTotal}${res.isDouble ? ' (DOUBLES!)' : ''} and moved to ${res.spaceName}.`,
+        description: `${player.name} rolled ${res.dice1}, ${res.dice2}`,
       });
 
       // 3. Start Crossing: First rotation capital or pass start bonus (RENT_PAYMENTS)
@@ -1533,19 +1565,7 @@ class Room {
         description: `${player.name} surrendered and resigned from the match.`,
       });
     } else if (action === 'endTurn') {
-      const nextIdx = engineRes?.state?.activePlayerIndex ?? (this.gameState?.activePlayerIndex ?? 0);
-      const nextPlayer = this.getPlayerById(nextIdx) || { name: `Player ${nextIdx + 1}` };
-      this.addEvent({
-        id: `ev_end_${now}_${player.id}_${seq}`,
-        type: 'TURN_CHANGE',
-        category: 'TURNS_DICE',
-        timestamp: now,
-        playerId: player.id,
-        playerName: player.name,
-        playerColor: player.color,
-        sequenceNumber: seq,
-        description: `${player.name} ended turn. It is now ${nextPlayer.name}'s turn.`,
-      });
+      // Routine end-turn messages omitted to prevent cluttering Dice & Turns log
     } else if (action === 'timeout') {
       const nextIdx = engineRes?.state?.activePlayerIndex ?? (this.gameState?.activePlayerIndex ?? 0);
       const nextPlayer = this.getPlayerById(nextIdx) || { name: `Player ${nextIdx + 1}` };

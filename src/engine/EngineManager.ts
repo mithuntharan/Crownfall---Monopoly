@@ -153,6 +153,15 @@ export class EngineManager implements IGameEngine {
     return engine.mortgageProperty(playerId, propertyId)
   }
 
+
+  async payJailFine(playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
+    const engine = await this.getActiveEngine()
+    if (engine.payJailFine) {
+      return engine.payJailFine(playerId)
+    }
+    return { success: false, state: await this.getState(), error: "payJailFine not supported" }
+  }
+
   async unmortgageProperty(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState

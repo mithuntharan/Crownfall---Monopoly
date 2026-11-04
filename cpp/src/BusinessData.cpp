@@ -51,7 +51,7 @@ static const std::vector<ChanceDeclaration> s_chanceDeclarations = {
     { 6, "Even", "House Renovating", "House Renovating, Rs. 1500", "pay", "- ₹1,500", "YOU → BANK" },
     { 7, "Odd", "Jack Pot", "You have won Jack Pot of Rs. 2000", "receive", "+ ₹2,000", "BANK → YOU" },
     { 8, "Even", "Fire Loss", "Loss due to fire in godown, Rs. 3000", "pay", "- ₹3,000", "LOSS IN GODOWN · YOU → BANK" },
-    { 9, "Odd", "Go Back to Bombay", "Go back to Bombay. If you have to pass starting point, collect Rs. 1500 & go to Darjeeling.", "move", "MOVE TO BOMBAY", "PASS START: + ₹1,500 · THEN DARJEELING" },
+    { 9, "Odd", "Go to Darjeeling", "Go to Darjeeling. If you have to pass starting point, collect Rs. 1500.", "move", "MOVE TO DARJEELING", "PASS START: + ₹1,500 · DARJEELING" },
     { 10, "Even", "Go to Jail", "Go to Jail", "jail", "GO TO JAIL", "MOVE DIRECTLY · DO NOT PASS START" },
     { 11, "Odd", "Export Performance Prize", "Prize for best performance in export, Rs. 3000", "receive", "+ ₹3,000", "BANK → YOU" },
     { 12, "Even", "Rest House", "Go to Rest House. You cannot play next turn.", "rest", "REST HOUSE", "MISS YOUR NEXT TURN" }

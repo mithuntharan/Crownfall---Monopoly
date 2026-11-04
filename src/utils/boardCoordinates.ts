@@ -102,26 +102,34 @@ export function getPlayerColorHex(color?: string): string {
   if (!color) return "#d97706"
   const c = color.trim().toLowerCase()
   switch (c) {
-    case "saffron":
-      return "#d97706"
-    case "teal":
-      return "#0d9488"
-    case "plum":
-      return "#9333ea"
+    case "ruby":
+    case "burgundy":
+    case "red":
+      return "#e11d48"
+    case "cobalt":
     case "blue":
       return "#2563eb"
-    case "gold":
-      return "#ca8a04"
-    case "burgundy":
-      return "#991b1b"
     case "emerald":
+    case "green":
       return "#059669"
+    case "violet":
     case "purple":
+    case "plum":
       return "#7c3aed"
+    case "tangerine":
     case "coral":
-      return "#f97316"
+    case "orange":
+      return "#ea580c"
+    case "teal":
+      return "#0d9488"
+    case "magenta":
+      return "#c026d3"
+    case "golden":
+    case "gold":
+    case "saffron":
     case "bronze":
-      return "#b45309"
+    case "yellow":
+      return "#d97706"
     default:
       if (c.startsWith("#") || c.startsWith("rgb")) {
         return c

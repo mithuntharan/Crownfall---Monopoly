@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import type { EnginePlayer, TradeOffer } from "../engine/GameEngineInterface"
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES } from "../theme/colors"
@@ -20,6 +20,111 @@ interface TradeModalProps {
   onCancelOffer: (tradeId: string) => Promise<boolean>
   close: () => void
   isEmbedded?: boolean
+  initialSubTab?: "create" | "offers"
+  highlightTradeId?: string | null
+}
+
+
+interface TradeAmountSliderProps {
+  label: string
+  amount: number
+  max: number
+  disabled?: boolean
+  disabledReason?: string
+  onChange: (val: number) => void
+}
+
+function TradeAmountSlider({
+  label,
+  amount,
+  max,
+  disabled = false,
+  disabledReason,
+  onChange,
+}: TradeAmountSliderProps) {
+  const [textVal, setTextVal] = useState<string>(String(amount))
+
+  useEffect(() => {
+    setTextVal(String(amount))
+  }, [amount])
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, "")
+    setTextVal(raw)
+    const num = Number(raw) || 0
+    const clamped = Math.max(0, Math.min(max, num))
+    onChange(clamped)
+  }
+
+  const handleBlur = () => {
+    const num = Number(textVal) || 0
+    const clamped = Math.max(0, Math.min(max, num))
+    setTextVal(String(clamped))
+    onChange(clamped)
+  }
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const num = Number(e.target.value) || 0
+    const clamped = Math.max(0, Math.min(max, num))
+    setTextVal(String(clamped))
+    onChange(clamped)
+  }
+
+  return (
+    <div style={{ marginBottom: "14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+        <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted, #94a3af)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+          {label}
+        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--gold-bright, #ffd57e)" }}>₹</span>
+          <input
+            type="text"
+            value={textVal}
+            disabled={disabled || max <= 0}
+            onChange={handleTextChange}
+            onBlur={handleBlur}
+            style={{
+              width: "90px",
+              height: "28px",
+              textAlign: "right",
+              background: disabled || max <= 0 ? "rgba(255,255,255,0.05)" : "var(--input-bg, #ffffff)",
+              border: "1.5px solid var(--gold, #d97706)",
+              borderRadius: "6px",
+              padding: "0 6px",
+              color: disabled || max <= 0 ? "var(--text-muted)" : "var(--input-color, #0f172a)",
+              fontWeight: 800,
+              fontSize: "13px",
+            }}
+          />
+        </div>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={Math.max(0, max)}
+        step={100}
+        value={Math.min(amount, max)}
+        disabled={disabled || max <= 0}
+        onChange={handleSliderChange}
+        style={{
+          width: "100%",
+          accentColor: "var(--gold-bright, #ffd57e)",
+          cursor: disabled || max <= 0 ? "not-allowed" : "pointer",
+          height: "6px",
+        }}
+      />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>
+        <span>₹0</span>
+        <span>Max: ₹{Math.max(0, max).toLocaleString()}</span>
+      </div>
+      {disabledReason && (
+        <div style={{ fontSize: "10px", color: "#fca5a5", marginTop: "4px" }}>
+          {disabledReason}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function TradeModal({
@@ -32,11 +137,25 @@ export function TradeModal({
   onCancelOffer,
   close,
   isEmbedded = false,
+  initialSubTab,
+  highlightTradeId,
 }: TradeModalProps) {
   const localPlayer = players.find((p) => p.id === localPlayerId) || players[0]
   const otherPlayers = players.filter((p) => p.id !== localPlayer.id && !p.isBankrupt)
 
-  const [activeTab, setActiveTab] = useState<"create" | "offers">("create")
+  const [activeTab, setActiveTab] = useState<"create" | "offers">(initialSubTab || (highlightTradeId ? "offers" : "create"))
+
+  useEffect(() => {
+    if (initialSubTab) setActiveTab(initialSubTab)
+    else if (highlightTradeId) setActiveTab("offers")
+  }, [initialSubTab, highlightTradeId])
+
+  const highlightedCardRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (activeTab === "offers" && highlightTradeId && highlightedCardRef.current) {
+      highlightedCardRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [activeTab, highlightTradeId])
   const [selectedPartnerId, setSelectedPartnerId] = useState<number>(
     otherPlayers[0]?.id ?? -1,
   )
@@ -285,37 +404,14 @@ export function TradeModal({
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: "10px" }}>
-                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Offer Cash (₹):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={Math.max(0, localPlayer.money)}
-                        step="100"
-                        value={offeredCash}
-                        disabled={localPlayer.money <= 0}
-                        onChange={(e) => {
-                          const maxCash = Math.max(0, localPlayer.money)
-                          const rawVal = Number(e.target.value) || 0
-                          setOfferedCash(Math.max(0, Math.min(maxCash, rawVal)))
-                        }}
-                        style={{
-                          width: "100%",
-                          background: localPlayer.money <= 0 ? "var(--input-disabled-bg, rgba(255,255,255,0.05))" : "var(--input-bg, #ffffff)",
-                          border: "1px solid var(--input-border, rgba(148, 163, 184, 0.4))",
-                          borderRadius: "6px",
-                          padding: "6px 8px",
-                          color: localPlayer.money <= 0 ? "var(--text-muted)" : "var(--input-color, #0f172a)",
-                          fontWeight: 700,
-                          fontSize: "13px",
-                        }}
-                      />
-                      {localPlayer.money < 0 && (
-                        <div style={{ fontSize: "10px", color: "#fca5a5", marginTop: "4px" }}>
-                          Account balance is negative (₹{localPlayer.money.toLocaleString()}). Cash offers disabled; you may offer properties or request cash.
-                        </div>
-                      )}
-                    </div>
+                    <TradeAmountSlider
+                      label="Offer Cash"
+                      amount={offeredCash}
+                      max={Math.max(0, localPlayer.money)}
+                      disabled={localPlayer.money <= 0}
+                      disabledReason={localPlayer.money < 0 ? `Account balance is negative (₹${localPlayer.money.toLocaleString()}). Cash offers disabled; you may offer properties or request cash.` : undefined}
+                      onChange={setOfferedCash}
+                    />
 
                     <div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>Select Properties:</div>
@@ -367,37 +463,14 @@ export function TradeModal({
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: "10px" }}>
-                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Request Cash (₹):</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={Math.max(0, partner.money)}
-                        step="100"
-                        value={requestedCash}
-                        disabled={partner.money <= 0}
-                        onChange={(e) => {
-                          const maxCash = Math.max(0, partner.money)
-                          const rawVal = Number(e.target.value) || 0
-                          setRequestedCash(Math.max(0, Math.min(maxCash, rawVal)))
-                        }}
-                        style={{
-                          width: "100%",
-                          background: partner.money <= 0 ? "var(--input-disabled-bg, rgba(255,255,255,0.05))" : "var(--input-bg, #ffffff)",
-                          border: "1px solid var(--input-border, rgba(148, 163, 184, 0.4))",
-                          borderRadius: "6px",
-                          padding: "6px 8px",
-                          color: partner.money <= 0 ? "var(--text-muted)" : "var(--input-color, #0f172a)",
-                          fontWeight: 700,
-                          fontSize: "13px",
-                        }}
-                      />
-                      {partner.money < 0 && (
-                        <div style={{ fontSize: "10px", color: "#fca5a5", marginTop: "4px" }}>
-                          {partner.name} has a negative balance (₹{partner.money.toLocaleString()}) and cannot provide cash. You may send money to assist them.
-                        </div>
-                      )}
-                    </div>
+                    <TradeAmountSlider
+                      label="Request Cash"
+                      amount={requestedCash}
+                      max={Math.max(0, partner.money)}
+                      disabled={partner.money <= 0}
+                      disabledReason={partner.money < 0 ? `${partner.name} has a negative balance (₹${partner.money.toLocaleString()}) and cannot provide cash. You may send money to assist them.` : undefined}
+                      onChange={setRequestedCash}
+                    />
 
                     <div>
                       <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>Select Properties:</div>
@@ -502,14 +575,19 @@ export function TradeModal({
                   <p style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>No pending incoming trade offers.</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {incomingOffers.map((offer) => (
+                    {incomingOffers.map((offer) => {
+                      const isHighlighted = highlightTradeId === offer.id
+                      return (
                       <div
                         key={offer.id}
+                        ref={isHighlighted ? highlightedCardRef : undefined}
                         style={{
-                          background: "rgba(0,0,0,0.3)",
-                          border: "1px solid var(--gold-400)",
+                          background: isHighlighted ? "rgba(217, 119, 6, 0.12)" : "rgba(0,0,0,0.3)",
+                          border: isHighlighted ? "2px solid var(--gold-bright, #ffd57e)" : "1px solid var(--gold-400)",
                           borderRadius: "8px",
                           padding: "12px",
+                          boxShadow: isHighlighted ? "0 0 16px rgba(245, 158, 11, 0.4)" : "none",
+                          transition: "all 0.3s ease",
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
@@ -611,7 +689,8 @@ export function TradeModal({
                           </button>
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

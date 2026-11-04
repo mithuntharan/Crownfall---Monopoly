@@ -1,3 +1,18 @@
+
+function getSecureDieRoll(): number {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const buf = new Uint32Array(1)
+    const limit = 4294967292
+    let val = 0
+    do {
+      crypto.getRandomValues(buf)
+      val = buf[0]
+    } while (val >= limit)
+    return (val % 6) + 1
+  }
+  return Math.floor(Math.random() * 6) + 1
+}
+
 import {
   BOARD_SPACES,
   CITY_PROPERTIES,
@@ -647,9 +662,9 @@ export class LocalGameEngine implements IGameEngine {
       )
     }
 
-    // Roll dice
-    const d1 = riggedDice ? riggedDice[0] : Math.ceil(Math.random() * 6)
-    const d2 = riggedDice ? riggedDice[1] : Math.ceil(Math.random() * 6)
+    // Roll dice: independent uniform cryptographic random draw for each die (1-6)
+    const d1 = riggedDice ? riggedDice[0] : getSecureDieRoll()
+    const d2 = riggedDice ? riggedDice[1] : getSecureDieRoll()
     this.lastDice = [d1, d2]
     const total = d1 + d2
     const isDouble = d1 === d2
@@ -886,21 +901,20 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             this.handleRestHouseLanding(player, res)
           } else if (decl.kind === "move" && total === 9) {
-            if (player.position === 7) {
-              player.position = 1
-              res.eventDescription = `${player.name} drew Chance: Go back to ${BOARD_SPACES[1].name}.`
-            } else {
+            const cardFrom = player.position
+            player.position = 23
+            const cardSteps = (23 - cardFrom + 36) % 36
+            if (cardSteps > 0) {
+              this.recordOwnerCrossings(player.id, cardFrom, cardSteps)
+            }
+            if (cardFrom > 23) {
               const bonus = this.rules.passStartBonus ?? Math.floor((this.rules.defaultStartingMoney * 5 + 5000) / 10000) * 100
               player.money += bonus
               res.moneyChange = bonus
               res.passStartBonusAwarded = true
-              const cardFrom = player.position
-              player.position = 23
-              const cardSteps = (23 - cardFrom + 36) % 36
-              if (cardSteps > 0) {
-                this.recordOwnerCrossings(player.id, cardFrom, cardSteps)
-              }
               res.eventDescription = `${player.name} drew Chance: Passed Start (+₹${bonus}) and went to ${BOARD_SPACES[23].name}.`
+            } else {
+              res.eventDescription = `${player.name} drew Chance: Go to ${BOARD_SPACES[23].name}.`
             }
             res.newPosition = player.position
             const destSpace = BOARD_SPACES[player.position]
@@ -1600,6 +1614,47 @@ export class LocalGameEngine implements IGameEngine {
       -1,
       propertyId,
     )
+    return { success: true, state: await this.getState() }
+  }
+
+  async payJailFine(playerId: number): Promise<{
+    success: boolean
+    state: GameState
+    error?: string
+  }> {
+    if (playerId < 0 || playerId >= this.players.length) {
+      return { success: false, state: await this.getState(), error: "Invalid player" }
+    }
+    const player = this.players[playerId]
+    const isDetained = Boolean(
+      player.inJail ||
+      (player.jailTurns ?? 0) > 0 ||
+      player.cardJailSkip ||
+      (player.cardJailSkipTurns ?? 0) > 0
+    )
+    if (!isDetained) {
+      return { success: false, state: await this.getState(), error: "Player is not in jail" }
+    }
+    if (player.money < 500) {
+      return { success: false, state: await this.getState(), error: "Insufficient funds to pay jail fine" }
+    }
+
+    player.money -= 500
+    player.inJail = false
+    player.jailTurns = 0
+    player.cardJailSkip = false
+    player.cardJailSkipTurns = 0
+    this.turnState = "WAITING_FOR_ROLL"
+
+    this.recordTransaction(
+      "JAIL_FINE",
+      `${player.name} paid ₹500 to leave Jail.`,
+      500,
+      playerId,
+      -1,
+      ""
+    )
+
     return { success: true, state: await this.getState() }
   }
 

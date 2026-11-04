@@ -1,5 +1,6 @@
 {
-  "description": "Experience a premium digital board game that blends nostalgia with modern design, allowing players to strategize and compete in Crownfall.",
+  "title": "Crownfall",
+  "description": "Play Crownfall, a multiplayer board game with friends.",
   "robots": {
     "index": false
   },

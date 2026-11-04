@@ -1231,6 +1231,18 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
               << ",\"state\":" << toCompactJson(engine->exportStateJson())
               << "}\n"
               << std::flush;
+  } else if (action == "payJailFine") {
+    int playerId = getJsonIntField(line, "playerId", engine->getActivePlayerIndex());
+    if (!engine->isDevMode() && playerId >= 0 && playerId != engine->getActivePlayerIndex()) {
+      std::cout << "{\"ok\":false,\"error\":\"Not your turn\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
+      return;
+    }
+    bool success = engine->payJailFine(playerId);
+    if (!success) {
+      std::cout << "{\"ok\":false,\"error\":\"Cannot pay jail fine: player not in jail or insufficient funds\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
+      return;
+    }
+    std::cout << "{\"ok\":true,\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
   } else if (action == "unmortgage") {
     int playerId =
         getJsonIntField(line, "playerId", engine->getActivePlayerIndex());

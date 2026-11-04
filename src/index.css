@@ -87,8 +87,8 @@
   --group-green-dark: #064e3b;
   --group-yellow: #d97706;
   --group-yellow-dark: #78350f;
-  --group-red: #be123c;
-  --group-red-dark: #4c0519;
+  --group-red: #e11d48;
+  --group-red-dark: #881337;
   --group-blue: #2563eb;
   --group-blue-dark: #1e3a8a;
 
@@ -165,90 +165,90 @@
    ============================================================================== */
 
 [data-theme="dark"] {
-  /* ─── Deep Charcoal & Graphite Foundations ──────────────────────────── */
-  --bg-void: #0c0e12;
-  --bg-midnight: #12151b;
-  --bg-deep-navy: #161a22;
-  --bg-surface: rgba(20, 24, 32, 0.90);
-  --bg-surface-elevated: rgba(26, 31, 42, 0.96);
+  /* ─── Warm Charcoal & Graphite Foundations ──────────────────────────── */
+  --bg-void: #20242A;
+  --bg-midnight: #20242A;
+  --bg-deep-navy: #252B32;
+  --bg-surface: #2C333B;
+  --bg-surface-elevated: #343C45;
 
   /* ─── Translucent Dark Smoked Glass Surfaces ────────────────────────── */
-  --glass-heavy: rgba(22, 27, 36, 0.94);
-  --glass-medium: rgba(20, 24, 32, 0.84);
-  --glass-light: rgba(28, 34, 46, 0.72);
-  --glass-floating: rgba(26, 32, 44, 0.97);
-  --glass-border: rgba(212, 175, 55, 0.20);
-  --glass-border-subtle: rgba(255, 255, 255, 0.08);
-  --glass-border-accent: rgba(212, 175, 55, 0.35);
-  --glass-border-gold: rgba(212, 175, 55, 0.42);
-  --glass-border-gold-strong: rgba(245, 158, 11, 0.70);
-  --glass-border-crimson: rgba(225, 29, 72, 0.35);
-  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 60%, transparent 100%);
+  --glass-heavy: rgba(52, 60, 69, 0.94);
+  --glass-medium: rgba(44, 51, 59, 0.90);
+  --glass-light: rgba(37, 43, 50, 0.85);
+  --glass-floating: rgba(52, 60, 69, 0.97);
+  --glass-border: rgba(232, 224, 210, 0.13);
+  --glass-border-subtle: rgba(232, 224, 210, 0.08);
+  --glass-border-accent: rgba(197, 177, 138, 0.35);
+  --glass-border-gold: rgba(197, 177, 138, 0.42);
+  --glass-border-gold-strong: rgba(197, 177, 138, 0.70);
+  --glass-border-crimson: rgba(210, 126, 120, 0.35);
+  --glass-specular: linear-gradient(135deg, rgba(240, 237, 230, 0.10) 0%, rgba(240, 237, 230, 0.02) 60%, transparent 100%);
   --glass-blur: blur(16px);
   --glass-blur-heavy: blur(24px);
 
-  /* ─── High-Contrast Warm Off-White Typography ───────────────────────── */
-  --text-primary: #f3f4f6;
-  --text-ivory: #f5f0e6;
-  --text-ivory-soft: #e2ded4;
-  --text-secondary: #cbd5e1;
-  --text-subtle: #94a3af;
-  --text-muted: #94a3af;
-  --text-dim: #64748b;
+  /* ─── Warm Neutral & Off-White Typography ───────────────────────────── */
+  --text-primary: #F0EDE6;
+  --text-ivory: #F0EDE6;
+  --text-ivory-soft: #C1BDB4;
+  --text-secondary: #C1BDB4;
+  --text-subtle: #97948C;
+  --text-muted: #97948C;
+  --text-dim: #78756E;
 
-  /* ─── Restrained Champagne Accents & Imperial Gold ──────────────────── */
+  /* ─── Restrained Champagne Accents ──────────────────────────────────── */
   --accent-primary: #6366f1;
   --accent-periwinkle: #818cf8;
-  --gold: #d4af37;
-  --gold-light: #fde68a;
-  --gold-bright: #ffd57e;
-  --gold-antique: #c5a059;
-  --gold-ivory: #f5f0e6;
-  --gold-glow: rgba(212, 175, 55, 0.25);
-  --gold-glow-soft: rgba(212, 175, 55, 0.12);
-  --gold-300: #ffd57e;
-  --gold-400: #d4af37;
-  --gold-500: #aa820a;
-  --red: #f87171;
+  --gold: #C5B18A;
+  --gold-light: #E0D4BA;
+  --gold-bright: #D4C3A3;
+  --gold-antique: #C5B18A;
+  --gold-ivory: #F0EDE6;
+  --gold-glow: rgba(197, 177, 138, 0.25);
+  --gold-glow-soft: rgba(197, 177, 138, 0.12);
+  --gold-300: #D4C3A3;
+  --gold-400: #C5B18A;
+  --gold-500: #A89368;
+  --red: #D27E78;
 
   /* ─── Restrained Burgundy & Crimson Accents ─────────────────────────── */
   --burgundy: #be123c;
   --burgundy-deep: #4c0519;
-  --crimson: #e11d48;
-  --crimson-bright: #fb7185;
-  --crimson-glow: rgba(225, 29, 72, 0.30);
+  --crimson: #D27E78;
+  --crimson-bright: #E58E88;
+  --crimson-glow: rgba(210, 126, 120, 0.30);
 
-  /* ─── Board & Perimeter Tile Dark Graphite Tokens ───────────────────── */
-  --board-bg: #12151b;
-  --board-border: rgba(212, 175, 55, 0.35);
-  --board-center-bg: radial-gradient(circle at center, rgba(22, 27, 36, 0.98) 0%, rgba(14, 18, 25, 0.98) 100%);
-  --tile-bg: rgba(20, 25, 34, 0.96);
-  --tile-border: rgba(255, 255, 255, 0.08);
-  --tile-hover-bg: rgba(28, 35, 48, 0.98);
-  --corner-bg: radial-gradient(circle at center, #1e2430 0%, #141822 100%);
+  /* ─── Board & Perimeter Tile Tokens ─────────────────────────────────── */
+  --board-bg: #252B32;
+  --board-border: rgba(197, 177, 138, 0.35);
+  --board-center-bg: radial-gradient(circle at center, rgba(44, 51, 59, 0.98) 0%, rgba(37, 43, 50, 0.98) 100%);
+  --tile-bg: #2C333B;
+  --tile-border: rgba(232, 224, 210, 0.13);
+  --tile-hover-bg: #343C45;
+  --corner-bg: radial-gradient(circle at center, #343C45 0%, #252B32 100%);
 
   /* ─── Coordinated Special Squares & Price Chips ──────────────────────── */
-  --special-card-bg: rgba(26, 32, 44, 0.94);
-  --special-card-border: rgba(212, 175, 55, 0.30);
-  --special-card-text: #f3f4f6;
-  --price-chip-bg: rgba(28, 34, 46, 0.95);
-  --price-chip-border: rgba(212, 175, 55, 0.30);
-  --price-chip-text: #ffd57e;
+  --special-card-bg: rgba(44, 51, 59, 0.94);
+  --special-card-border: rgba(197, 177, 138, 0.30);
+  --special-card-text: #F0EDE6;
+  --price-chip-bg: rgba(52, 60, 69, 0.95);
+  --price-chip-border: rgba(197, 177, 138, 0.30);
+  --price-chip-text: #D4C3A3;
 
   /* ─── Tactile Dice Tokens ────────────────────────────────────────────── */
-  --die-bg: linear-gradient(145deg, #242b38, #181d26);
-  --die-border: rgba(212, 175, 55, 0.45);
-  --die-pip: radial-gradient(circle at 35% 35%, #fde68a, #d4af37);
+  --die-bg: linear-gradient(145deg, #343C45, #252B32);
+  --die-border: rgba(197, 177, 138, 0.45);
+  --die-pip: radial-gradient(circle at 35% 35%, #E0D4BA, #C5B18A);
 
-  /* ─── Property Color Group Accents (Vibrant & Legible in Dark Mode) ─── */
+  /* ─── Property Color Group Accents ──────────────────────────────────── */
   --group-green: #10b981;
-  --group-green-dark: #064e3b;
+  --group-green-dark: #047857;
   --group-yellow: #f59e0b;
-  --group-yellow-dark: #78350f;
-  --group-red: #ef4444;
-  --group-red-dark: #7f1d1d;
-  --group-blue: #3b82f6;
-  --group-blue-dark: #1e3a8a;
+  --group-yellow-dark: #b45309;
+  --group-red: #f43f5e;
+  --group-red-dark: #9f1239;
+  --group-blue: #38bdf8;
+  --group-blue-dark: #0284c7;
 
   /* Compatibility aliases */
   --green: var(--group-green);
@@ -265,35 +265,50 @@
   --surface: var(--bg-surface);
   --ink: var(--text-ivory);
   --ink-soft: var(--text-muted);
-  --border-subtle: var(--glass-border);
-  --bg-card: var(--glass-medium);
-  --line: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(232, 224, 210, 0.13);
+  --bg-card: #2C333B;
+  --line: rgba(232, 224, 210, 0.10);
 
   /* ─── Financial & Status Semantic Tokens ────────────────────────────── */
-  --financial-gain: #4ade80;
-  --financial-gain-bg: rgba(34, 197, 94, 0.20);
-  --financial-gain-border: rgba(34, 197, 94, 0.50);
-  --financial-loss: #f87171;
-  --financial-loss-bg: rgba(239, 68, 68, 0.20);
-  --financial-loss-border: rgba(239, 68, 68, 0.50);
-  --status-success: #10b981;
+  --financial-gain: #79B78C;
+  --financial-gain-bg: rgba(121, 183, 140, 0.20);
+  --financial-gain-border: rgba(121, 183, 140, 0.50);
+  --financial-loss: #D27E78;
+  --financial-loss-bg: rgba(210, 126, 120, 0.20);
+  --financial-loss-border: rgba(210, 126, 120, 0.50);
+  --status-success: #79B78C;
   --status-warning: #f59e0b;
-  --status-error: #ef4444;
+  --status-error: #D27E78;
   --status-info: #3b82f6;
 
   /* ─── Universal Input Semantic Tokens ───────────────────────────────── */
-  --input-bg: rgba(18, 23, 32, 0.95);
-  --input-color: #f3f4f6;
-  --input-border: rgba(255, 255, 255, 0.15);
-  --input-placeholder: #64748b;
-  --input-focus-ring: rgba(212, 175, 55, 0.25);
-  --input-disabled-bg: rgba(255, 255, 255, 0.04);
+  --input-bg: #252B32;
+  --input-color: #F0EDE6;
+  --input-border: rgba(232, 224, 210, 0.15);
+  --input-placeholder: #97948C;
+  --input-focus-ring: rgba(197, 177, 138, 0.25);
+  --input-disabled-bg: rgba(232, 224, 210, 0.04);
 
   /* --- Liquid-Glass Scrollbar Semantic Tokens (Dark Theme) --- */
-  --scrollbar-track: rgba(18, 23, 32, 0.55);
-  --scrollbar-thumb: rgba(215, 195, 155, 0.42);
-  --scrollbar-thumb-hover: rgba(255, 213, 126, 0.85);
+  --scrollbar-track: rgba(37, 43, 50, 0.55);
+  --scrollbar-thumb: rgba(197, 177, 138, 0.35);
+  --scrollbar-thumb-hover: rgba(212, 195, 163, 0.75);
 
+  /* ─── Explicit Semantic Tokens Specified in Crownfall Palette ───────── */
+  --bg-main: #20242A;
+  --bg-board-surround: #252B32;
+  --bg-card-warm: #2C333B;
+  --bg-elevated-warm: #343C45;
+  --input-bg-warm: #252B32;
+  --text-primary-warm: #F0EDE6;
+  --text-secondary-warm: #C1BDB4;
+  --text-muted-warm: #97948C;
+  --accent-champagne: #C5B18A;
+  --color-positive: #79B78C;
+  --color-negative: #D27E78;
+  --border-warm: rgba(232, 224, 210, 0.13);
+
+  /* ─── Refined Dark Shadows
   /* ─── Refined Dark Shadows with Specular Borders ─────────────────────── */
   --shadow-subtle: 0 4px 14px rgba(0, 0, 0, 0.40);
   --shadow-glass: 0 12px 30px rgba(0, 0, 0, 0.50), 0 0 1px rgba(255, 255, 255, 0.10) inset;
@@ -1585,18 +1600,20 @@ button:focus-visible, input:focus-visible {
 
 .board-compass {
   position: absolute;
-  top: 8%;
-  right: 8%;
-  font: 600 12px "Playfair Display", serif;
-  color: var(--gold-antique);
-  opacity: 0.75;
+  top: 7%;
+  right: 7%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+  z-index: 10;
 }
 
-.board-compass::after {
-  content: "✦";
+.board-compass svg {
   display: block;
-  font-size: 20px;
-  margin-top: -4px;
 }
 
 /* Continuous Gliding Tokens Layer */
@@ -1915,64 +1932,64 @@ button:focus-visible, input:focus-visible {
   }
 }
 
-/* Tile Variant — Ultra-compact, non-overlapping badge on board tiles */
+/* Tile Variant — White Hand Holding House Mortgage Indicator occupying building indicator slot */
 .crownfall-mortgage-indicator.tile-variant,
 .crownfall-mortgage-indicator--tile,
 .tile-mortgage-indicator {
   position: absolute;
   z-index: 14;
-  padding: 1.5px 4px;
-  background: #faf6ee;
-  border: 1px solid rgba(136, 19, 55, 0.55);
-  border-radius: 3px;
-  color: #881337;
-  font-family: "Oswald", sans-serif;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
-  white-space: nowrap;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
 .crownfall-mortgage-indicator.tile-variant svg,
 .crownfall-mortgage-indicator--tile svg,
 .tile-mortgage-indicator svg {
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
+  color: #ffffff;
 }
 
 .crownfall-mortgage-indicator.tile-variant.side-bottom,
 .crownfall-mortgage-indicator--tile.side-bottom,
 .tile-mortgage-indicator.side-bottom {
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
 }
 
 .crownfall-mortgage-indicator.tile-variant.side-top,
 .crownfall-mortgage-indicator--tile.side-top,
 .tile-mortgage-indicator.side-top {
-  bottom: 3px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 18%;
 }
 
 .crownfall-mortgage-indicator.tile-variant.side-left,
 .crownfall-mortgage-indicator--tile.side-left,
 .tile-mortgage-indicator.side-left {
-  right: 3px;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 18%;
 }
 
 .crownfall-mortgage-indicator.tile-variant.side-right,
 .crownfall-mortgage-indicator--tile.side-right,
 .tile-mortgage-indicator.side-right {
-  left: 3px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 18%;
 }
 
 /* Row Variant — For modal rows and property lists */
@@ -2148,7 +2165,8 @@ button:focus-visible, input:focus-visible {
 ─────────────────────────────────────────────────────────────────────────────── */
 .tile-buildings-container.side-bottom .building-marker-house-group,
 .tile-buildings-container.side-bottom .building-marker-hotel {
-  transform: rotate(180deg);
+  /* Rotated by 180deg to match top row Patna orientation (upright) */
+  transform: rotate(0deg);
 }
 
 .tile-buildings-container.side-top .building-marker-house-group,
@@ -3203,7 +3221,7 @@ button:focus-visible, input:focus-visible {
     transform: translateY(0) scale(1);
   }
 }
-.winner-crown {
+.winner-badge {
   width: 84px;
   height: 84px;
   border-radius: 50%;
@@ -3997,6 +4015,30 @@ button:focus-visible, input:focus-visible {
   color: #86efac;
 }
 
+.ledger-amount-tag.neutral {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  color: var(--ink-soft, #57534E);
+}
+
+[data-theme="dark"] .ledger-amount-tag.neutral {
+  background: rgba(232, 224, 210, 0.06);
+  border: 1px solid rgba(232, 224, 210, 0.15);
+  color: #C1BDB4;
+}
+
+[data-theme="dark"] .ledger-amount-tag.gain {
+  background: rgba(121, 183, 140, 0.18);
+  border: 1px solid rgba(121, 183, 140, 0.45);
+  color: #79B78C;
+}
+
+[data-theme="dark"] .ledger-amount-tag.loss {
+  background: rgba(210, 126, 120, 0.18);
+  border: 1px solid rgba(210, 126, 120, 0.45);
+  color: #D27E78;
+}
+
 .ledger-balances-row {
   display: flex;
   align-items: center;
@@ -4457,17 +4499,16 @@ button:focus-visible, input:focus-visible {
 @media (max-width: 768px) {
   .property-comparison-grid {
     display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    flex-direction: row;
     gap: 12px;
-    padding-bottom: 8px;
-    -webkit-overflow-scrolling: touch;
+    width: max-content;
+    min-width: 100%;
   }
   .property-compare-card,
   .property-compare-empty-card {
-    min-width: 82%;
-    flex: 0 0 82%;
-    scroll-snap-align: start;
+    min-width: min(300px, 85vw);
+    max-width: min(320px, 88vw);
+    flex: 0 0 auto;
   }
 }
 
@@ -6248,20 +6289,24 @@ button:focus-visible, input:focus-visible {
 
 @media (max-width: 768px) {
   .property-comparison-scroll-wrapper {
-    scroll-snap-type: x mandatory;
-    padding-bottom: 8px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    padding-bottom: 12px;
   }
   .property-comparison-scroll-wrapper .property-comparison-grid {
     display: flex;
+    flex-direction: row;
     min-width: max-content;
     gap: 12px;
+    padding: 2px 2px 8px;
   }
   .property-comparison-scroll-wrapper .property-compare-card,
   .property-comparison-scroll-wrapper .property-compare-empty-card {
-    min-width: 280px;
-    max-width: 320px;
+    min-width: min(300px, 85vw);
+    max-width: min(320px, 88vw);
     flex: 0 0 auto;
-    scroll-snap-align: start;
   }
 }
 
@@ -7037,19 +7082,20 @@ button:focus-visible, input:focus-visible {
 
 .jail-cell-zone {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 58%;
-  height: 58%;
+  top: 3px;
+  right: 3px;
+  width: 60%;
+  height: 60%;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.12);
   border: 1.5px solid var(--gold-antique, #b45309);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 2px 3px;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
+  padding: 3px 2px 2px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.25);
+  z-index: 1;
 }
 
 [data-theme="dark"] .jail-cell-zone {
@@ -7083,28 +7129,7 @@ button:focus-visible, input:focus-visible {
   color: #fbbf24;
 }
 
-.jail-visiting-zone {
-  position: absolute;
-  left: 4px;
-  bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  pointer-events: none;
-}
-
-.jail-visiting-label {
-  font-size: 7.5px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary, #64748b);
-  text-transform: uppercase;
-  line-height: 1.1;
-  font-family: inherit;
-}
-
-[data-theme="dark"] .jail-visiting-label {
-  color: #cbd5e1;
-}
+/* jail-visiting-zone / jail-visiting-label removed — Just Visiting label removed */
 
 
 /* ─── Modal Dialog Shared Components (Build, Sell, Mortgage, Unmortgage) ────────── */
@@ -7316,4 +7341,202 @@ button:focus-visible, input:focus-visible {
 [data-theme="light"] .notification-dismiss-btn:hover {
   background: rgba(0, 0, 0, 0.12) !important;
   color: #0f172a !important;
+}
+
+
+/* ==============================================================================
+   CROWNFALL — CHAT WIDGET THEME-AWARE STYLES (WARM IVORY LIGHT & GRAPHITE DARK)
+   ============================================================================== */
+
+/* Light Theme Quick Chat */
+:root,
+[data-theme="light"] {
+  --chat-bg: #FAF7F2;
+  --chat-header-bg: #F3ECE0;
+  --chat-feed-bg: #F7F3EB;
+  --chat-composer-bg: #F3ECE0;
+  --chat-border: rgba(196, 184, 166, 0.45);
+  --chat-border-subtle: rgba(196, 184, 166, 0.28);
+  --chat-text-primary: #1C1917;
+  --chat-text-muted: #78716C;
+  --chat-bubble-peer: #FFFFFF;
+  --chat-bubble-peer-border: rgba(196, 184, 166, 0.40);
+  --chat-bubble-peer-text: #1C1917;
+  --chat-bubble-self: #EDE4D0;
+  --chat-bubble-self-border: rgba(180, 130, 40, 0.45);
+  --chat-bubble-self-text: #1C1917;
+  --chat-input-bg: #FFFFFF;
+  --chat-input-border: rgba(180, 130, 40, 0.35);
+  --chat-input-text: #1C1917;
+  --chat-input-placeholder: #78716C;
+  --chat-btn-bg: #B45309;
+  --chat-btn-text: #FFFFFF;
+  --chat-btn-hover: #92400E;
+  --chat-btn-disabled-bg: rgba(0, 0, 0, 0.08);
+  --chat-btn-disabled-text: #A8A29E;
+  --chat-toggle-bg: #FAF7F2;
+  --chat-toggle-border: rgba(180, 130, 40, 0.45);
+  --chat-toggle-text: #1C1917;
+}
+
+/* Dark Theme Quick Chat */
+[data-theme="dark"] {
+  --chat-bg: #20242A;
+  --chat-header-bg: #252B32;
+  --chat-feed-bg: #1B1E24;
+  --chat-composer-bg: #252B32;
+  --chat-border: rgba(232, 224, 210, 0.15);
+  --chat-border-subtle: rgba(232, 224, 210, 0.10);
+  --chat-text-primary: #F0EDE6;
+  --chat-text-muted: #97948C;
+  --chat-bubble-peer: #2C333B;
+  --chat-bubble-peer-border: rgba(232, 224, 210, 0.13);
+  --chat-bubble-peer-text: #F0EDE6;
+  --chat-bubble-self: rgba(197, 177, 138, 0.20);
+  --chat-bubble-self-border: rgba(197, 177, 138, 0.40);
+  --chat-bubble-self-text: #F0EDE6;
+  --chat-input-bg: #20242A;
+  --chat-input-border: rgba(232, 224, 210, 0.18);
+  --chat-input-text: #F0EDE6;
+  --chat-input-placeholder: #97948C;
+  --chat-btn-bg: #C5B18A;
+  --chat-btn-text: #20242A;
+  --chat-btn-hover: #D4C3A3;
+  --chat-btn-disabled-bg: rgba(232, 224, 210, 0.08);
+  --chat-btn-disabled-text: #97948C;
+  --chat-toggle-bg: #252B32;
+  --chat-toggle-border: rgba(197, 177, 138, 0.40);
+  --chat-toggle-text: #F0EDE6;
+}
+
+.chat-toggle-pill {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  background: var(--chat-toggle-bg);
+  color: var(--chat-toggle-text);
+  border: 1px solid var(--chat-toggle-border);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 9998;
+  transition: all 0.15s ease;
+}
+
+.chat-widget-window {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--chat-bg);
+  border: 1px solid var(--chat-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: inherit;
+}
+
+.chat-window-header {
+  padding: 10px 14px;
+  background: var(--chat-header-bg);
+  border-bottom: 1px solid var(--chat-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-messages-scroll {
+  flex: 1;
+  padding: 10px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  min-height: 140px;
+  background: var(--chat-feed-bg);
+}
+
+.chat-bubble-peer {
+  background: var(--chat-bubble-peer);
+  border: 1px solid var(--chat-bubble-peer-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--chat-bubble-peer-text);
+  max-width: 88%;
+  word-break: break-word;
+}
+
+.chat-bubble-self {
+  background: var(--chat-bubble-self);
+  border: 1px solid var(--chat-bubble-self-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--chat-bubble-self-text);
+  max-width: 88%;
+  word-break: break-word;
+}
+
+.chat-composer-row {
+  padding: 10px 12px;
+  background: var(--chat-composer-bg);
+  border-top: 1px solid var(--chat-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-composer-input {
+  flex: 1;
+  background: var(--chat-input-bg);
+  border: 1px solid var(--chat-input-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--chat-input-text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.chat-composer-input::placeholder {
+  color: var(--chat-input-placeholder);
+}
+
+.chat-composer-send-btn {
+  background: var(--chat-btn-bg);
+  color: var(--chat-btn-text);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chat-composer-send-btn:hover:not(:disabled) {
+  background: var(--chat-btn-hover);
+}
+
+.chat-composer-send-btn:disabled {
+  background: var(--chat-btn-disabled-bg);
+  color: var(--chat-btn-disabled-text);
+  cursor: not-allowed;
 }

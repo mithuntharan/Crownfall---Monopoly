@@ -7,6 +7,7 @@ import type {
 export interface TransactionLedgerContentProps {
   ledger?: TransactionRecord[]
   players?: EnginePlayer[]
+  localPlayerId?: number
   isEmbedded?: boolean
   onClose?: () => void
 }
@@ -14,11 +15,16 @@ export interface TransactionLedgerContentProps {
 export function TransactionLedgerContent({
   ledger = [],
   players = [],
+  localPlayerId = 0,
   isEmbedded = false,
   onClose,
 }: TransactionLedgerContentProps) {
   const [playerFilter, setPlayerFilter] = useState<string>("ALL")
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
+
+  const localPlayer = useMemo(() => {
+    return players.find((p) => p.id === localPlayerId) || null
+  }, [players, localPlayerId])
 
   // Deduplicate ledger entries by unique transaction ID
   const deduplicatedLedger = useMemo(() => {
@@ -73,10 +79,6 @@ export function TransactionLedgerContent({
         <div className="ledger-stat-card">
           <span className="ledger-stat-label">VOLUME</span>
           <strong className="ledger-stat-value">₹{totalVolume.toLocaleString()}</strong>
-        </div>
-        <div className="ledger-stat-card status-card">
-          <span className="ledger-stat-label">STATUS</span>
-          <span className="ready-pill">SYNCHRONIZED</span>
         </div>
       </div>
 
@@ -155,13 +157,46 @@ export function TransactionLedgerContent({
               date.getMinutes(),
             ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`
 
-            const isOutflow =
-              tx.type === "PURCHASE" ||
-              tx.type === "TAX" ||
-              tx.type === "FEE" ||
-              tx.type === "CONSTRUCTION" ||
-              tx.type === "UNMORTGAGE" ||
-              tx.type === "RENT"
+            const isViewerCounterparty = localPlayer
+              ? tx.counterpartyPlayerName === localPlayer.name
+              : false
+            const isViewerPrimary = localPlayer
+              ? tx.primaryPlayerName === localPlayer.name
+              : false
+
+            let amountType: "gain" | "loss" | "neutral" = "neutral"
+            let sign = ""
+
+            if (!tx.amount || tx.amount === 0) {
+              amountType = "neutral"
+              sign = ""
+            } else if (playerFilter !== "ALL") {
+              if (tx.counterpartyPlayerName === playerFilter) {
+                amountType = "gain"
+                sign = "+"
+              } else if (tx.primaryPlayerName === playerFilter) {
+                amountType = "loss"
+                sign = "−"
+              } else {
+                amountType = "neutral"
+                sign = ""
+              }
+            } else if (isViewerCounterparty && !isViewerPrimary) {
+              amountType = "gain"
+              sign = "+"
+            } else if (isViewerPrimary && !isViewerCounterparty) {
+              amountType = "loss"
+              sign = "−"
+            } else if (tx.primaryPlayerName === "Bank" && tx.counterpartyPlayerName !== "Bank") {
+              amountType = "gain"
+              sign = "+"
+            } else if (tx.counterpartyPlayerName === "Bank" && tx.primaryPlayerName !== "Bank") {
+              amountType = "loss"
+              sign = "−"
+            } else {
+              amountType = "neutral"
+              sign = ""
+            }
 
             return (
               <div key={tx.id} className="ledger-entry-card">
@@ -193,15 +228,11 @@ export function TransactionLedgerContent({
 
                 <div className="ledger-desc-row">
                   <span className="ledger-description-text">{tx.description}</span>
-                  {tx.amount > 0 && (
+                  {tx.amount !== undefined && tx.amount !== null && (
                     <span
-                      className={`ledger-amount-tag ${
-                        isOutflow ? "loss" : "gain"
-                      }`}
+                      className={`ledger-amount-tag ${amountType}`}
                     >
-                      {isOutflow
-                        ? `-₹${tx.amount.toLocaleString()}`
-                        : `+₹${tx.amount.toLocaleString()}`}
+                      {sign}₹{(tx.amount || 0).toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -251,12 +282,14 @@ export interface TransactionLedgerModalProps {
   ledger?: TransactionRecord[]
   activityLog?: any[]
   players?: EnginePlayer[]
+  localPlayerId?: number
   close: () => void
 }
 
 export function TransactionLedgerModal({
   ledger = [],
   players = [],
+  localPlayerId = 0,
   close,
 }: TransactionLedgerModalProps) {
   return (
@@ -286,6 +319,7 @@ export function TransactionLedgerModal({
         <TransactionLedgerContent
           ledger={ledger}
           players={players}
+          localPlayerId={localPlayerId}
           onClose={close}
         />
       </section>

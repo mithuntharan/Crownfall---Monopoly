@@ -1206,6 +1206,10 @@ export class MultiplayerClient {
     return this.sendWsOrHttp("ACTION", { action: "endTurn" })
   }
 
+  public payJailFine() {
+    return this.sendWsOrHttp("ACTION", { action: "payJailFine" })
+  }
+
   public mortgageProperty(propertyId: string) {
     return this.sendWsOrHttp("ACTION", { action: "mortgage", propertyId })
   }

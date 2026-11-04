@@ -218,6 +218,18 @@ export class MultiplayerEngineAdapter implements IGameEngine {
     }
   }
 
+
+  async payJailFine(_playerId: number): Promise<{ success: boolean; state: GameState; error?: string }> {
+    try {
+      const res = await multiplayerClient.payJailFine()
+      const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
+      const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
+      return { success, state, error: res?.error }
+    } catch (err: any) {
+      return { success: false, state: this.getFallbackState(), error: err?.message || "Pay jail fine failed." }
+    }
+  }
+
   async unmortgageProperty(_playerId: number, propertyId: string): Promise<{ success: boolean; state: GameState; error?: string }> {
     try {
       const res = await multiplayerClient.unmortgageProperty(propertyId)

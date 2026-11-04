@@ -894,20 +894,19 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                     result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Chance: Rest House (skips next turn).";
                 } else if (decl->kind == "move" && result.diceTotal == 9) {
-                    if (player.position == 7) {
-                        player.position = 1; // Bombay
-                        result.eventDescription = player.name + " drew Chance: Go back to " + spaces[1].name + ".";
-                    } else {
+                    int cardFrom = player.position;
+                    player.position = 23; // Darjeeling
+                    int cardSteps = (23 - cardFrom + 36) % 36;
+                    if (cardSteps > 0) {
+                        recordOwnerCrossings(player.id, cardFrom, cardSteps);
+                    }
+                    if (cardFrom > 23) {
                         player.money += m_rules.passStartBonus;
                         result.moneyChange = m_rules.passStartBonus;
                         result.passStartBonusAwarded = true;
-                        int cardFrom = player.position;
-                        player.position = 23; // Darjeeling
-                        int cardSteps = (23 - cardFrom + 36) % 36;
-                        if (cardSteps > 0) {
-                            recordOwnerCrossings(player.id, cardFrom, cardSteps);
-                        }
                         result.eventDescription = player.name + " drew Chance: Passed Start (+₹" + std::to_string(m_rules.passStartBonus) + ") and went to " + spaces[23].name + ".";
+                    } else {
+                        result.eventDescription = player.name + " drew Chance: Go to " + spaces[23].name + ".";
                     }
                     result.newPosition = player.position;
                     const auto& destSpace = spaces[player.position];
@@ -2154,6 +2153,24 @@ std::string GameEngine::exportStateJson() const {
     ss << "  ]\n";
     ss << "}\n";
     return ss.str();
+}
+
+bool GameEngine::payJailFine(int playerId) {
+    if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
+    auto& player = m_players[playerId];
+    if (!player.inJail && player.jailTurns <= 0 && !player.cardJailSkip) return false;
+    if (player.money < 500) return false;
+
+    player.money -= 500;
+    player.inJail = false;
+    player.jailTurns = 0;
+    player.cardJailSkip = false;
+    player.cardJailSkipTurns = 0;
+    m_turnState = TurnState::WAITING_FOR_ROLL;
+
+    recordTransaction("JAIL_FINE", player.name + " paid ₹500 to leave Jail.", 500, player.id, -1, "");
+    addLogEntry(player.id, "jail", player.name + " paid ₹500 to leave Jail.", 500);
+    return true;
 }
 
 } // namespace Crownfall

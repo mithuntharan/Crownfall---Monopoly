@@ -52,18 +52,18 @@ export function matchGameplayEventCategory(type: string, category: EventLogCateg
 
   switch (category) {
     case "TURNS_DICE":
+      // Prioritize actual dice rolls; omit routine end-turn messages
+      if (t === "end_turn" || t === "turn_change") return false
       return (
         t === "roll" ||
         t === "roll_move" ||
         t === "turn" ||
         t === "turn_start" ||
-        t === "turn_change" ||
         t === "extra_turn" ||
         t === "double" ||
         t === "doubles" ||
         t === "timeout" ||
         t === "turn_timeout" ||
-        t === "end_turn" ||
         t === "skip" ||
         t === "skipped"
       )
@@ -199,6 +199,23 @@ const TYPE_CONFIG: Record<
   GAME_OVER: { label: "GAME OVER", icon: "", bg: "#fefce8", color: "#854d0e", border: "#fef08a", accentBorder: "#ca8a04", isImportant: true },
   system: { label: "SYSTEM", icon: "", bg: "#f8fafc", color: "#475569", border: "#cbd5e1", accentBorder: "#94a3b8", isImportant: false },
   error: { label: "ERROR", icon: "", bg: "#fef2f2", color: "#991b1b", border: "#fecaca", accentBorder: "#dc2626", isImportant: true },
+}
+
+
+function formatConciseDescription(evt: GameplayEventEntry): string {
+  const desc = evt.description || ""
+  const pName = evt.playerName || "Player"
+  const isRoll = evt.type === "roll" || evt.type === "ROLL_MOVE" || evt.type === "roll_move" || evt.category === "TURNS_DICE"
+  if (isRoll) {
+    if (evt.dice1 !== undefined && evt.dice2 !== undefined) {
+      return `${pName} rolled ${evt.dice1}, ${evt.dice2}`
+    }
+    const match = desc.match(/rolled\s*\[?(\d+)[,\s]+(\d+)\]?/i)
+    if (match) {
+      return `${pName} rolled ${match[1]}, ${match[2]}`
+    }
+  }
+  return desc
 }
 
 export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear, isEmbedded = false }: GameplayEventLogProps) {
@@ -368,7 +385,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
                     <strong className="event-player-name">
                       {evt.playerName}:
                     </strong>{" "}
-                    {evt.description}
+                    {formatConciseDescription(evt)}
                   </div>
                   {evt.amount !== undefined && evt.amount !== 0 && (
                     <div className="event-amount-wrapper">

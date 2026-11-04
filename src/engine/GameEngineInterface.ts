@@ -232,6 +232,7 @@ export interface IGameEngine {
     success: boolean
     state: GameState
   }>
+  payJailFine?(playerId: number): Promise<{ success: boolean; state: GameState; error?: string }>
   unmortgageProperty(playerId: number, propertyId: string): Promise<{
     success: boolean
     state: GameState

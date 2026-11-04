@@ -187,6 +187,10 @@ import {
 
 
 
+import { HowToPlayModal } from "./components/HowToPlayModal"
+
+import { getRandomNickname } from "./data/nicknames"
+
 type Screen = "menu" | "create" | "join" | "lobby" | "game" | "settings" | "gameover"
 
 
@@ -1291,7 +1295,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
 
       <strong>CROWNFALL</strong>
 
-      <small>.IO ONLINE</small>
+      <small>ONLINE MULTIPLAYER</small>
 
     </div>
 
@@ -1403,7 +1407,7 @@ function AppHeader({
 
       <div className="edition-pill">
 
-        <span>.IO MULTIPLAYER</span>
+        <span>ONLINE MULTIPLAYER</span>
 
       </div>
 
@@ -1419,7 +1423,13 @@ function AppHeader({
 
 
 
-function MenuScreen({ navigate }: { navigate: (screen: Screen) => void }) {
+function MenuScreen({
+  navigate,
+  onOpenHowToPlay,
+}: {
+  navigate: (screen: Screen) => void
+  onOpenHowToPlay?: () => void
+}) {
 
   return (
 
@@ -1475,10 +1485,8 @@ function MenuScreen({ navigate }: { navigate: (screen: Screen) => void }) {
 
             </button>
 
-            <button>
-
+            <button type="button" onClick={onOpenHowToPlay}>
               <span className="question-icon">?</span> HOW TO PLAY
-
             </button>
 
           </div>
@@ -1622,27 +1630,14 @@ function Toggle({
 
 
 export const AVAILABLE_PLAYER_COLORS = [
-
-  { id: "saffron", name: "Saffron", hex: "#d97706" },
-
+  { id: "ruby", name: "Ruby Red", hex: "#e11d48" },
+  { id: "cobalt", name: "Cobalt Blue", hex: "#2563eb" },
+  { id: "emerald", name: "Emerald Green", hex: "#059669" },
+  { id: "violet", name: "Violet", hex: "#7c3aed" },
+  { id: "tangerine", name: "Tangerine", hex: "#ea580c" },
   { id: "teal", name: "Teal", hex: "#0d9488" },
-
-  { id: "plum", name: "Plum", hex: "#9333ea" },
-
-  { id: "blue", name: "Blue", hex: "#2563eb" },
-
-  { id: "gold", name: "Gold", hex: "#ca8a04" },
-
-  { id: "burgundy", name: "Burgundy", hex: "#991b1b" },
-
-  { id: "emerald", name: "Emerald", hex: "#059669" },
-
-  { id: "purple", name: "Purple", hex: "#7c3aed" },
-
-  { id: "coral", name: "Coral", hex: "#f97316" },
-
-  { id: "bronze", name: "Bronze", hex: "#b45309" },
-
+  { id: "magenta", name: "Magenta", hex: "#c026d3" },
+  { id: "golden", name: "Golden Yellow", hex: "#d97706" },
 ]
 
 
@@ -1735,11 +1730,11 @@ function SetupScreen({
 
     if (create) {
 
-      return players[0]?.name || getStoredPlayerName(0) || "Player 1"
+      return players[0]?.name || getStoredPlayerName(0) || getRandomNickname()
 
     }
 
-    return ""
+    return getRandomNickname()
 
   })
 
@@ -2481,11 +2476,39 @@ function SetupScreen({
 
           <div>
 
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "var(--ink)", marginBottom: "6px", letterSpacing: "0.06em" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
 
-              1. PLAYER NAME
+              <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--ink)", letterSpacing: "0.06em" }}>
 
-            </label>
+                1. PLAYER NAME
+
+              </label>
+
+              <button
+                type="button"
+                title="Pick a random nickname"
+                onClick={() => setEnteredName(getRandomNickname())}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "2px 4px",
+                  cursor: "pointer",
+                  color: "var(--gold)",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  opacity: 0.85,
+                  borderRadius: "4px",
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1" }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85" }}
+              >
+                Shuffle
+              </button>
+
+            </div>
 
             <input
 
@@ -3445,11 +3468,11 @@ function LobbyScreen({
 
                     {player.isHost
 
-                      ? (player.isOriginalHost !== false ? "Crown (HOST)" : "Crown (ACTING HOST)")
+                      ? (player.isOriginalHost !== false ? "HOST" : "ACTING HOST")
 
                       : (index === 0 && !isMultiplayer)
 
-                        ? "Crown (HOST)"
+                        ? "HOST"
 
                         : [
 
@@ -4039,7 +4062,7 @@ function BoardSpaceLabel({
 
   if (space.index === 9) {
     return (
-      <div className="jail-tile-split" aria-label="Jail: In Jail and Just Visiting">
+      <div className="jail-tile-split" aria-label="Jail tile">
         <div className="jail-cell-zone">
           <svg className="jail-bars-svg" viewBox="0 0 24 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <rect x="2" y="1" width="20" height="18" rx="2" strokeWidth="1.4" opacity="0.4" />
@@ -4051,9 +4074,6 @@ function BoardSpaceLabel({
             <line x1="18" y1="1" x2="18" y2="19" />
           </svg>
           <span className="jail-cell-label">IN JAIL</span>
-        </div>
-        <div className="jail-visiting-zone">
-          <span className="jail-visiting-label">JUST VISITING</span>
         </div>
       </div>
     )
@@ -4579,7 +4599,22 @@ function Board({
 
           <span className="map-line map-line-two" />
 
-          <div className="board-compass">N</div>
+          <div className="board-compass" aria-label="North Compass Indicator" title="North">
+            <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="17" cy="17" r="14" stroke="var(--gold, #C5B18A)" strokeWidth="0.8" strokeOpacity="0.45" strokeDasharray="1.5 2" />
+              <circle cx="17" cy="17" r="15.5" stroke="var(--gold, #C5B18A)" strokeWidth="0.5" strokeOpacity="0.3" />
+              <polygon points="17,5 19,16 17,14" fill="var(--gold-bright, #D4C3A3)" />
+              <polygon points="17,5 15,16 17,14" fill="var(--gold, #C5B18A)" opacity="0.65" />
+              <polygon points="17,29 18.5,18 17,20" fill="var(--gold, #C5B18A)" opacity="0.3" />
+              <polygon points="17,29 15.5,18 17,20" fill="var(--gold, #C5B18A)" opacity="0.15" />
+              <polygon points="29,17 18,15.5 20,17" fill="var(--gold, #C5B18A)" opacity="0.3" />
+              <polygon points="29,17 18,18.5 20,17" fill="var(--gold, #C5B18A)" opacity="0.15" />
+              <polygon points="5,17 16,15.5 14,17" fill="var(--gold, #C5B18A)" opacity="0.3" />
+              <polygon points="5,17 16,18.5 14,17" fill="var(--gold, #C5B18A)" opacity="0.15" />
+              <circle cx="17" cy="17" r="1.5" fill="var(--gold, #C5B18A)" />
+              <text x="17" y="3.5" textAnchor="middle" dominantBaseline="central" fill="var(--gold-bright, #D4C3A3)" fontSize="5.5" fontWeight="800" fontFamily="'Playfair Display', serif" letterSpacing="0.05em">N</text>
+            </svg>
+          </div>
 
           <div className="board-center-logo">
 
@@ -4675,7 +4710,7 @@ function Board({
 
             const tileIdx = (((playerPositions[idx] !== undefined ? playerPositions[idx] : (player.position ?? 0)) % 36) + 36) % 36
 
-            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0))
+            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0 || player.cardJailSkip))
 
             const center = getTileCenterPercent(tileIdx, isDetained)
 
@@ -4701,7 +4736,7 @@ function Board({
 
                 if (tileIdx === 9) {
 
-                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0)
+                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0 || item.p.cardJailSkip)
 
                   return itemDetained === isDetained
 
@@ -6743,7 +6778,7 @@ function PropertyVisual({
 
         <strong>CROWNFALL</strong>
 
-        <small>.IO EDITION</small>
+        <small>CLASSIC EDITION</small>
 
       </div>
 
@@ -10935,6 +10970,12 @@ function GameScreen({
 
     )
 
+    if (activeTradePopup && !pendingIncoming.some((t) => t.id === activeTradePopup.id)) {
+
+      setActiveTradePopup(null)
+
+    }
+
     for (const offer of pendingIncoming) {
 
       if (!knownTradeIdsRef.current.has(offer.id)) {
@@ -10943,23 +10984,33 @@ function GameScreen({
 
         setActiveTradePopup(offer)
 
-        const popTimer = setTimeout(() => {
-
-          setActiveTradePopup(null)
-
-          setGameInfoInitialTab("trade")
-
-          setGameInfoOpen(true)
-
-        }, 1200)
-
-        return () => clearTimeout(popTimer)
+        break
 
       }
 
     }
 
-  }, [tradeOffers, localPlayerId])
+  }, [tradeOffers, localPlayerId, activeTradePopup])
+
+  const handleReviewTrade = (offer: TradeOffer) => {
+
+    setActiveTradePopup(null)
+
+    setGameInfoInitialTab("trade")
+
+    setGameInfoTradeSubTab("offers")
+
+    setHighlightTradeId(offer.id)
+
+    setGameInfoOpen(true)
+
+  }
+
+  const handleDismissTradePopup = () => {
+
+    setActiveTradePopup(null)
+
+  }
 
 
 
@@ -11436,6 +11487,10 @@ function GameScreen({
   const [gameInfoOpen, setGameInfoOpen] = useState<boolean>(false)
 
   const [gameInfoInitialTab, setGameInfoInitialTab] = useState<GameInfoTab>("ledger")
+
+  const [gameInfoTradeSubTab, setGameInfoTradeSubTab] = useState<"create" | "offers">("create")
+
+  const [highlightTradeId, setHighlightTradeId] = useState<string | null>(null)
 
   const engineRules = rules ?? null
 
@@ -12883,6 +12938,48 @@ interface ActivePurchaseOpportunity {
 
   }
 
+  const handlePayJailFine = async () => {
+
+    if (!activePlayer || activePlayer.money < 500) return
+
+    try {
+
+      audioSystem.playPayRent()
+
+      const res = await defaultEngine.payJailFine?.(activePlayer.id)
+
+      if (res && res.success) {
+
+        if (res.state && applyGameStateSnapshot) {
+
+          applyGameStateSnapshot(res.state)
+
+        }
+
+        if (res.state?.players && setPlayers) {
+
+          setPlayers(res.state.players)
+
+        }
+
+        setTurnState("WAITING_FOR_ROLL")
+
+        showToast(`${activePlayer.name} paid ₹500 to leave Jail.`)
+
+      } else if (res?.error) {
+
+        showToast(res.error)
+
+      }
+
+    } catch (err: any) {
+
+      showToast(err?.message || "Failed to pay jail fine")
+
+    }
+
+  }
+
 
 
   // Authoritative auto-advance for skipped turns (Rest House or card Jail)
@@ -12893,7 +12990,7 @@ interface ActivePurchaseOpportunity {
 
       isGameStarted &&
 
-      isMustSkip &&
+      activePlayer?.inRestHouse &&
 
       isHumanTurn &&
 
@@ -16829,9 +16926,15 @@ interface ActivePurchaseOpportunity {
 
 
 
+                  const isDetainedInJail = Boolean(activePlayer?.inJail || (activePlayer?.jailTurns ?? 0) > 0 || activePlayer?.cardJailSkip)
+
+                  const canPayFine = isHumanTurn && !isBusy && isDetainedInJail && (activePlayer?.money ?? 0) >= 500
+
                   if (isMustSkip) {
 
-                    const skipReason = activePlayer?.inRestHouse ? "REST HOUSE" : "JAIL"
+                    const isRestHouseSkip = Boolean(activePlayer?.inRestHouse)
+
+                    const skipReason = isRestHouseSkip ? "REST HOUSE" : "JAIL"
 
                     const skipLabel = !isHumanTurn
 
@@ -16845,43 +16948,95 @@ interface ActivePurchaseOpportunity {
 
                     return (
 
-                      <Button
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 
-                        className="roll-button end-turn-mode adaptive-action-btn end-turn-ready"
+                        {!isRestHouseSkip && isHumanTurn && (
 
-                        onClick={() => {
+                          <Button
 
-                          if (!skipDisabled && isHumanTurn) {
+                            className="adaptive-action-btn"
 
-                            handleManualEndTurn()
+                            onClick={handlePayJailFine}
 
-                          }
+                            disabled={!canPayFine}
 
-                        }}
+                            style={{
 
-                        disabled={skipDisabled}
+                              background: canPayFine
 
-                        style={{
+                                ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
 
-                          background: isHumanTurn ? "linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)" : undefined,
+                                : "rgba(30, 41, 59, 0.6)",
 
-                          borderColor: isHumanTurn ? "#ef4444" : undefined,
+                              borderColor: canPayFine ? "#10b981" : "rgba(100, 116, 139, 0.4)",
 
-                          color: "#fff",
+                              color: "#fff",
 
-                          cursor: skipDisabled ? "not-allowed" : "pointer",
+                              fontWeight: 700,
 
-                          opacity: skipDisabled ? 0.65 : 1,
+                              cursor: canPayFine ? "pointer" : "not-allowed",
 
-                        }}
+                              opacity: canPayFine ? 1 : 0.6,
 
-                        title={`Player must skip this turn due to ${skipReason.toLowerCase()}. Click to advance turn.`}
+                            }}
 
-                      >
+                            title={
 
-                        {skipLabel}
+                              (activePlayer?.money ?? 0) < 500
 
-                      </Button>
+                                ? "Insufficient cash (need ₹500 to pay release fine)"
+
+                                : "Pay ₹500 fine to immediately exit Jail and roll on this turn"
+
+                            }
+
+                          >
+
+                            PAY ₹500 TO LEAVE JAIL
+
+                          </Button>
+
+                        )}
+
+                        <Button
+
+                          className="roll-button end-turn-mode adaptive-action-btn end-turn-ready"
+
+                          onClick={() => {
+
+                            if (!skipDisabled && isHumanTurn) {
+
+                              handleManualEndTurn()
+
+                            }
+
+                          }}
+
+                          disabled={skipDisabled}
+
+                          style={{
+
+                            background: isHumanTurn ? "linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)" : undefined,
+
+                            borderColor: isHumanTurn ? "#ef4444" : undefined,
+
+                            color: "#fff",
+
+                            cursor: skipDisabled ? "not-allowed" : "pointer",
+
+                            opacity: skipDisabled ? 0.65 : 1,
+
+                          }}
+
+                          title={`Player must skip this turn due to ${skipReason.toLowerCase()}. Click to advance turn.`}
+
+                        >
+
+                          {skipLabel}
+
+                        </Button>
+
+                      </div>
 
                     )
 
@@ -16931,31 +17086,83 @@ interface ActivePurchaseOpportunity {
 
                     return (
 
-                      <Button
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 
-                        className="roll-button adaptive-action-btn"
+                        {isDetainedInJail && isHumanTurn && (
 
-                        onClick={() => {
+                          <Button
 
-                          if (!rollDisabled && !rollingRef.current) {
+                            className="adaptive-action-btn"
 
-                            roll(false)
+                            onClick={handlePayJailFine}
 
-                          }
+                            disabled={!canPayFine}
 
-                        }}
+                            style={{
 
-                        disabled={rollDisabled}
+                              background: canPayFine
 
-                        style={!isHumanTurn ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
+                                ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
 
-                        title={rollTitle}
+                                : "rgba(30, 41, 59, 0.6)",
 
-                      >
+                              borderColor: canPayFine ? "#10b981" : "rgba(100, 116, 139, 0.4)",
 
-                        {rollLabel}
+                              color: "#fff",
 
-                      </Button>
+                              fontWeight: 700,
+
+                              cursor: canPayFine ? "pointer" : "not-allowed",
+
+                              opacity: canPayFine ? 1 : 0.6,
+
+                            }}
+
+                            title={
+
+                              (activePlayer?.money ?? 0) < 500
+
+                                ? "Insufficient cash (need ₹500 to pay release fine)"
+
+                                : "Pay ₹500 fine to immediately exit Jail and roll on this turn"
+
+                            }
+
+                          >
+
+                            PAY ₹500 TO LEAVE JAIL
+
+                          </Button>
+
+                        )}
+
+                        <Button
+
+                          className="roll-button adaptive-action-btn"
+
+                          onClick={() => {
+
+                            if (!rollDisabled && !rollingRef.current) {
+
+                              roll(false)
+
+                            }
+
+                          }}
+
+                          disabled={rollDisabled}
+
+                          style={!isHumanTurn ? { opacity: 0.65, cursor: "not-allowed" } : undefined}
+
+                          title={rollTitle}
+
+                        >
+
+                          {rollLabel}
+
+                        </Button>
+
+                      </div>
 
                     )
 
@@ -17231,7 +17438,17 @@ interface ActivePurchaseOpportunity {
 
         initialTab={gameInfoInitialTab}
 
-        onClose={() => setGameInfoOpen(false)}
+        tradeInitialSubTab={gameInfoTradeSubTab}
+
+        highlightTradeId={highlightTradeId}
+
+        onClose={() => {
+
+          setGameInfoOpen(false)
+
+          setHighlightTradeId(null)
+
+        }}
 
         transactionLedger={transactionLedger}
 
@@ -17291,157 +17508,155 @@ interface ActivePurchaseOpportunity {
 
         <div
 
-          className="trade-popin-toast"
-
-          role="alert"
-
-          onClick={() => {
-
-            setActiveTradePopup(null)
-
-            setGameInfoInitialTab("trade")
-
-            setGameInfoOpen(true)
-
-          }}
+          className="trade-notification-card fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-4 rounded-xl shadow-2xl border transition-all duration-300"
 
           style={{
 
-            position: "fixed",
+            background: "var(--card-bg, rgba(24, 30, 44, 0.96))",
 
-            top: "24px",
+            borderColor: "rgba(234, 179, 8, 0.6)",
 
-            left: "50%",
-
-            transform: "translateX(-50%)",
-
-            zIndex: 9999,
-
-            display: "flex",
-
-            alignItems: "center",
-
-            gap: "14px",
-
-            padding: "14px 24px",
-
-            background: "linear-gradient(135deg, rgba(20, 26, 40, 0.98), rgba(10, 14, 22, 0.98))",
-
-            border: "2px solid #eab308",
-
-            borderRadius: "14px",
-
-            boxShadow: "0 10px 35px rgba(234, 179, 8, 0.4), 0 0 20px rgba(0, 0, 0, 0.8)",
-
-            cursor: "pointer",
-
-            animation: "pulse-glow 0.8s ease-in-out infinite alternate",
+            color: "var(--text-primary, #f8fafc)",
 
             backdropFilter: "blur(12px)",
 
+            boxShadow: "0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 179, 8, 0.2)",
+
           }}
+
+          role="alert"
+
+          aria-live="polite"
 
         >
 
-          <div
+          <div className="flex items-start justify-between gap-3 mb-2">
 
-            style={{
+            <div className="flex items-center gap-2">
 
-              width: "40px",
+              <span
 
-              height: "40px",
+                className="w-2.5 h-2.5 rounded-full"
 
-              borderRadius: "50%",
+                style={{
 
-              background: "radial-gradient(circle, #eab308, #ca8a04)",
+                  backgroundColor: getPlayerColorHex(players[activeTradePopup.senderId]?.color),
 
-              display: "flex",
+                }}
 
-              alignItems: "center",
+              />
 
-              justifyContent: "center",
+              <span className="font-bold text-xs uppercase tracking-wider text-amber-500 dark:text-amber-400">
 
-              fontSize: "12px",
+                Incoming Trade Proposal
 
-              fontWeight: 800,
+              </span>
 
-              color: "#1c1810",
+            </div>
 
-              boxShadow: "0 0 12px rgba(234, 179, 8, 0.6)",
+            <button
 
-            }}
+              type="button"
 
-          >
+              onClick={handleDismissTradePopup}
 
-            DEAL
+              className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 transition-colors"
 
-          </div>
+              aria-label="Dismiss notification"
 
-          <div>
-
-            <div
-
-              style={{
-
-                fontFamily: '"Oswald", sans-serif',
-
-                fontSize: "14px",
-
-                fontWeight: 700,
-
-                letterSpacing: "0.1em",
-
-                color: "#fde047",
-
-                textTransform: "uppercase",
-
-              }}
+              title="Dismiss notification"
 
             >
 
-              Incoming Trade Proposal!
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+
+              </svg>
+
+            </button>
+
+          </div>
+
+
+
+          <div className="text-sm font-semibold mb-2">
+
+            {activeTradePopup.senderName || players[activeTradePopup.senderId]?.name || `Player ${activeTradePopup.senderId + 1}`} sent you a deal proposal
+
+          </div>
+
+
+
+          <div className="text-xs space-y-1 mb-3.5 p-2.5 rounded-lg bg-slate-900/40 border border-slate-700/40">
+
+            <div className="flex justify-between">
+
+              <span className="text-slate-400">Offered:</span>
+
+              <span className="font-medium text-emerald-400">
+
+                {activeTradePopup.senderCash > 0 ? `₹${activeTradePopup.senderCash.toLocaleString()}` : ""}
+
+                {activeTradePopup.senderPropertyIds?.length > 0 ? ` ${activeTradePopup.senderPropertyIds.length} property` : ""}
+
+                {activeTradePopup.senderCash <= 0 && (!activeTradePopup.senderPropertyIds || activeTradePopup.senderPropertyIds.length === 0) ? "None" : ""}
+
+              </span>
 
             </div>
 
-            <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.9)" }}>
+            <div className="flex justify-between">
 
-              {players[activeTradePopup.senderId]?.name || `Player ${activeTradePopup.senderId + 1}`} sent you a deal • Opening trade desk...
+              <span className="text-slate-400">Requested:</span>
+
+              <span className="font-medium text-amber-400">
+
+                {activeTradePopup.receiverCash > 0 ? `₹${activeTradePopup.receiverCash.toLocaleString()}` : ""}
+
+                {activeTradePopup.receiverPropertyIds?.length > 0 ? ` ${activeTradePopup.receiverPropertyIds.length} property` : ""}
+
+                {activeTradePopup.receiverCash <= 0 && (!activeTradePopup.receiverPropertyIds || activeTradePopup.receiverPropertyIds.length === 0) ? "None" : ""}
+
+              </span>
 
             </div>
 
           </div>
 
-          <button
 
-            type="button"
 
-            className="btn-primary"
+          <div className="flex items-center justify-end gap-2">
 
-            style={{
+            <button
 
-              padding: "6px 14px",
+              type="button"
 
-              fontSize: "12px",
+              onClick={handleDismissTradePopup}
 
-              fontWeight: 700,
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-600/60 text-slate-300 hover:bg-slate-800 transition-colors"
 
-              borderRadius: "8px",
+            >
 
-              border: "1px solid #eab308",
+              Dismiss
 
-              background: "#ca8a04",
+            </button>
 
-              color: "#000",
+            <button
 
-              cursor: "pointer",
+              type="button"
 
-            }}
+              onClick={() => handleReviewTrade(activeTradePopup)}
 
-          >
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 shadow transition-colors"
 
-            OPEN NOW
+            >
 
-          </button>
+              Review Trade
+
+            </button>
+
+          </div>
 
         </div>
 
@@ -17648,412 +17863,482 @@ function SettingsScreen({
 
 
 function GameOverScreen({
-
   navigate,
-
   players = initialPlayers,
-
   onRematch,
-
   transactionLedger = [],
-
   eventLogList = [],
-
   localPlayerId = 0,
-
   roomCode,
-
   isHost = false,
-
   roundNumber = 1,
-
 }: {
-
   navigate: (screen: Screen) => void
-
   players?: EnginePlayer[]
-
   onRematch?: () => void
-
   transactionLedger?: TransactionRecord[]
-
   eventLogList?: GameplayEventEntry[]
-
   localPlayerId?: number
-
   roomCode?: string
-
   isHost?: boolean
-
   roundNumber?: number
-
 }) {
-
   const [showInsights, setShowInsights] = useState(false)
-
   const [showEventLog, setShowEventLog] = useState(false)
-
   const [isRematchLoading, setIsRematchLoading] = useState(false)
-
   const [rematchError, setRematchError] = useState<string | null>(null)
-
   const [rematchReady, setRematchReady] = useState(false)
-
-  const [rematchState, setRematchState] = useState<{ readyPlayerIds: number[]; totalEligible?: number }>({
-
+  const [rematchState, setRematchState] = useState<{
+    readyPlayerIds: number[]
+    totalEligible?: number
+  }>({
     readyPlayerIds: [],
-
   })
 
-
-
   useEffect(() => {
-
     const unsub = multiplayerClient.onRematchState((state) => {
-
       setRematchState(state)
-
     })
-
     return () => unsub()
-
   }, [])
-
-
-
-  // Eligible active players (non-left, connected)
 
   const connectedCount = players.filter((p) => p.connected !== false).length
 
-
-
   const handleRematchClick = async () => {
-
     if (isRematchLoading) return
-
     setRematchError(null)
 
-
-
     if (roomCode) {
-
       if (isHost) {
-
         if (connectedCount < 2) {
-
-          setRematchError("Cannot start rematch: at least 2 connected players are required.")
-
+          setRematchError(
+            "Cannot start rematch: at least 2 connected players are required."
+          )
           return
-
         }
-
         setIsRematchLoading(true)
-
         try {
-
           await multiplayerClient.rematch()
-
         } catch (err: any) {
-
           setIsRematchLoading(false)
-
           setRematchError(err?.message || "Failed to start rematch.")
-
         }
-
       } else {
-
-        // Guest player signals rematch readiness
-
         setIsRematchLoading(true)
-
         try {
-
           await multiplayerClient.signalRematchReady()
-
           setRematchReady(true)
-
         } catch (err: any) {
-
           setRematchError(err?.message || "Failed to send rematch request.")
-
         } finally {
-
           setIsRematchLoading(false)
-
         }
-
       }
-
     } else {
-
       if (onRematch) onRematch()
-
       else navigate("game")
-
     }
-
   }
-
-
 
   const handleReturnToMenu = async () => {
-
     if (roomCode) {
-
       await multiplayerClient.leaveRoom().catch(() => {})
-
     }
-
     navigate("menu")
-
   }
 
+  // Non-bankrupt players ranked first (sorted by calculated Net Worth desc), then bankrupt/resigned players
+  const ranked = useMemo(() => {
+    return [...players]
+      .map((p) => {
+        const portfolio = calculatePlayerPortfolio(p)
+        return {
+          player: p,
+          portfolio,
+          netWorth: portfolio.netWorth,
+          cash: p.money,
+        }
+      })
+      .sort((a, b) => {
+        if (Boolean(a.player.isBankrupt) !== Boolean(b.player.isBankrupt)) {
+          return a.player.isBankrupt ? 1 : -1
+        }
+        return b.netWorth - a.netWorth || b.cash - a.cash
+      })
+  }, [players])
 
-
-  // Non-bankrupt players ranked first (sorted by cash desc), then bankrupt/resigned players
-
-  const ranked = [...players].sort((a, b) => {
-
-    if (Boolean(a.isBankrupt) !== Boolean(b.isBankrupt)) {
-
-      return a.isBankrupt ? 1 : -1
-
-    }
-
-    return b.money - a.money
-
-  })
-
-
-
-  const winner = ranked.find((p) => !p.isBankrupt) || ranked[0]
-
-  const isNoWinner = !winner || (winner.isBankrupt && ranked.every((p) => p.isBankrupt))
-
-
+  const winnerEntry = ranked.find((item) => !item.player.isBankrupt) || ranked[0]
+  const winner = winnerEntry?.player
+  const isNoWinner =
+    !winner || (winner.isBankrupt && ranked.every((item) => item.player.isBankrupt))
 
   return (
-
     <main className="gameover-screen">
-
       <Logo compact />
 
-      <div className="winner-crown">
-
-        <Icon name="trophy" size={36} />
-
-      </div>
-
-      <small>{isNoWinner ? "MATCH CONCLUDED" : "WINNER"}</small>
-
-      <strong className="winner-name">{isNoWinner ? "No Active Victor" : winner.name}</strong>
-
-      <span className="winner-total">
-
-        {isNoWinner
-
-          ? "All players eliminated / resigned"
-
-          : `FINAL WORTH · Rs${winner.money.toLocaleString()}`}
-
-      </span>
-
-      <section className="rankings">
-
-        <div className="rankings-head">
-
-          <span>FINAL RANKINGS</span>
-
-          <small>{players.length} PLAYERS</small>
-
+      {/* Victor Spotlight Card */}
+      <div
+        className="gameover-victor-card"
+        style={{
+          width: "100%",
+          marginTop: "20px",
+          padding: "24px 20px",
+          background: "var(--glass-heavy)",
+          backdropFilter: "var(--glass-blur)",
+          WebkitBackdropFilter: "var(--glass-blur)",
+          border: "1px solid var(--border-gold, rgba(197, 177, 138, 0.4))",
+          borderRadius: "var(--radius-lg, 16px)",
+          textAlign: "center",
+          boxShadow: "var(--shadow-modal)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "4px 14px",
+            borderRadius: "20px",
+            background: "rgba(197, 177, 138, 0.15)",
+            border: "1px solid rgba(197, 177, 138, 0.35)",
+            fontSize: "11px",
+            fontWeight: 800,
+            letterSpacing: "0.08em",
+            color: "var(--gold-bright, #ffd57e)",
+            textTransform: "uppercase",
+          }}
+        >
+          {winner && (
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: getPlayerColorHex(winner.color),
+                display: "inline-block",
+              }}
+            />
+          )}
+          <span>{isNoWinner ? "MATCH CONCLUDED" : "VICTOR OF CROWNFALL"}</span>
         </div>
 
-        {ranked.map((player, i) => (
+        <h1
+          style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontSize: "32px",
+            fontWeight: 800,
+            margin: "4px 0",
+            color: "var(--gold-bright, #ffd57e)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {isNoWinner ? "No Active Victor" : winner.name}
+        </h1>
 
+        {!isNoWinner && winnerEntry && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "12px",
+              width: "100%",
+              maxWidth: "460px",
+              marginTop: "8px",
+            }}
+          >
+            <div
+              style={{
+                padding: "8px 10px",
+                background: "rgba(0, 0, 0, 0.12)",
+                borderRadius: "8px",
+                border: "1px solid rgba(197, 177, 138, 0.2)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "var(--ink-soft, #94a3b8)",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Net Worth
+              </div>
+              <strong
+                style={{
+                  fontSize: "15px",
+                  color: "var(--gold-bright, #ffd57e)",
+                }}
+              >
+                ₹{winnerEntry.netWorth.toLocaleString()}
+              </strong>
+            </div>
+
+            <div
+              style={{
+                padding: "8px 10px",
+                background: "rgba(0, 0, 0, 0.12)",
+                borderRadius: "8px",
+                border: "1px solid rgba(197, 177, 138, 0.2)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "var(--ink-soft, #94a3b8)",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Liquid Cash
+              </div>
+              <strong
+                style={{
+                  fontSize: "15px",
+                  color: "var(--text-primary, #f3f4f6)",
+                }}
+              >
+                ₹{winner.money.toLocaleString()}
+              </strong>
+            </div>
+
+            <div
+              style={{
+                padding: "8px 10px",
+                background: "rgba(0, 0, 0, 0.12)",
+                borderRadius: "8px",
+                border: "1px solid rgba(197, 177, 138, 0.2)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "var(--ink-soft, #94a3b8)",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                }}
+              >
+                Properties
+              </div>
+              <strong
+                style={{
+                  fontSize: "15px",
+                  color: "var(--text-primary, #f3f4f6)",
+                }}
+              >
+                {winner.ownedProperties.length} Titles
+              </strong>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Standings Table */}
+      <section className="rankings" style={{ marginTop: "16px" }}>
+        <div className="rankings-head">
+          <span>FINAL STANDINGS</span>
+          <small>{players.length} PLAYERS</small>
+        </div>
+
+        {ranked.map(({ player, netWorth }, i) => (
           <div className="ranking-row" key={player.id}>
-
-            <b>0{i + 1}</b>
+            <b
+              style={{
+                fontFamily: "'Oswald', sans-serif",
+                fontSize: "13px",
+                opacity: 0.75,
+              }}
+            >
+              #{i + 1}
+            </b>
 
             <Token player={player} />
 
-            <span>
-
-              <strong>
-
-                {player.name}
-
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <strong style={{ fontSize: "13px" }}>{player.name}</strong>
                 {player.isBankrupt && (
-
-                  <span style={{ marginLeft: "6px", color: "var(--red)", fontSize: "10px", fontWeight: "bold" }}>
-
-                    [BANKRUPT / RESIGNED]
-
+                  <span
+                    style={{
+                      color: "var(--red, #ef4444)",
+                      fontSize: "9px",
+                      fontWeight: 800,
+                      padding: "1px 5px",
+                      borderRadius: "4px",
+                      background: "rgba(239, 68, 68, 0.12)",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                    }}
+                  >
+                    BANKRUPT
                   </span>
-
                 )}
+                {!player.isBankrupt && i === 0 && (
+                  <span
+                    style={{
+                      color: "var(--gold-bright, #ffd57e)",
+                      fontSize: "9px",
+                      fontWeight: 800,
+                      padding: "1px 5px",
+                      borderRadius: "4px",
+                      background: "rgba(197, 177, 138, 0.15)",
+                      border: "1px solid rgba(197, 177, 138, 0.35)",
+                    }}
+                  >
+                    VICTOR
+                  </span>
+                )}
+              </div>
+              <small
+                style={{
+                  color: "var(--ink-soft, #94a3b8)",
+                  fontSize: "11px",
+                }}
+              >
+                {player.ownedProperties.length} properties · Cash ₹
+                {player.money.toLocaleString()}
+              </small>
+            </div>
 
+            <div style={{ textAlign: "right" }}>
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "var(--ink-soft, #94a3b8)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Net Worth
+              </div>
+              <strong
+                style={{
+                  fontSize: "13px",
+                  color: "var(--gold-bright, #ffd57e)",
+                }}
+              >
+                ₹{netWorth.toLocaleString()}
               </strong>
-
-              <small>{player.ownedProperties.length} properties</small>
-
-            </span>
-
-            <em>₹{player.money.toLocaleString()}</em>
-
+            </div>
           </div>
-
         ))}
-
       </section>
 
       <div className="gameover-actions">
-
         {roomCode && (
-
-          <div className="rematch-status-badge" style={{ justifyContent: "center" }}>
-
+          <div
+            className="rematch-status-badge"
+            style={{
+              gridColumn: "1 / -1",
+              justifyContent: "center",
+              padding: "6px 12px",
+              fontSize: "11px",
+              background: "rgba(0, 0, 0, 0.12)",
+              borderRadius: "6px",
+              border: "1px solid rgba(197, 177, 138, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             <span>ROOM: {roomCode}</span>
-
             <span>·</span>
-
             <span>{isHost ? "YOU ARE HOST" : "GUEST PLAYER"}</span>
-
             {rematchState.readyPlayerIds.length > 0 && (
-
               <>
-
                 <span>·</span>
-
                 <span>{rematchState.readyPlayerIds.length} READY</span>
-
               </>
-
             )}
-
           </div>
-
         )}
-
-
 
         {rematchError && (
-
-          <div style={{ color: "var(--red)", fontSize: "12px", textAlign: "center", padding: "6px" }}>
-
+          <div
+            style={{
+              gridColumn: "1 / -1",
+              color: "var(--red, #ef4444)",
+              fontSize: "12px",
+              textAlign: "center",
+              padding: "6px",
+            }}
+          >
             {rematchError}
-
           </div>
-
         )}
 
-
-
         <Button
-
           onClick={handleRematchClick}
-
-          disabled={isRematchLoading || (Boolean(roomCode) && isHost && connectedCount < 2) || (Boolean(roomCode) && !isHost && rematchReady)}
-
+          disabled={
+            isRematchLoading ||
+            (Boolean(roomCode) && isHost && connectedCount < 2) ||
+            (Boolean(roomCode) && !isHost && rematchReady)
+          }
         >
-
           {isRematchLoading
-
             ? "INITIALIZING REMATCH..."
-
             : roomCode
-
               ? isHost
-
                 ? connectedCount < 2
-
-                  ? "REMATCH (NEED 2+ PLAYERS)"
-
-                  : "START REMATCH (SAME RULES)"
-
+                  ? "ANOTHER MATCH (NEED 2+ PLAYERS)"
+                  : "ANOTHER MATCH (SAME RULES)"
                 : rematchReady
-
                   ? "REMATCH READY · WAITING FOR HOST"
-
-                  : "READY FOR REMATCH"
-
-              : "REMATCH (SAME RULES)"}
-
+                  : "READY FOR ANOTHER MATCH"
+              : "ANOTHER MATCH (SAME RULES)"}
         </Button>
 
         <Button variant="secondary" onClick={() => setShowInsights(true)}>
-
           VIEW FINAL INSIGHTS
-
         </Button>
 
         <Button variant="secondary" onClick={() => setShowEventLog(true)}>
-
           VIEW MATCH LOG ({eventLogList.length})
-
         </Button>
 
         <Button variant="ghost" onClick={handleReturnToMenu}>
-
-          RETURN TO MAIN MENU
-
+          BACK TO HOME
         </Button>
-
       </div>
 
-
-
       {showInsights && (
-
         <FinancialInsightsModal
-
           players={players}
-
           localPlayerId={localPlayerId}
-
           transactionLedger={transactionLedger as any}
-
           roundNumber={roundNumber}
-
           close={() => setShowInsights(false)}
-
         />
-
       )}
-
-
 
       {showEventLog && (
-
         <GameplayEventLog
-
           isOpen={showEventLog}
-
           onClose={() => setShowEventLog(false)}
-
           events={eventLogList}
-
           onClear={() => {}}
-
         />
-
       )}
-
     </main>
-
   )
-
 }
-
-
 
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 
 
 
 export default function App() {
-
   const [screen, setScreen] = useState<Screen>("menu")
+  const [showHowToPlay, setShowHowToPlay] = useState(false)
 
 
 
@@ -19717,7 +20002,19 @@ export default function App() {
 
 
 
-  if (screen === "menu") return <MenuScreen navigate={handleNavigate} />
+  if (screen === "menu") {
+    return (
+      <>
+        <MenuScreen
+          navigate={handleNavigate}
+          onOpenHowToPlay={() => setShowHowToPlay(true)}
+        />
+        {showHowToPlay && (
+          <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
+        )}
+      </>
+    )
+  }
 
 
 
@@ -20096,6 +20393,10 @@ export default function App() {
         roundNumber={roundNumber}
 
       />
+
+      {showHowToPlay && (
+        <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
+      )}
 
       {toastMessage && (
 

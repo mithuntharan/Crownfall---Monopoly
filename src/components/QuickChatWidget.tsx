@@ -172,25 +172,6 @@ export function QuickChatWidget({
           onClick={() => setIsOpen(true)}
           className="chat-toggle-pill"
           aria-label="Open room chat"
-          style={{
-            position: "fixed",
-            bottom: "80px",
-            right: "16px",
-            background: "var(--surface-primary, #1e2430)",
-            color: "var(--text-primary, #f8fafc)",
-            border: "1px solid var(--border-gold, #b45309)",
-            borderRadius: "20px",
-            padding: "8px 16px",
-            fontWeight: 700,
-            fontSize: "12px",
-            letterSpacing: "0.5px",
-            cursor: "pointer",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            zIndex: 9998,
-          }}
         >
           <span style={{ textTransform: "uppercase" }}>Chat</span>
           {unreadCount > 0 && (
@@ -216,38 +197,13 @@ export function QuickChatWidget({
           role="region"
           aria-label="Room Chat"
           className="chat-widget-window"
-          style={{
-            position: "fixed",
-            bottom: "80px",
-            right: "16px",
-            width: "320px",
-            maxWidth: "calc(100vw - 32px)",
-            background: "var(--surface-primary, #141822)",
-            border: "1px solid var(--border-subtle, rgba(200, 155, 69, 0.35))",
-            borderRadius: "12px",
-            boxShadow: "0 12px 32px rgba(0, 0, 0, 0.55)",
-            zIndex: 9998,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            fontFamily: "inherit",
-          }}
         >
           {/* Header */}
-          <div
-            style={{
-              padding: "10px 14px",
-              background: "var(--surface-secondary, rgba(255, 255, 255, 0.04))",
-              borderBottom: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.1))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <div className="chat-window-header">
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span
                 style={{
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: "12px",
                   letterSpacing: "0.5px",
                   textTransform: "uppercase",
@@ -259,7 +215,7 @@ export function QuickChatWidget({
               <span
                 style={{
                   fontSize: "10px",
-                  color: "var(--text-muted, #94a3b8)",
+                  color: "var(--chat-text-muted, #78716C)",
                 }}
               >
                 ({messages.length})
@@ -274,7 +230,7 @@ export function QuickChatWidget({
               style={{
                 background: "transparent",
                 border: "none",
-                color: "var(--text-muted, #94a3b8)",
+                color: "var(--chat-text-muted, #78716C)",
                 cursor: "pointer",
                 padding: "4px 8px",
                 fontSize: "12px",
@@ -287,25 +243,12 @@ export function QuickChatWidget({
           </div>
 
           {/* Messages Feed */}
-          <div
-            className="chat-messages-scroll custom-scrollbar"
-            style={{
-              flex: 1,
-              padding: "10px 12px",
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              maxHeight: "220px",
-              minHeight: "140px",
-              background: "rgba(0, 0, 0, 0.2)",
-            }}
-          >
+          <div className="chat-messages-scroll custom-scrollbar">
             {messages.length === 0 ? (
               <p
                 style={{
                   fontSize: "11px",
-                  color: "var(--text-muted, #94a3b8)",
+                  color: "var(--chat-text-muted, #78716C)",
                   textAlign: "center",
                   margin: "auto",
                   padding: "16px 8px",
@@ -316,6 +259,10 @@ export function QuickChatWidget({
             ) : (
               messages.map((m) => {
                 const isSelf = m.senderId === localPlayer.id
+                const timeStr = new Date(m.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
                 return (
                   <div
                     key={m.id}
@@ -327,31 +274,33 @@ export function QuickChatWidget({
                   >
                     <div
                       style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        color: m.senderColor || "var(--gold-300, #eab308)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
                         marginBottom: "2px",
-                        letterSpacing: "0.3px",
                       }}
                     >
-                      {m.senderName}
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: m.senderColor || "var(--gold-400, #ca8a04)",
+                          letterSpacing: "0.3px",
+                        }}
+                      >
+                        {m.senderName}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          color: "var(--chat-text-muted, #78716C)",
+                        }}
+                      >
+                        {timeStr}
+                      </span>
                     </div>
                     <div
-                      style={{
-                        background: isSelf
-                          ? "rgba(200, 155, 69, 0.2)"
-                          : "rgba(255, 255, 255, 0.08)",
-                        border: isSelf
-                          ? "1px solid var(--border-gold, #b45309)"
-                          : "1px solid var(--border-subtle, rgba(255, 255, 255, 0.12))",
-                        borderRadius: "8px",
-                        padding: "6px 10px",
-                        fontSize: "12px",
-                        lineHeight: 1.35,
-                        color: "var(--text-primary, #f8fafc)",
-                        maxWidth: "88%",
-                        wordBreak: "break-word",
-                      }}
+                      className={isSelf ? "chat-bubble-self" : "chat-bubble-peer"}
                     >
                       {m.text}
                     </div>
@@ -363,16 +312,7 @@ export function QuickChatWidget({
           </div>
 
           {/* Composer */}
-          <div
-            style={{
-              padding: "10px 12px",
-              background: "var(--surface-secondary, rgba(255, 255, 255, 0.03))",
-              borderTop: "1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))",
-              display: "flex",
-              flexDirection: "column",
-              gap: "6px",
-            }}
-          >
+          <div className="chat-composer-row">
             {sendError && (
               <div
                 role="alert"
@@ -401,45 +341,14 @@ export function QuickChatWidget({
                 placeholder="Message..."
                 maxLength={64}
                 disabled={isSending}
-                style={{
-                  flex: 1,
-                  background: "rgba(0, 0, 0, 0.25)",
-                  border: isOverLimit
-                    ? "1px solid var(--accent-red, #ef4444)"
-                    : "1px solid var(--border-subtle, rgba(255, 255, 255, 0.15))",
-                  borderRadius: "6px",
-                  padding: "6px 10px",
-                  fontSize: "12px",
-                  color: "var(--text-primary, #f8fafc)",
-                  outline: "none",
-                }}
+                className="chat-composer-input"
               />
 
               <button
                 type="button"
                 onClick={handleSendMessage}
                 disabled={isSending || charCount === 0 || isOverLimit}
-                style={{
-                  background:
-                    charCount === 0 || isOverLimit || isSending
-                      ? "rgba(255, 255, 255, 0.08)"
-                      : "var(--gold-400, #ca8a04)",
-                  color:
-                    charCount === 0 || isOverLimit || isSending
-                      ? "var(--text-muted, #64748b)"
-                      : "#ffffff",
-                  border: "none",
-                  borderRadius: "6px",
-                  padding: "6px 14px",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                  cursor:
-                    charCount === 0 || isOverLimit || isSending
-                      ? "not-allowed"
-                      : "pointer",
-                }}
+                className="chat-composer-send-btn"
               >
                 {isSending ? "Sending" : "Send"}
               </button>

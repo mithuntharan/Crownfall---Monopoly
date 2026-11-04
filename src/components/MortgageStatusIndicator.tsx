@@ -10,25 +10,35 @@ export interface MortgageStatusIndicatorProps {
 }
 
 /**
- * Classical architectural portico symbol representing bank mortgage pledge.
- * Highly legible at small sizes without visual heaviness or dark overlays.
+ * Hand holding a small house symbol representing bank mortgage pledge.
+ * Compact white scalable SVG symbol, footprint identical to a house indicator.
  */
-const MortgagePorticoIcon: React.FC<{ className?: string }> = ({ className = "mortgage-symbol-icon" }) => (
+export const HandHoldingHouseIcon: React.FC<{
+  className?: string
+  size?: number
+  style?: React.CSSProperties
+}> = ({ className = "mortgage-hand-house-icon", size = 14, style }) => (
   <svg
-    viewBox="0 0 16 16"
+    viewBox="0 0 24 24"
     fill="currentColor"
     className={className}
+    width={size}
+    height={size}
+    style={{
+      color: "#ffffff",
+      filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 1px rgba(0, 0, 0, 0.95))",
+      display: "inline-block",
+      verticalAlign: "middle",
+      flexShrink: 0,
+      ...style,
+    }}
     aria-hidden="true"
-    width="12"
-    height="12"
   >
-    <path d="M8 1.5 L1.5 5.5 H14.5 Z" />
-    <rect x="1.5" y="6" width="13" height="1.2" rx="0.3" />
-    <rect x="2.5" y="7.8" width="1.8" height="5" rx="0.3" />
-    <rect x="5.8" y="7.8" width="1.8" height="5" rx="0.3" />
-    <rect x="8.4" y="7.8" width="1.8" height="5" rx="0.3" />
-    <rect x="11.7" y="7.8" width="1.8" height="5" rx="0.3" />
-    <rect x="1" y="13.2" width="14" height="1.6" rx="0.4" />
+    {/* House with pitched roof sitting nestled above/in the palm */}
+    <path d="M12 2.5 L6 7.8 V13.5 H18 V7.8 Z" />
+    <path d="M10 13.5 V9.5 H14 V13.5 Z" fill="rgba(0,0,0,0.3)" />
+    {/* Stylized hand/palm holding and presenting the house from below */}
+    <path d="M2.2 15.5 C3.3 14.3 5 14.1 6.5 14.8 L9 16 C9.6 16.3 10.3 16.5 11 16.5 H16.5 C18.2 16.5 19.5 15.5 20.2 14.2 C20.7 13.3 21.8 13.2 22.3 14 C22.8 14.8 22.5 15.9 21.8 16.8 C20.5 18.5 18.8 19.5 16.5 19.5 H11.5 C10.4 19.5 9.4 19.1 8.5 18.5 L6.2 17 C5.5 16.5 4.5 16.6 3.8 17.2 L2.5 18.5 C1.8 19.2 0.7 18.8 0.5 17.8 C0.3 16.8 1 16.2 2.2 15.5 Z" />
   </svg>
 )
 
@@ -48,10 +58,8 @@ const ActiveCheckIcon: React.FC<{ className?: string }> = ({ className = "mortga
 /**
  * Polished, compact Mortgage Status Indicator.
  *
- * Designed to fit seamlessly across:
- * 1. Board tiles without overlapping property names, prices, or building markers.
- * 2. Property detail cards (PropertyVisual) in the dedicated status badges area without obscuring details.
- * 3. Modal lists and rows (TradeModal, MortgageManagerModal, TransactionLedgerModal).
+ * Board tile variant: compact white hand-and-house symbol in building-indicator position.
+ * Mutually exclusive with ordinary house/hotel indicators on the property.
  */
 export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = ({
   isMortgaged,
@@ -65,7 +73,7 @@ export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = (
     return null
   }
 
-  // Board tile variant: ultra-compact, ivory/burgundy micro-badge
+  // Board tile variant: white hand-and-house symbol occupying the building indicator slot
   if (variant === "tile") {
     return (
       <span
@@ -74,8 +82,7 @@ export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = (
         aria-label={ownerName ? `Mortgaged by ${ownerName}` : "Mortgaged"}
         style={style}
       >
-        <MortgagePorticoIcon className="mortgage-symbol-icon" />
-        <span className="mortgage-text">MORTGAGED</span>
+        <HandHoldingHouseIcon size={14} />
       </span>
     )
   }
@@ -88,7 +95,7 @@ export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = (
         style={style}
       >
         {isMortgaged ? (
-          <MortgagePorticoIcon className="mortgage-symbol-icon" />
+          <HandHoldingHouseIcon size={12} />
         ) : (
           <ActiveCheckIcon className="mortgage-symbol-icon" />
         )}
@@ -106,7 +113,7 @@ export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = (
         role="status"
       >
         <div className="banner-content" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <MortgagePorticoIcon className="mortgage-symbol-icon" />
+          <HandHoldingHouseIcon size={14} />
           <span className="banner-title">PROPERTY MORTGAGED</span>
           <span className="banner-subtitle" style={{ opacity: 0.85, fontSize: "10px" }}>· NO RENT DUE</span>
         </div>
@@ -121,7 +128,7 @@ export const MortgageStatusIndicator: React.FC<MortgageStatusIndicatorProps> = (
       title={ownerName ? `Mortgaged by ${ownerName}` : "Mortgaged"}
       style={style}
     >
-      <MortgagePorticoIcon className="mortgage-symbol-icon" />
+      <HandHoldingHouseIcon size={12} />
       <span className="badge-text">MORTGAGED</span>
     </span>
   )

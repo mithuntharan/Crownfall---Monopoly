@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import type {
   TransactionRecord,
   EnginePlayer,
@@ -37,6 +37,8 @@ export interface GameInfoModalProps {
   isMultiplayer?: boolean
   onKickPlayer?: (playerId: number) => void
   onSelectPropertyHighlight?: (propertyId: string | null) => void
+  tradeInitialSubTab?: "create" | "offers"
+  highlightTradeId?: string | null
 }
 
 export function GameInfoModal({
@@ -57,14 +59,33 @@ export function GameInfoModal({
   isMultiplayer = false,
   onKickPlayer,
   onSelectPropertyHighlight,
+  tradeInitialSubTab,
+  highlightTradeId,
 }: GameInfoModalProps) {
   const [activeTab, setActiveTab] = useState<GameInfoTab>(initialTab)
+
+  const tabRefs = useRef<Record<GameInfoTab, HTMLButtonElement | null>>({
+    ledger: null,
+    trade: null,
+    events: null,
+    insights: null,
+    compare: null,
+  })
 
   useEffect(() => {
     if (isOpen && initialTab) {
       setActiveTab(initialTab)
     }
   }, [isOpen, initialTab])
+
+  useEffect(() => {
+    if (isOpen) {
+      const activeEl = tabRefs.current[activeTab]
+      if (activeEl && typeof activeEl.scrollIntoView === "function") {
+        activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+      }
+    }
+  }, [isOpen, activeTab])
 
   if (!isOpen) return null
 
@@ -119,19 +140,28 @@ export function GameInfoModal({
           </div>
 
           {/* Subtab Navigation Buttons */}
-          <div
+          <nav
             className="game-info-subtabs-nav"
+            aria-label="Game Info Tabs"
             style={{
               display: "flex",
               alignItems: "center",
               gap: "4px",
               background: "rgba(0, 0, 0, 0.05)",
-              padding: "3px",
+              padding: "3px 4px",
               borderRadius: "8px",
               border: "1px solid rgba(200, 155, 69, 0.2)",
+              overflowX: "auto",
+              overflowY: "hidden",
+              maxWidth: "100%",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
             }}
           >
             <button
+              ref={(el) => {
+                tabRefs.current.ledger = el
+              }}
               type="button"
               className={`game-info-subtab-btn ${activeTab === "ledger" ? "active" : ""}`}
               onClick={() => setActiveTab("ledger")}
@@ -148,6 +178,8 @@ export function GameInfoModal({
                 fontSize: "11.5px",
                 cursor: "pointer",
                 transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span>LEDGER</span>
@@ -166,6 +198,9 @@ export function GameInfoModal({
             </button>
 
             <button
+              ref={(el) => {
+                tabRefs.current.trade = el
+              }}
               type="button"
               className={`game-info-subtab-btn ${activeTab === "trade" ? "active" : ""}`}
               onClick={() => setActiveTab("trade")}
@@ -183,6 +218,8 @@ export function GameInfoModal({
                 cursor: "pointer",
                 transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
                 position: "relative",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span>TRADE</span>
@@ -203,6 +240,9 @@ export function GameInfoModal({
             </button>
 
             <button
+              ref={(el) => {
+                tabRefs.current.events = el
+              }}
               type="button"
               className={`game-info-subtab-btn ${activeTab === "events" ? "active" : ""}`}
               onClick={() => setActiveTab("events")}
@@ -219,6 +259,8 @@ export function GameInfoModal({
                 fontSize: "11.5px",
                 cursor: "pointer",
                 transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span>EVENTS</span>
@@ -237,6 +279,9 @@ export function GameInfoModal({
             </button>
 
             <button
+              ref={(el) => {
+                tabRefs.current.insights = el
+              }}
               type="button"
               className={`game-info-subtab-btn ${activeTab === "insights" ? "active" : ""}`}
               onClick={() => setActiveTab("insights")}
@@ -253,12 +298,17 @@ export function GameInfoModal({
                 fontSize: "11.5px",
                 cursor: "pointer",
                 transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span>INSIGHTS</span>
             </button>
 
             <button
+              ref={(el) => {
+                tabRefs.current.compare = el
+              }}
               type="button"
               className={`game-info-subtab-btn ${activeTab === "compare" ? "active" : ""}`}
               onClick={() => setActiveTab("compare")}
@@ -275,11 +325,13 @@ export function GameInfoModal({
                 fontSize: "11.5px",
                 cursor: "pointer",
                 transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
               }}
             >
               <span>COMPARE</span>
             </button>
-          </div>
+          </nav>
 
           {/* Close button */}
           <button
@@ -329,6 +381,7 @@ export function GameInfoModal({
             <TransactionLedgerContent
               ledger={transactionLedger}
               players={players}
+              localPlayerId={localPlayerId}
               isEmbedded
               onClose={onClose}
             />
@@ -353,6 +406,8 @@ export function GameInfoModal({
               onCancelOffer={onCancelOffer}
               close={onClose}
               isEmbedded
+              initialSubTab={tradeInitialSubTab}
+              highlightTradeId={highlightTradeId}
             />
           </div>
 
@@ -400,7 +455,7 @@ export function GameInfoModal({
             style={{
               display: activeTab === "compare" ? "flex" : "none",
               flexDirection: "column",
-              height: "100%",
+              flex: "1 1 auto",
               minHeight: 0,
             }}
           >
