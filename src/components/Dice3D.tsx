@@ -189,6 +189,11 @@ export default function Dice3D({
   useEffect(() => {
     if (rolling || settling) {
       setIs3DActive(true)
+    } else {
+      // If neither rolling nor settling, verify animation state and safely exit 3D
+      if (animRef.current.phase === "idle" || animRef.current.rafId === null) {
+        setIs3DActive(false)
+      }
     }
   }, [rolling, settling])
 
@@ -283,7 +288,16 @@ export default function Dice3D({
       anim.lastTime = currentTime
 
       // Seamlessly transition from tumble into settle without resetting angles
-      if (anim.phase === "tumble" && isSettlingRef.current) {
+      // Transition triggers:
+      // 1. Authoritative settling signal received (isSettlingRef.current)
+      // 2. Rolling ended without settling signal (!isRollingRef.current)
+      // 3. Watchdog timeout: tumble exceeds 2000ms
+      const tumbleElapsed = currentTime - anim.tumbleStart
+      const shouldTransitionToSettle =
+        anim.phase === "tumble" &&
+        (isSettlingRef.current || !isRollingRef.current || tumbleElapsed > 2000)
+
+      if (shouldTransitionToSettle) {
         anim.phase = "settle"
         anim.settleStart = currentTime
         anim.settleStartX = anim.currentAngleX
@@ -323,7 +337,6 @@ export default function Dice3D({
         currentRx = anim.currentAngleX
         currentRy = anim.currentAngleY
 
-        const tumbleElapsed = currentTime - anim.tumbleStart
         const bounceCycle = (tumbleElapsed % 170) / 170
         const lift = Math.sin(bounceCycle * Math.PI)
         currentTy = -maxMicroLift * lift
@@ -359,15 +372,15 @@ export default function Dice3D({
             shadowRef.current.style.opacity = "0.55"
           }
 
-          // If settling has ended authoritatively in App.tsx, hand off to 2D SVG
-          if (!isRollingRef.current && !isSettlingRef.current) {
+          // If settling has ended authoritatively in App.tsx or watchdog hold limit reached, safely exit to 2D
+          if ((!isRollingRef.current && !isSettlingRef.current) || settleElapsed > effectiveDecelMs + 200) {
             anim.rafId = null
             anim.phase = "idle"
             setIs3DActive(false)
             return
           }
 
-          // If App.tsx has not yet signaled completion, hold perfectly still at resting face
+          // If App.tsx has not yet signaled completion, hold resting face briefly (up to 200ms watchdog above)
           anim.rafId = requestAnimationFrame(tick)
           return
         }

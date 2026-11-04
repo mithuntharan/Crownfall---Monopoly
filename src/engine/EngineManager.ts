@@ -22,7 +22,7 @@ export class EngineManager implements IGameEngine {
   }
 
   async isCppConnected(): Promise<boolean> {
-    if (multiplayerClient.getRoomCode()) {
+    if (multiplayerClient.isConnected() && multiplayerClient.getRoomCode()) {
       return multiplayerEngineAdapter.isCppConnected()
     }
     try {
@@ -38,7 +38,7 @@ export class EngineManager implements IGameEngine {
   }
 
   getEngineName(): string {
-    if (multiplayerClient.getRoomCode()) {
+    if (multiplayerClient.isConnected() && multiplayerClient.getRoomCode()) {
       return multiplayerEngineAdapter.getEngineName()
     }
     return this.useCpp
@@ -47,14 +47,14 @@ export class EngineManager implements IGameEngine {
   }
 
   isUsingCpp(): boolean {
-    if (multiplayerClient.getRoomCode()) {
+    if (multiplayerClient.isConnected() && multiplayerClient.getRoomCode()) {
       return true
     }
     return this.useCpp
   }
 
   private async getActiveEngine(): Promise<IGameEngine> {
-    if (multiplayerClient.getRoomCode()) {
+    if (multiplayerClient.isConnected() && multiplayerClient.getRoomCode()) {
       return multiplayerEngineAdapter
     }
     if (!this.hasCheckedConnection) {

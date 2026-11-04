@@ -260,6 +260,10 @@ export class MultiplayerClient {
     return this.status
   }
 
+  public isConnected(): boolean {
+    return this.status === "connected" && Boolean(this.roomCode)
+  }
+
   public getStatusMessage(): string {
     return this.statusMessage
   }
@@ -428,6 +432,9 @@ export class MultiplayerClient {
       sessionStorage.removeItem("crownfall_mp_token")
       sessionStorage.removeItem("crownfall_mp_reconnect_token")
       sessionStorage.removeItem("crownfall_mp_pid")
+      try {
+        localStorage.removeItem("crownfall_last_room_code")
+      } catch (_) {}
     }
   }
 
@@ -969,6 +976,17 @@ export class MultiplayerClient {
             )
             this.kickedListeners.forEach((l) => l(msg.message || "Connected from another session or tab."))
           } else if (msg.type === "PLAYER_KICKED") {
+            if (this.playerId !== null && msg.kickedPlayerId === this.playerId) {
+              this.clearSession()
+              this.setStatus(
+                "disconnected",
+                msg.reason || "You were kicked from the room by the host.",
+              )
+              this.kickedListeners.forEach((l) =>
+                l(msg.reason || "You were kicked from the room by the host."),
+              )
+              return
+            }
             if (msg.snapshot) {
               this.latestSnapshot = msg.snapshot
               this.snapshotListeners.forEach((l) => l(msg.snapshot))

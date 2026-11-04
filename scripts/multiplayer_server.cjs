@@ -1819,15 +1819,20 @@ class Room {
 
       console.log(`[MULTIPLAYER SERVER] Kicking player ${player.name} (id: ${player.id}) from room ${this.roomCode}. Reason: ${reason}`);
 
-      // If player has an open socket, send KICKED frame and destroy socket
+      // If player has an open socket, send KICKED frame and destroy socket cleanly
       if (player.socket && !player.socket.destroyed) {
         try {
-          player.socket.write(encodeWsTextFrame(JSON.stringify({
+          const sock = player.socket;
+          sock.write(encodeWsTextFrame(JSON.stringify({
             type: 'KICKED',
             reason: reason || 'You were kicked from the room.',
             roomCode: this.roomCode,
-          })));
-          player.socket.destroy();
+          })), () => {
+            try { sock.destroy(); } catch (_) {}
+          });
+          setTimeout(() => {
+            try { if (!sock.destroyed) sock.destroy(); } catch (_) {}
+          }, 150);
         } catch (_) {}
       }
       const isExplicitHostKick = (requesterPlayerId !== null && requesterPlayerId !== undefined && requesterPlayerId === this.actingHostPlayerId);
@@ -2906,6 +2911,14 @@ const server = http.createServer((req, res) => {
           const snapshot = await room.startGame(player.id);
           broadcastToRoom(room, {
             type: 'GAME_STARTED',
+            snapshot,
+          });
+          return sendJson(res, 200, { ok: true, snapshot });
+        }
+        if (action === 'rematch') {
+          const snapshot = await room.rematch(player.id);
+          broadcastToRoom(room, {
+            type: 'REMATCH_STARTED',
             snapshot,
           });
           return sendJson(res, 200, { ok: true, snapshot });
