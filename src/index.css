@@ -7538,3 +7538,28 @@ button:focus-visible, input:focus-visible {
   color: var(--chat-btn-disabled-text);
   cursor: not-allowed;
 }
+
+/* Detained Jail Panel Premium Buttons */
+.btn-jail-pay-gold:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d4b870 0%, #c5a869 100%) !important;
+  box-shadow: 0 4px 16px rgba(197, 168, 105, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  transform: translateY(-1px);
+}
+.btn-jail-pay-gold:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(197, 168, 105, 0.3) !important;
+}
+
+.btn-jail-roll-gold {
+  transition: all 140ms ease-out;
+}
+.btn-jail-roll-gold:hover:not(:disabled) {
+  background: rgba(197, 168, 105, 0.16) !important;
+  border-color: rgba(212, 175, 55, 0.7) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+}
+.btn-jail-roll-gold:active:not(:disabled) {
+  transform: translateY(0);
+}

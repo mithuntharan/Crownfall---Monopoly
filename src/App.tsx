@@ -16676,53 +16676,7 @@ interface ActivePurchaseOpportunity {
 
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 
-                        {!isRestHouseSkip && isHumanTurn && (
 
-                          <Button
-
-                            className="adaptive-action-btn"
-
-                            onClick={handlePayJailFine}
-
-                            disabled={!canPayFine}
-
-                            style={{
-
-                              background: canPayFine
-
-                                ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
-
-                                : "rgba(30, 41, 59, 0.6)",
-
-                              borderColor: canPayFine ? "#10b981" : "rgba(100, 116, 139, 0.4)",
-
-                              color: "#fff",
-
-                              fontWeight: 700,
-
-                              cursor: canPayFine ? "pointer" : "not-allowed",
-
-                              opacity: canPayFine ? 1 : 0.6,
-
-                            }}
-
-                            title={
-
-                              (activePlayer?.money ?? 0) < 500
-
-                                ? "Insufficient cash (need ₹500 to pay release fine)"
-
-                                : "Pay ₹500 fine to immediately exit Jail and roll on this turn"
-
-                            }
-
-                          >
-
-                            PAY ₹500 TO LEAVE JAIL
-
-                          </Button>
-
-                        )}
 
                         <Button
 
@@ -16832,53 +16786,7 @@ interface ActivePurchaseOpportunity {
 
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 
-                        {isDetainedInJail && isHumanTurn && (
 
-                          <Button
-
-                            className="adaptive-action-btn"
-
-                            onClick={handlePayJailFine}
-
-                            disabled={!canPayFine}
-
-                            style={{
-
-                              background: canPayFine
-
-                                ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
-
-                                : "rgba(30, 41, 59, 0.6)",
-
-                              borderColor: canPayFine ? "#10b981" : "rgba(100, 116, 139, 0.4)",
-
-                              color: "#fff",
-
-                              fontWeight: 700,
-
-                              cursor: canPayFine ? "pointer" : "not-allowed",
-
-                              opacity: canPayFine ? 1 : 0.6,
-
-                            }}
-
-                            title={
-
-                              (activePlayer?.money ?? 0) < 500
-
-                                ? "Insufficient cash (need ₹500 to pay release fine)"
-
-                                : "Pay ₹500 fine to immediately exit Jail and roll on this turn"
-
-                            }
-
-                          >
-
-                            PAY ₹500 TO LEAVE JAIL
-
-                          </Button>
-
-                        )}
 
                         <Button
 
@@ -16947,6 +16855,10 @@ interface ActivePurchaseOpportunity {
                   } else if (modal !== null) {
 
                     endTurnLabel = "RESOLVE ACTION FIRST"
+
+                  } else if (activePlayer.inJail) {
+
+                    endTurnLabel = "SENT TO JAIL • END TURN"
 
                   }
 

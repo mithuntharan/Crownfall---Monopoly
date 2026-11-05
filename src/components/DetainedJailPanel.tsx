@@ -153,11 +153,11 @@ export const DetainedJailPanel: React.FC<DetainedJailPanelProps> = ({
           </li>
           <li>
             <strong style={{ color: "rgba(240, 237, 230, 0.9)" }}>
-              {isCardSkip ? "Serve Detention:" : "Roll for Doubles:"}
+              {isCardSkip ? "Serve Detention:" : "Roll Dice Instead:"}
             </strong>{" "}
             {isCardSkip
               ? "Skip your scheduled turn without paying the release fine."
-              : "Attempt to roll identical dice to escape freely without fine. Fails keep you detained."}
+              : "Roll dice to attempt an escape on doubles freely. Failing to roll doubles consumes this turn."}
           </li>
         </ul>
       </div>
@@ -229,23 +229,28 @@ export const DetainedJailPanel: React.FC<DetainedJailPanelProps> = ({
           type="button"
           onClick={onAttemptRollOrSkip}
           disabled={isBusy || isPayingFine}
+          className="btn-jail-roll-gold"
           style={{
             width: "100%",
-            minHeight: "38px",
+            minHeight: "40px",
             padding: "8px 14px",
-            background: "rgba(255, 255, 255, 0.05)",
-            border: "1px solid rgba(197, 168, 105, 0.3)",
+            background: "rgba(255, 255, 255, 0.06)",
+            border: "1.5px solid rgba(197, 168, 105, 0.4)",
             borderRadius: "8px",
-            color: "rgba(240, 237, 230, 0.85)",
+            color: "#f0ede6",
             fontFamily: '"Oswald", sans-serif',
-            fontSize: "12px",
+            fontSize: "12.5px",
             fontWeight: 700,
-            letterSpacing: "0.05em",
+            letterSpacing: "0.06em",
             cursor: isBusy || isPayingFine ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
             transition: "all 140ms ease-out",
           }}
         >
-          {isCardSkip ? "SERVE SENTENCE (SKIP TURN)" : "ROLL FOR DOUBLES (CHANCE ESCAPE)"}
+          {isCardSkip ? "SERVE SENTENCE (SKIP TURN)" : "🎲 ROLL DICE INSTEAD (TRY FOR DOUBLES)"}
         </button>
       </div>
     </div>

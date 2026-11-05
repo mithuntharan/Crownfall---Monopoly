@@ -2163,6 +2163,7 @@ bool GameEngine::payJailFine(int playerId) {
     auto& player = m_players[playerId];
     if (!player.inJail && player.jailTurns <= 0 && !player.cardJailSkip && player.cardJailSkipTurns <= 0) return false;
     if (player.money < 500) return false;
+    if (m_turnState != TurnState::WAITING_FOR_ROLL) return false;
 
     player.money -= 500;
     player.inJail = false;

@@ -1138,8 +1138,8 @@ class Room {
             throw new Error('Insufficient cash: ₹500 required to pay Jail release fine.');
           }
           const curTurnState = this.gameState.turnState;
-          if (curTurnState !== 'WAITING_FOR_ROLL' && curTurnState !== 'WAITING_FOR_ACTION') {
-            throw new Error(`Cannot pay jail fine at this time (current turn state: ${curTurnState}).`);
+          if (curTurnState !== 'WAITING_FOR_ROLL') {
+            throw new Error(`Cannot pay jail fine at this time (current turn state: ${curTurnState}). Fine can only be paid at the start of your turn before rolling.`);
           }
         }
         if (action === 'roll') {

@@ -1641,6 +1641,9 @@ export class LocalGameEngine implements IGameEngine {
     if (!isDetained) {
       return { success: false, state: await this.getState(), error: "Player is not in jail" }
     }
+    if (this.turnState !== "WAITING_FOR_ROLL") {
+      return { success: false, state: await this.getState(), error: "Can only pay jail fine at the start of your turn before rolling" }
+    }
     if (player.money < 500) {
       return { success: false, state: await this.getState(), error: "Insufficient funds to pay jail fine" }
     }

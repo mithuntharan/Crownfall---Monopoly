@@ -1284,6 +1284,10 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
       std::cout << "{\"ok\":false,\"error\":\"Not your turn\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
       return;
     }
+    if (engine->getTurnState() != TurnState::WAITING_FOR_ROLL) {
+      std::cout << "{\"ok\":false,\"error\":\"Cannot pay jail fine: must be paid at start of turn before rolling\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
+      return;
+    }
     bool success = engine->payJailFine(playerId);
     if (!success) {
       std::cout << "{\"ok\":false,\"error\":\"Cannot pay jail fine: player not in jail or insufficient funds\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
