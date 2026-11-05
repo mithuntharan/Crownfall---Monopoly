@@ -158,7 +158,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.buyProperty()
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Purchase failed." }
     }
@@ -169,7 +169,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.declineProperty()
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Decline failed." }
     }
@@ -201,7 +201,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.sellBuilding(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Sell request rejected." }
     }
@@ -212,7 +212,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.mortgageProperty(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Mortgage request rejected." }
     }
@@ -224,7 +224,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.payJailFine()
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Pay jail fine failed." }
     }
@@ -235,7 +235,7 @@ export class MultiplayerEngineAdapter implements IGameEngine {
       const res = await multiplayerClient.unmortgageProperty(propertyId)
       const success = Boolean(res?.ok ?? res?.success ?? (res?.type === "ACTION_RESULT"))
       const state = this.mapSnapshotToState(res?.snapshot || multiplayerClient.getLatestSnapshot())
-      return { success, state, error: res?.error }
+      return { success, state, error: res?.error || res?.message }
     } catch (err: any) {
       return { success: false, state: this.getFallbackState(), error: err?.message || "Unmortgage request rejected." }
     }

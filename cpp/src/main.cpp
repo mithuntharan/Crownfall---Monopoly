@@ -1044,12 +1044,9 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     int activeIdx = engine->getActivePlayerIndex();
     if (activeIdx >= 0 && activeIdx < static_cast<int>(engine->getPlayers().size())) {
       const auto& actP = engine->getPlayers()[activeIdx];
-      if (const char* dbg = std::getenv("REST_HOUSE_DEBUG")) {
-        if (std::string(dbg) == "1") {
-          std::cerr << "[REST_DIAGNOSTIC] main.cpp roll: activeIdx=" << activeIdx << " inRestHouse=" << actP.inRestHouse << " restHouseTurns=" << actP.restHouseTurns << "\n";
-        }
-      }
-      if (actP.inRestHouse || actP.cardJailSkip || actP.restHouseTurns > 0 || actP.cardJailSkipTurns > 0) {
+      // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+      // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
+      if (actP.inRestHouse || actP.cardJailSkip) {
         // Do NOT call advanceTurn() here. Skip consumption is solely handled by
         // advanceTurn() inside endTurn processing. Calling it here would double-advance
         // the turn order, skipping the wrong player. Just reject the roll.
@@ -1176,6 +1173,56 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     std::cout << "{\"ok\":" << (ok ? "true" : "false")
               << ",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n"
               << std::flush;
+  } else if (action == "devSetPosition") {
+    if (!engine->isDevMode()) {
+      std::cout << "{\"ok\":false,\"error\":\"Setting position requires Dev Mode.\"}\n"
+                << std::flush;
+      return;
+    }
+    int playerId = getJsonIntField(line, "playerId", 0);
+    int position = getJsonIntField(line, "position", 0);
+    if (playerId >= 0 && playerId < static_cast<int>(engine->getPlayers().size())) {
+      engine->getPlayersMutable()[playerId].position = position;
+      std::cout << "{\"ok\":true,\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n"
+                << std::flush;
+    } else {
+      std::cout << "{\"ok\":false,\"error\":\"Invalid player ID.\"}\n"
+                << std::flush;
+    }
+  } else if (action == "devSetInJail") {
+    if (!engine->isDevMode()) {
+      std::cout << "{\"ok\":false,\"error\":\"Setting jail requires Dev Mode.\"}\n"
+                << std::flush;
+      return;
+    }
+    int playerId = getJsonIntField(line, "playerId", 0);
+    bool inJail = getJsonBoolField(line, "inJail", false);
+    int jailTurns = getJsonIntField(line, "jailTurns", 0);
+    if (playerId >= 0 && playerId < static_cast<int>(engine->getPlayers().size())) {
+      engine->getPlayersMutable()[playerId].inJail = inJail;
+      engine->getPlayersMutable()[playerId].jailTurns = jailTurns;
+      std::cout << "{\"ok\":true,\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n"
+                << std::flush;
+    } else {
+      std::cout << "{\"ok\":false,\"error\":\"Invalid player ID.\"}\n"
+                << std::flush;
+    }
+  } else if (action == "devSetMoney") {
+    if (!engine->isDevMode()) {
+      std::cout << "{\"ok\":false,\"error\":\"Setting money requires Dev Mode.\"}\n"
+                << std::flush;
+      return;
+    }
+    int playerId = getJsonIntField(line, "playerId", 0);
+    int money = getJsonIntField(line, "money", 0);
+    if (playerId >= 0 && playerId < static_cast<int>(engine->getPlayers().size())) {
+      engine->getPlayersMutable()[playerId].money = money;
+      std::cout << "{\"ok\":true,\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n"
+                << std::flush;
+    } else {
+      std::cout << "{\"ok\":false,\"error\":\"Invalid player ID.\"}\n"
+                << std::flush;
+    }
   } else if (action == "setTimer") {
     bool enabled = getJsonBoolField(line, "enabled", false);
     int seconds = getJsonIntField(line, "seconds", 60);
@@ -1242,7 +1289,7 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
       std::cout << "{\"ok\":false,\"error\":\"Cannot pay jail fine: player not in jail or insufficient funds\",\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
       return;
     }
-    std::cout << "{\"ok\":true,\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
+    std::cout << "{\"ok\":true,\"result\":{\"action\":\"payJailFine\",\"playerId\":" << playerId << ",\"amount\":500,\"success\":true},\"state\":" << toCompactJson(engine->exportStateJson()) << "}\n" << std::flush;
   } else if (action == "unmortgage") {
     int playerId =
         getJsonIntField(line, "playerId", engine->getActivePlayerIndex());

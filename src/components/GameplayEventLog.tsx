@@ -14,6 +14,9 @@ export interface GameplayEventEntry {
   description: string
   amount?: number
   sequenceNumber?: number
+  category?: string
+  dice1?: number
+  dice2?: number
 }
 
 export interface GameplayEventLogProps {
@@ -227,6 +230,9 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
     const seen = new Set<string>()
     const result: GameplayEventEntry[] = []
     for (const evt of events) {
+      if (/ended (their|his|her|the)?\s*turn/i.test(evt.description || "") || /ended turn/i.test(evt.description || "") || /turn ended/i.test(evt.description || "")) {
+        continue
+      }
       const key = `${evt.id}_${evt.timestamp}_${evt.type}`
       if (!seen.has(key)) {
         seen.add(key)

@@ -31,7 +31,6 @@ import type {
   PlayerSetup,
   ActivityLogEntry,
   TransactionRecord,
-  TurnTimerState,
   TradeOffer,
   RoundEarningsSummary,
   WealthTaxBreakdown,
@@ -362,6 +361,9 @@ export class LocalGameEngine implements IGameEngine {
     this.consecutiveDoubles = 0
     this.gameStarted = true
     this.turnState = "WAITING_FOR_ROLL"
+    if (this.lastTurnResult) {
+      this.lastTurnResult.mustGoToJail = false
+    }
     this.lastDice = [0, 0]
 
     return this.getState()
@@ -386,6 +388,9 @@ export class LocalGameEngine implements IGameEngine {
     this.roundNumber = 1
     this.consecutiveDoubles = 0
     this.turnState = "WAITING_FOR_ROLL"
+    if (this.lastTurnResult) {
+      this.lastTurnResult.mustGoToJail = false
+    }
     this.lastDice = [0, 0]
 
     const configs =
@@ -656,7 +661,9 @@ export class LocalGameEngine implements IGameEngine {
     // If a roll request arrives for a player with pending skip flags, reject without
     // side-effects so endTurn's advanceTurn() remains the sole authoritative consumer.
     // Calling advanceTurn() here would double-advance the turn and skip the wrong player.
-    if (player.inRestHouse || (player.restHouseTurns ?? 0) > 0 || player.cardJailSkip || (player.cardJailSkipTurns ?? 0) > 0) {
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
+    if (player.inRestHouse || player.cardJailSkip) {
       throw new Error(
         `Cannot roll: ${player.name}'s turn is being skipped. End your turn instead.`
       )
@@ -1069,7 +1076,6 @@ export class LocalGameEngine implements IGameEngine {
       !player.inJail &&
       !wasInJail &&
       !res.mustGoToJail &&
-      !res.mustGoToRestHouse &&
       !player.cardJailSkip &&
       !player.inRestHouse
     )
@@ -1318,8 +1324,8 @@ export class LocalGameEngine implements IGameEngine {
         if ((candidate?.cardJailSkipTurns || 0) > 0 || candidate?.cardJailSkip) {
           candidate.cardJailSkipTurns = 0
           candidate.cardJailSkip = false
-          this.addLog(candidate.id, "jail", `${candidate.name} skipped their turn in Jail from a card.`)
-          skipped = true
+          // Retain detention so player can pay ₹500 or roll for doubles during turn
+          candidate.inJail = true
         }
         if (candidate && (candidate.restHouseTurns || 0) > 0) {
           candidate.restHouseTurns = 0
@@ -1645,6 +1651,9 @@ export class LocalGameEngine implements IGameEngine {
     player.cardJailSkip = false
     player.cardJailSkipTurns = 0
     this.turnState = "WAITING_FOR_ROLL"
+    if (this.lastTurnResult) {
+      this.lastTurnResult.mustGoToJail = false
+    }
 
     this.recordTransaction(
       "JAIL_FINE",
@@ -2075,6 +2084,9 @@ export class LocalGameEngine implements IGameEngine {
     if (playerId < 0 || playerId >= this.players.length) return this.getState()
     this.activePlayerIndex = playerId
     this.turnState = "WAITING_FOR_ROLL"
+    if (this.lastTurnResult) {
+      this.lastTurnResult.mustGoToJail = false
+    }
     this.turnStartedAt = Date.now()
     return this.getState()
   }

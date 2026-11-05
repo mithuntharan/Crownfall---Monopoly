@@ -12,11 +12,6 @@ import {
   SPECIAL_PAIR_MAP,
 
   COLOR_GROUPS,
-
-  CHANCE_DECLARATIONS,
-
-  CHEST_DECLARATIONS,
-
   getCityProperty,
 
   type PropertyDefinition,
@@ -36,8 +31,6 @@ import { getColorGroupTheme, getPropertyThemeStyle } from "./theme/colors"
 import { defaultEngine } from "./engine/EngineManager"
 
 
-
-import { GAME_CONFIG } from "./config/gameConfig"
 
 
 
@@ -71,13 +64,13 @@ import CrownfallErrorBoundary from "./components/CrownfallErrorBoundary"
 
 import PlayerPuck from "./components/PlayerPuck"
 
-import { calculatePlayerPortfolio, getPlayerHotelCount, playerOwnsSpecialPair } from "./engine/portfolioUtils"
+import DetainedJailPanel from "./components/DetainedJailPanel"
+
+import { calculatePlayerPortfolio, getPlayerHotelCount } from "./engine/portfolioUtils"
 
 import TransactionLedgerModal from "./components/TransactionLedgerModal"
 
 import GameInfoModal, { type GameInfoTab } from "./components/GameInfoModal"
-
-import StandingsModal from "./components/StandingsModal"
 
 import { TradeModal } from "./components/TradeModal"
 
@@ -102,13 +95,6 @@ import {
   GameplayEventLog,
 
   type GameplayEventEntry,
-
-  EVENT_LOG_CATEGORIES,
-
-  matchGameplayEventCategory as matchEventCategory,
-
-  type EventLogCategory,
-
 } from "./components/GameplayEventLog"
 
 import { DiceRollHistory, type DiceRollRecord } from "./components/DiceRollHistory"
@@ -124,9 +110,6 @@ import {
   type PendingJoinRequest,
 
   type MultiplayerRoomSnapshot,
-
-  type MultiplayerPlayer,
-
   type MultiplayerPlayerSnapshot,
 
 } from "./engine/MultiplayerClient"
@@ -162,6 +145,8 @@ import {
 } from "./config/animationConfig"
 
 import {
+
+  BOARD_POSITIONS,
 
   getTileCenterPercent,
 
@@ -659,22 +644,6 @@ function setStoredSessionActive(active: boolean): void {
 
 
 
-function getStoredSessionGameId(): string | null {
-
-  if (typeof window === "undefined") return null
-
-  try {
-
-    return sessionStorage.getItem("crownfall_current_game_id")
-
-  } catch (_) {
-
-    return null
-
-  }
-
-}
-
 
 
 function setStoredSessionGameId(gameId: string | null): void {
@@ -788,114 +757,6 @@ const initialPlayers: EnginePlayer[] = getInitialPlayers()
  */
 
 
-
-interface BoardPosition {
-
-  row: number
-
-  col: number
-
-}
-
-
-
-const BOARD_POSITIONS: Record<number, BoardPosition> = {
-
-  0: { row: 10, col: 10 },
-
-  1: { row: 10, col: 9 },
-
-  2: { row: 10, col: 8 },
-
-
-
-  3: { row: 10, col: 7 },
-
-  4: { row: 10, col: 6 },
-
-  5: { row: 10, col: 5 },
-
-
-
-  6: { row: 10, col: 4 },
-
-  7: { row: 10, col: 3 },
-
-  8: { row: 10, col: 2 },
-
-
-
-  9: { row: 10, col: 1 },
-
-  10: { row: 9, col: 1 },
-
-  11: { row: 8, col: 1 },
-
-
-
-  12: { row: 7, col: 1 },
-
-  13: { row: 6, col: 1 },
-
-  14: { row: 5, col: 1 },
-
-
-
-  15: { row: 4, col: 1 },
-
-  16: { row: 3, col: 1 },
-
-  17: { row: 2, col: 1 },
-
-
-
-  18: { row: 1, col: 1 },
-
-  19: { row: 1, col: 2 },
-
-  20: { row: 1, col: 3 },
-
-
-
-  21: { row: 1, col: 4 },
-
-  22: { row: 1, col: 5 },
-
-  23: { row: 1, col: 6 },
-
-
-
-  24: { row: 1, col: 7 },
-
-  25: { row: 1, col: 8 },
-
-  26: { row: 1, col: 9 },
-
-
-
-  27: { row: 1, col: 10 },
-
-  28: { row: 2, col: 10 },
-
-  29: { row: 3, col: 10 },
-
-
-
-  30: { row: 4, col: 10 },
-
-  31: { row: 5, col: 10 },
-
-  32: { row: 6, col: 10 },
-
-
-
-  33: { row: 7, col: 10 },
-
-  34: { row: 8, col: 10 },
-
-  35: { row: 9, col: 10 },
-
-}
 
 
 
@@ -4461,6 +4322,8 @@ function Board({
 
   stepDuration = 180,
 
+  stepEasing = "linear",
+
   recentEvents = [],
 
   onOpenFullLog,
@@ -4508,6 +4371,8 @@ function Board({
   isHumanTurn?: boolean
 
   stepDuration?: number
+
+  stepEasing?: string
 
   recentEvents?: GameplayEventEntry[]
 
@@ -4748,7 +4613,9 @@ function Board({
 
             const rank = playersOnSameTile.findIndex((item) => item.pIdx === idx)
 
-            const offset = getMultiTokenOffset(rank >= 0 ? rank : 0, playersOnSameTile.length)
+            const rawOffset = getMultiTokenOffset(rank >= 0 ? rank : 0, playersOnSameTile.length)
+
+            const offset = isGliding ? { dx: 0, dy: 0 } : rawOffset
 
 
 
@@ -4770,9 +4637,9 @@ function Board({
 
                   transition: isGliding
 
-                    ? `left ${stepDuration}ms ${EASE_OUT_EXPO}, top ${stepDuration}ms ${EASE_OUT_EXPO}`
+                    ? `left ${stepDuration}ms ${stepEasing}, top ${stepDuration}ms ${stepEasing}, transform 280ms cubic-bezier(0.16, 1, 0.3, 1)`
 
-                    : "none",
+                    : "transform 280ms cubic-bezier(0.16, 1, 0.3, 1)",
 
                 }}
 
@@ -5401,322 +5268,6 @@ function Dice({
       size={size}
 
     />
-
-  )
-
-}
-
-
-
-function DeclarationDice({ total }: { total: number }) {
-
-  const first = Math.max(1, total - 6)
-
-
-
-  const second = total - first
-
-
-
-  return (
-
-    <div className="declaration-dice">
-
-      <div className="dice-row">
-
-        <Dice value={first} rolling={false} dieIndex={1} size={34} />
-
-        <Dice value={second} rolling={false} dieIndex={2} size={34} />
-
-      </div>
-
-      <span>
-
-        DICE RESULT <b>{total}</b>
-
-      </span>
-
-    </div>
-
-  )
-
-}
-
-
-
-function ActivityLogModal({
-
-  log,
-
-  close,
-
-}: {
-
-  log: ActivityLogEntry[]
-
-  close: () => void
-
-}) {
-
-  const [filter, setFilter] = useState<EventLogCategory>("ALL")
-
-
-
-  const categoryCounts = useMemo(() => {
-
-    const counts: Record<EventLogCategory, number> = {
-
-      ALL: log.length,
-
-      TURNS_DICE: 0,
-
-      RENT_PAYMENTS: 0,
-
-      PROPERTIES: 0,
-
-      CONSTRUCTION: 0,
-
-      CHANCE_CHEST: 0,
-
-      MOVEMENT_LOCATIONS: 0,
-
-      SYSTEM_ERRORS: 0,
-
-    }
-
-    for (const e of log) {
-
-      for (const cat of EVENT_LOG_CATEGORIES) {
-
-        if (cat.id !== "ALL" && matchEventCategory(e.type, cat.id)) {
-
-          counts[cat.id]++
-
-        }
-
-      }
-
-    }
-
-    return counts
-
-  }, [log])
-
-
-
-  const filtered = useMemo(() => {
-
-    if (filter === "ALL") return log
-
-    return log.filter((e) => matchEventCategory(e.type, filter))
-
-  }, [log, filter])
-
-
-
-  const displayEntries = useMemo(() => [...filtered].reverse(), [filtered])
-
-
-
-  return (
-
-    <ModalShell
-
-      title="TURN ACTIVITY LOG"
-
-      close={close}
-
-      className="activity-log-modal"
-
-    >
-
-      <div className="activity-log-subhead">
-
-        <span>AUTHORITATIVE GAME EVENT FEED</span>
-
-        <span className="ready-pill">{log.length} EVENTS</span>
-
-      </div>
-
-      <div className="activity-log-filter-row" style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "6px" }}>
-
-        {EVENT_LOG_CATEGORIES.map((cat) => {
-
-          const count = categoryCounts[cat.id] ?? 0
-
-          return (
-
-            <button
-
-              key={cat.id}
-
-              type="button"
-
-              className={`activity-log-filter-btn ${filter === cat.id ? "active" : ""}`}
-
-              onClick={() => setFilter(cat.id)}
-
-              style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-
-            >
-
-              <span>{cat.icon}</span>
-
-              <span>{cat.label}</span>
-
-              <span
-
-                style={{
-
-                  padding: "1px 5px",
-
-                  borderRadius: "8px",
-
-                  fontSize: "9px",
-
-                  background: filter === cat.id ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.12)",
-
-                }}
-
-              >
-
-                {count}
-
-              </span>
-
-            </button>
-
-          )
-
-        })}
-
-      </div>
-
-      <div className="activity-log-feed">
-
-        {displayEntries.length === 0 ? (
-
-          <div
-
-            style={{
-
-              textAlign: "center",
-
-              padding: "28px",
-
-              color: "var(--ink-soft)",
-
-            }}
-
-          >
-
-            {filter === "ALL"
-
-              ? "No activity events recorded yet."
-
-              : `No ${EVENT_LOG_CATEGORIES.find((c) => c.id === filter)?.label || filter} events recorded yet.`}
-
-          </div>
-
-        ) : (
-
-          displayEntries.map((entry) => {
-
-            const date = new Date(entry.timestamp)
-
-            const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`
-
-            return (
-
-              <div key={entry.id} className="activity-log-entry">
-
-                <div className="activity-log-entry-left">
-
-                  <span className="activity-log-seq">#{entry.id}</span>
-
-                  <span className={`activity-log-type-tag ${entry.type}`}>
-
-                    {entry.type.replace("_", " ")}
-
-                  </span>
-
-                </div>
-
-                <div className="activity-log-body">
-
-                  <div className="activity-log-headline">
-
-                    <span className="activity-log-player-chip">
-
-                      <span
-
-                        style={{
-
-                          width: "8px",
-
-                          height: "8px",
-
-                          borderRadius: "50%",
-
-                          background: `var(--${entry.playerColor || "gold"})`,
-
-                          display: "inline-block",
-
-                        }}
-
-                      />
-
-                      {entry.playerName}
-
-                    </span>
-
-                    <span className="activity-log-time">{timeStr}</span>
-
-                  </div>
-
-                  <div className="activity-log-desc">{entry.description}</div>
-
-                  {entry.amount !== 0 && (
-
-                    <span
-
-                      className={`activity-log-amount-tag ${
-
-                        entry.amount > 0 ? "gain" : "loss"
-
-                      }`}
-
-                    >
-
-                      {entry.amount > 0
-
-                        ? `+Rs${entry.amount.toLocaleString()}`
-
-                        : `-Rs${Math.abs(entry.amount).toLocaleString()}`}
-
-                    </span>
-
-                  )}
-
-                </div>
-
-              </div>
-
-            )
-
-          })
-
-        )}
-
-      </div>
-
-      <Button variant="ghost" onClick={close} style={{ marginTop: "8px" }}>
-
-        CLOSE LOG
-
-      </Button>
-
-    </ModalShell>
 
   )
 
@@ -9024,7 +8575,9 @@ function GameModal({
 
 
 
-    const projectedBalance = owner.money + mortgageVal
+    const isSpecial = !("buildingCost" in selectedProperty) || Boolean(SPECIAL_PROPERTIES[selectedProperty.id])
+
+  const projectedBalance = owner.money + mortgageVal
 
 
 
@@ -9076,7 +8629,7 @@ function GameModal({
 
           hotelCount={owner ? getPlayerHotelCount(owner) : 0}
 
-          hasSpecialPair={Boolean(owner && !isCity && SPECIAL_PAIR_MAP[selectedProperty.id] && (owner.ownedProperties || []).includes(SPECIAL_PAIR_MAP[selectedProperty.id]))}
+          hasSpecialPair={Boolean(owner && isSpecial && SPECIAL_PAIR_MAP[selectedProperty.id] && (owner.ownedProperties || []).includes(SPECIAL_PAIR_MAP[selectedProperty.id]))}
 
         />
 
@@ -9236,7 +8789,7 @@ function GameModal({
 
           hotelCount={owner ? getPlayerHotelCount(owner) : 0}
 
-          hasSpecialPair={Boolean(owner && !isCity && SPECIAL_PAIR_MAP[selectedProperty.id] && (owner.ownedProperties || []).includes(SPECIAL_PAIR_MAP[selectedProperty.id]))}
+          hasSpecialPair={Boolean(owner && isSpecial && SPECIAL_PAIR_MAP[selectedProperty.id] && (owner.ownedProperties || []).includes(SPECIAL_PAIR_MAP[selectedProperty.id]))}
 
         />
 
@@ -11526,6 +11079,15 @@ function GameScreen({
 
   const addGameplayEvent = (entry: GameplayEventEntry) => {
 
+    if (
+      entry.type === "END_TURN" ||
+      /ended (their|his|her|the)?\s*turn/i.test(entry.description || "") ||
+      /ended turn/i.test(entry.description || "") ||
+      /turn ended/i.test(entry.description || "")
+    ) {
+      return
+    }
+
     effectiveSetEventLogList((prev) => {
 
       // 1. Direct ID match
@@ -11872,6 +11434,12 @@ interface ActivePurchaseOpportunity {
 
   const [activeStepDuration, setActiveStepDuration] = useState<number>(() => currentStepDuration)
 
+  const [activeStepEasing, setActiveStepEasing] = useState<string>("linear")
+
+  const [isPayingJailFine, setIsPayingJailFine] = useState<boolean>(false)
+
+  const isPayingJailFineRef = useRef<boolean>(false)
+
 
 
   useEffect(() => {
@@ -12072,6 +11640,8 @@ interface ActivePurchaseOpportunity {
 
         setActiveStepDuration(transitMs)
 
+        setActiveStepEasing(EASE_OUT_EXPO)
+
         setPlayerPositions((prev) => {
 
           const next = [...prev]
@@ -12130,7 +11700,11 @@ interface ActivePurchaseOpportunity {
 
         const stepMs = schedule.stepDurations[step] ?? 120
 
+        const isLandingStep = step === stepsToWalk - 1
+
         setActiveStepDuration(stepMs)
+
+        setActiveStepEasing(isLandingStep ? EASE_OUT_EXPO : "linear")
 
 
 
@@ -12219,6 +11793,22 @@ interface ActivePurchaseOpportunity {
       setPurchaseOpportunity(null)
 
       purchaseOpportunityRef.current = null
+
+      setRolling(false)
+
+      rollingRef.current = false
+
+      setDiceRolling(false)
+
+      setDiceSettling(false)
+
+      setMoving(false)
+
+      movingRef.current = false
+
+      setMovementActive(false)
+
+      setMovingPlayerIndex(null)
 
       if (isHumanTurn) {
 
@@ -12872,6 +12462,22 @@ interface ActivePurchaseOpportunity {
 
       setHasRolledThisTurn(false)
 
+      setRolling(false)
+
+      rollingRef.current = false
+
+      setDiceRolling(false)
+
+      setDiceSettling(false)
+
+      setMoving(false)
+
+      movingRef.current = false
+
+      setMovementActive(false)
+
+      setMovingPlayerIndex(null)
+
       // Immediately clear turn-scoped purchase and building tracking from next authoritative engine state
 
       const endTurnMergedPlayers = nextState.players.map((p, pIdx) => {
@@ -12912,22 +12518,6 @@ interface ActivePurchaseOpportunity {
 
       if (nextState.currentTurnId !== undefined) setCurrentTurnId(nextState.currentTurnId)
 
-      addGameplayEvent({
-
-        id: `manual_end_${Date.now()}_${activePlayerIndex}`,
-
-        type: "TURN_CHANGE",
-
-        timestamp: Date.now(),
-
-        playerId: activePlayerIndex,
-
-        playerName: activePlayer.name,
-
-        description: `${activePlayer.name} ended turn. It is now ${nextState.players[nextState.activePlayerIndex]?.name}'s turn.`
-
-      })
-
       advanceTurn(nextState, 300)
 
     } finally {
@@ -12940,31 +12530,105 @@ interface ActivePurchaseOpportunity {
 
   const handlePayJailFine = async () => {
 
-    if (!activePlayer || activePlayer.money < 500) return
+    if (!activePlayer || (activePlayer.money ?? 0) < 500) {
+
+      showToast("Insufficient cash: need ₹500 to pay Jail release fine.")
+
+      return
+
+    }
+
+    if (isPayingJailFineRef.current || isPayingJailFine) {
+
+      return
+
+    }
+
+    isPayingJailFineRef.current = true
+
+    setIsPayingJailFine(true)
 
     try {
 
-      audioSystem.playPayRent()
+      audioSystem.playRentPayment()
 
       const res = await defaultEngine.payJailFine?.(activePlayer.id)
 
       if (res && res.success) {
 
-        if (res.state && applyGameStateSnapshot) {
+        if (res.state) {
 
-          applyGameStateSnapshot(res.state)
+          if (applyGameStateSnapshot) {
 
-        }
+            applyGameStateSnapshot(res.state)
 
-        if (res.state?.players && setPlayers) {
+          }
 
-          setPlayers(res.state.players)
+          if (res.state.players && setPlayers) {
+
+            const mergedPlayers = res.state.players.map((p, idx) => {
+
+              let name = p.name
+
+              let color = p.color
+
+              if (!name || !name.trim()) {
+
+                try {
+
+                  const saved = getStoredPlayerName(idx)
+
+                  if (saved && saved.trim()) name = saved.trim()
+
+                } catch (_) {}
+
+              }
+
+              return { ...p, name, color }
+
+            })
+
+            setPlayers(mergedPlayers)
+
+          }
+
+        } else {
+
+          setPlayers((prev) => {
+
+            const next = [...prev]
+
+            if (next[activePlayer.id]) {
+
+              next[activePlayer.id] = {
+
+                ...next[activePlayer.id],
+
+                money: (next[activePlayer.id].money ?? 0) - 500,
+
+                inJail: false,
+
+                jailTurns: 0,
+
+                cardJailSkip: false,
+
+                cardJailSkipTurns: 0,
+
+              }
+
+            }
+
+            return next
+
+          })
 
         }
 
         setTurnState("WAITING_FOR_ROLL")
 
-        showToast(`${activePlayer.name} paid ₹500 to leave Jail.`)
+        setHasRolledThisTurn(false)
+
+        showToast(`${activePlayer.name} paid ₹500 to leave Jail. You may now roll the dice!`)
 
       } else if (res?.error) {
 
@@ -12975,6 +12639,12 @@ interface ActivePurchaseOpportunity {
     } catch (err: any) {
 
       showToast(err?.message || "Failed to pay jail fine")
+
+    } finally {
+
+      isPayingJailFineRef.current = false
+
+      setIsPayingJailFine(false)
 
     }
 
@@ -13612,7 +13282,15 @@ interface ActivePurchaseOpportunity {
 
       // to eliminate any async snapshot race condition or puck jumping to destination ahead of time
 
+      isMovementInProgressRef.current = true
+
+      movingRef.current = true
+
+      rollingRef.current = true
+
       setMovementActive(true)
+
+      setRolling(true)
 
       setMovingPlayerIndex(remotePlayerId)
 
@@ -13819,6 +13497,18 @@ interface ActivePurchaseOpportunity {
       // 5. Converge to authoritative state strictly after visual landing
 
       setTurnState("RESOLVING_LANDING")
+
+      setMoving(false)
+
+      movingRef.current = false
+
+      setMovementActive(false)
+
+      setMovingPlayerIndex(null)
+
+      setRolling(false)
+
+      rollingRef.current = false
 
 
 
@@ -14147,6 +13837,24 @@ interface ActivePurchaseOpportunity {
       advanceTurnTimeoutRef.current = null
 
       audioSystem.playTurnChange()
+
+      setRolling(false)
+
+      rollingRef.current = false
+
+      setDiceRolling(false)
+
+      setDiceSettling(false)
+
+      setMoving(false)
+
+      movingRef.current = false
+
+      setMovementActive(false)
+
+      setMovingPlayerIndex(null)
+
+      setHasRolledThisTurn(false)
 
       setActivePlayerIndex(engineState.activePlayerIndex)
 
@@ -15226,7 +14934,9 @@ interface ActivePurchaseOpportunity {
 
 
 
-    if (actingPlayer?.inRestHouse || actingPlayer?.cardJailSkip || (actingPlayer?.restHouseTurns ?? 0) > 0 || (actingPlayer?.cardJailSkipTurns ?? 0) > 0) {
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
+    if (actingPlayer?.inRestHouse || actingPlayer?.cardJailSkip) {
 
       console.warn(`[Roll] Blocked roll: player #${snapPlayerIndex} turn is skipped.`)
 
@@ -15273,6 +14983,10 @@ interface ActivePurchaseOpportunity {
     setRolling(true)
 
     rollingRef.current = true
+
+    movingRef.current = true
+
+    isMovementInProgressRef.current = true
 
     setMovementActive(true)
 
@@ -16049,6 +15763,8 @@ interface ActivePurchaseOpportunity {
             isMultiplayer={isMultiplayer}
 
             stepDuration={activeStepDuration}
+
+            stepEasing={activeStepEasing}
 
             recentEvents={effectiveEventLogList}
 
@@ -16904,31 +16620,41 @@ interface ActivePurchaseOpportunity {
 
                   const isBusy =
 
-                    rolling ||
-
-                    moving ||
-
-                    diceRolling ||
-
-                    diceSettling ||
-
-                    rollingRef.current ||
-
-                    movingRef.current ||
-
-                    isMovementInProgressRef.current ||
-
                     turnState === "ROLLING" ||
 
                     turnState === "MOVING" ||
 
-                    turnState === "RESOLVING_LANDING"
+                    turnState === "RESOLVING_LANDING" ||
+
+                    ((rolling || moving || diceRolling || diceSettling || rollingRef.current || movingRef.current || isMovementInProgressRef.current) && turnState !== "WAITING_FOR_ROLL")
 
 
 
                   const isDetainedInJail = Boolean(activePlayer?.inJail || (activePlayer?.jailTurns ?? 0) > 0 || activePlayer?.cardJailSkip)
 
                   const canPayFine = isHumanTurn && !isBusy && isDetainedInJail && (activePlayer?.money ?? 0) >= 500
+
+                  if (isDetainedInJail && isHumanTurn && !isBusy) {
+                    return (
+                      <DetainedJailPanel
+                        player={activePlayer}
+                        canPayFine={canPayFine}
+                        isPayingFine={isPayingJailFine}
+                        onPayFine={handlePayJailFine}
+                        onAttemptRollOrSkip={() => {
+                          if (isMustSkip) {
+                            handleManualEndTurn()
+                          } else {
+                            if (!rollingRef.current && !movingRef.current) {
+                              roll(false)
+                            }
+                          }
+                        }}
+                        isCardSkip={Boolean(activePlayer?.cardJailSkip)}
+                        isBusy={isBusy}
+                      />
+                    )
+                  }
 
                   if (isMustSkip) {
 
@@ -17050,23 +16776,41 @@ interface ActivePurchaseOpportunity {
 
                     let rollLabel = "ROLL DICE"
 
-                    if (rolling || diceRolling) rollLabel = "ROLLING..."
+                    if (!isHumanTurn) {
 
-                    else if (moving) rollLabel = "MOVING..."
+                      rollLabel = (rolling || diceRolling)
 
-                    else if (diceSettling) rollLabel = "SETTLING..."
+                        ? `${activePlayer.name.toUpperCase()} IS ROLLING...`
 
-                    else if (turnState === "EXTRA_TURN") {
+                        : moving
 
-                      rollLabel = isHumanTurn
+                        ? `${activePlayer.name.toUpperCase()} IS MOVING...`
 
-                        ? "ROLL AGAIN (DOUBLES!)"
+                        : `WAITING FOR ${activePlayer.name.toUpperCase()}...`
 
-                        : `WAITING FOR ${activePlayer.name.toUpperCase()} (DOUBLES)...`
+                    } else if (turnState === "WAITING_FOR_ROLL") {
 
-                    } else if (!isHumanTurn) {
+                      rollLabel = (rolling || diceRolling) ? "ROLLING..." : "ROLL DICE"
 
-                      rollLabel = `WAITING FOR ${activePlayer.name.toUpperCase()}...`
+                    } else if (rolling || diceRolling) {
+
+                      rollLabel = "ROLLING..."
+
+                    } else if (moving) {
+
+                      rollLabel = "MOVING..."
+
+                    } else if (diceSettling) {
+
+                      rollLabel = "SETTLING..."
+
+                    } else if (turnState === "EXTRA_TURN") {
+
+                      rollLabel = (rolling || diceRolling)
+
+                        ? "ROLLING..."
+
+                        : "ROLL AGAIN (DOUBLES!)"
 
                     }
 
@@ -17176,19 +16920,35 @@ interface ActivePurchaseOpportunity {
 
                   let endTurnLabel = "END TURN"
 
-                  if (rolling || diceRolling) endTurnLabel = "ROLLING..."
+                  if (!isHumanTurn) {
 
-                  else if (moving) endTurnLabel = "MOVING..."
+                    endTurnLabel = `WAITING FOR ${activePlayer.name.toUpperCase()}...`
 
-                  else if (diceSettling) endTurnLabel = "SETTLING..."
+                  } else if (turnState === "ROLLING" || rolling || diceRolling) {
 
-                  else if (turnState === "RESOLVING_LANDING") endTurnLabel = "RESOLVING..."
+                    endTurnLabel = "ROLLING..."
 
-                  else if (activePlayer.money < 0) endTurnLabel = "SETTLE DEBT FIRST"
+                  } else if (turnState === "MOVING" || moving) {
 
-                  else if (modal !== null) endTurnLabel = "RESOLVE ACTION FIRST"
+                    endTurnLabel = "MOVING..."
 
-                  else if (!isHumanTurn) endTurnLabel = `WAITING FOR ${activePlayer.name.toUpperCase()}...`
+                  } else if (diceSettling) {
+
+                    endTurnLabel = "SETTLING..."
+
+                  } else if (turnState === "RESOLVING_LANDING") {
+
+                    endTurnLabel = "RESOLVING..."
+
+                  } else if (activePlayer.money < 0) {
+
+                    endTurnLabel = "SETTLE DEBT FIRST"
+
+                  } else if (modal !== null) {
+
+                    endTurnLabel = "RESOLVE ACTION FIRST"
+
+                  }
 
 
 
@@ -19220,7 +18980,9 @@ export default function App() {
 
               isLeft: Boolean(mp.isLeft),
 
-              money: mp.money ?? existing?.money ?? 0,
+              money: isMovementInProgressRef.current
+                ? (existing?.money ?? mp.money ?? 0)
+                : (mp.money ?? existing?.money ?? 0),
 
               position: isMovementInProgressRef.current ? (existing?.position ?? mp.position ?? 0) : (mp.position ?? existing?.position ?? 0),
 
@@ -19927,12 +19689,6 @@ export default function App() {
     }
 
   }
-
-
-
-
-
-  const playerNames = players.map((p) => p.name)
 
 
 

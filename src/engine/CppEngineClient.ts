@@ -212,7 +212,7 @@ export class CppEngineClient implements IGameEngine {
         body: JSON.stringify({ action: "payJailFine", playerId }),
       })
       const data = await res.json()
-      return { success: data.ok !== false, state: data.state, error: data.error }
+      return { success: Boolean(data.ok), state: data.state, error: data.error }
     } catch (err: any) {
       return { success: false, state: {} as any, error: err?.message }
     }

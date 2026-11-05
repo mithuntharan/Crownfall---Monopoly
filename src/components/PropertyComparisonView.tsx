@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react"
 import {
   CITY_PROPERTIES,
   SPECIAL_PROPERTIES,
-  COLOR_GROUPS,
   type PropertyDefinition,
   type SpecialPropertyDefinition,
 } from "../data/businessData"

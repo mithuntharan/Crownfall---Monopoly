@@ -90,13 +90,17 @@ export const BoardCenterRecentEvents: React.FC<BoardCenterRecentEventsProps> = (
       const normType = (evt.type || "").toUpperCase().trim()
       const normCat = ((evt.category as string) || "").toUpperCase().trim()
 
-      // Omit dice roll events from the central board log per Crownfall specification
+      // Omit dice roll events and turn-ending logs from the central board log per Crownfall specification
       if (
         normType === "ROLL" ||
         normType === "ROLL_MOVE" ||
         normType === "ROLL_DICE" ||
         normType === "DICE" ||
-        (normCat === "TURNS_DICE" && (normType.includes("ROLL") || (evt.description || "").toLowerCase().includes("rolled")))
+        normType === "END_TURN" ||
+        (normCat === "TURNS_DICE" && (normType.includes("ROLL") || (evt.description || "").toLowerCase().includes("rolled"))) ||
+        /ended (their|his|her|the)?\s*turn/i.test(evt.description || "") ||
+        /ended turn/i.test(evt.description || "") ||
+        /turn ended/i.test(evt.description || "")
       ) {
         continue
       }

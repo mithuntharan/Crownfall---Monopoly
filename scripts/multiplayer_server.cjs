@@ -1072,7 +1072,7 @@ class Room {
         timerEnabled: this.rules.timerEnabled ?? false,
         timerSeconds: this.rules.timerSeconds ?? 60,
         requireLandingToBuild: this.rules.requireLandingToBuild ?? false,
-        devMode: false,
+        devMode: Boolean(this.rules.devMode || this.devMode),
         inLobby: false,
         startGame: true,
         rules: this.rules,
@@ -1117,16 +1117,36 @@ class Room {
       }
 
       // Authoritative turn validation for turn-restricted actions
-      const turnRestricted = ['roll', 'buy', 'decline', 'endTurn', 'build'];
+      const turnRestricted = ['roll', 'buy', 'decline', 'endTurn', 'build', 'payJailFine'];
       if (turnRestricted.includes(action)) {
         if (!this.gameState || this.gameState.activePlayerIndex !== playerId) {
           const activeName = this.players[this.gameState?.activePlayerIndex]?.name || `Player ${(this.gameState?.activePlayerIndex ?? 0) + 1}`;
           throw new Error(`Not your turn. It is currently ${activeName}'s turn.`);
         }
+        if (action === 'payJailFine') {
+          const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
+          const isDetained = Boolean(
+            engPlayer?.inJail ||
+            (engPlayer?.jailTurns || 0) > 0 ||
+            engPlayer?.cardJailSkip ||
+            (engPlayer?.cardJailSkipTurns || 0) > 0
+          );
+          if (!isDetained) {
+            throw new Error('Cannot pay jail fine: player is not currently detained in Jail.');
+          }
+          if ((engPlayer?.money || 0) < 500) {
+            throw new Error('Insufficient cash: ₹500 required to pay Jail release fine.');
+          }
+          const curTurnState = this.gameState.turnState;
+          if (curTurnState !== 'WAITING_FOR_ROLL' && curTurnState !== 'WAITING_FOR_ACTION') {
+            throw new Error(`Cannot pay jail fine at this time (current turn state: ${curTurnState}).`);
+          }
+        }
         if (action === 'roll') {
           const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
-          if (process.env.REST_HOUSE_DEBUG === '1') { console.log(`[REST_DIAGNOSTIC] Roll attempt: player=${playerId}, pos=${engPlayer?.position}, restHouseTurns=${engPlayer?.restHouseTurns ?? 0}, inRestHouse=${engPlayer?.inRestHouse}`); }
-          if (engPlayer?.inRestHouse || (engPlayer?.restHouseTurns || 0) > 0 || engPlayer?.cardJailSkip || (engPlayer?.cardJailSkipTurns || 0) > 0) {
+          // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+          // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
+          if (engPlayer?.inRestHouse || engPlayer?.cardJailSkip) {
             throw new Error('Cannot roll: your turn is skipped.');
           }
           const curTurnState = this.gameState.turnState;
@@ -1242,19 +1262,6 @@ class Room {
       return map[propId.toLowerCase()] || (propId.charAt(0).toUpperCase() + propId.slice(1));
     };
 
-    if (action === 'payJailFine') {
-      this.addEvent({
-        id: `ev_jailfine_${now}_${player.id}_${seq}`,
-        type: 'JAIL_FINE',
-        category: 'RENT_PAYMENTS',
-        timestamp: now,
-        playerId: player.id,
-        playerName: player.name,
-        playerColor: player.color,
-        sequenceNumber: seq,
-        description: `${player.name} paid ₹500 to leave Jail.`,
-      });
-    }
 
     if (action === 'roll' && res) {
       // 1. Dice Roll (TURNS_DICE & MOVEMENT)
@@ -1563,6 +1570,19 @@ class Room {
         playerColor: player.color,
         sequenceNumber: seq,
         description: `${player.name} surrendered and resigned from the match.`,
+      });
+    } else if (action === 'payJailFine') {
+      this.addEvent({
+        id: `ev_jail_fine_${now}_${player.id}_${seq}`,
+        type: 'JAIL',
+        category: 'TURNS_DICE',
+        timestamp: now,
+        playerId: player.id,
+        playerName: player.name,
+        playerColor: player.color,
+        amount: 500,
+        sequenceNumber: seq,
+        description: `${player.name} paid ₹500 to leave Jail and was released.`,
       });
     } else if (action === 'endTurn') {
       // Routine end-turn messages omitted to prevent cluttering Dice & Turns log
@@ -1954,6 +1974,13 @@ class Room {
 
       return { ok: true, message: `Player ${player.name} kicked from match.`, snapshot: this.getSnapshot() };
     });
+  }
+
+  broadcastSnapshot(excludeSocket = null) {
+    broadcastToRoom(this, {
+      type: 'ROOM_SNAPSHOT',
+      snapshot: this.getSnapshot(),
+    }, excludeSocket);
   }
 
   getSnapshot() {
@@ -3245,6 +3272,7 @@ module.exports = {
   CppEngineProcess,
   PORT,
   HOST,
+  broadcastToRoom,
 };
 
 // If run directly via node scripts/multiplayer_server.cjs

@@ -544,17 +544,20 @@ button:focus-visible, input:focus-visible {
   transition-duration: var(--duration-btn-press);
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #881337 100%);
-  color: #fff;
-  border: 1px solid rgba(251, 191, 36, 0.5);
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+.btn-primary,
+.btn-gold {
+  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
+  color: #14110b;
+  border: 1px solid rgba(212, 175, 55, 0.65);
+  box-shadow: 0 3px 12px rgba(180, 140, 60, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-shadow: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #9f1239 100%);
-  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%);
+  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
   transform: translateY(-1px);
 }
 
@@ -1839,13 +1842,6 @@ button:focus-visible, input:focus-visible {
   font-weight: 700;
 }
 
-.special-space-icon {
-  font-size: 13px;
-  line-height: 1;
-  opacity: 0.95;
-  margin-bottom: 2px;
-}
-
 /* Tile Owner Indicator Ribbons - positioned on the outer perimeter edge of the board */
 .tile-owner-indicator {
   position: absolute;
@@ -2361,16 +2357,16 @@ button:focus-visible, input:focus-visible {
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #881337 100%);
-  border: 1px solid rgba(251, 191, 36, 0.5);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.45);
+  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
+  border: 1px solid rgba(212, 175, 55, 0.65);
+  color: #14110b;
+  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.35);
   transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .roll-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #9f1239 100%);
-  box-shadow: 0 6px 22px rgba(217, 119, 6, 0.6);
+  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%);
+  box-shadow: 0 6px 20px rgba(180, 140, 60, 0.45);
 }
 
 /* Adaptive Action Button: End Turn Mode */
@@ -2385,7 +2381,7 @@ button:focus-visible, input:focus-visible {
   color: #fff;
   border-color: var(--gold-bright);
   box-shadow: 0 4px 18px rgba(190, 18, 60, 0.5), 0 0 12px rgba(245, 158, 11, 0.35);
-  animation: endTurnGlow 2.2s infinite ease-in-out;
+  animation: none;
 }
 
 .roll-button.end-turn-mode:not(:disabled):hover {
@@ -5201,17 +5197,19 @@ button:focus-visible, input:focus-visible {
 }
 
 /* ─── Buttons in Dark Theme ─────────────────────────────────────────── */
-[data-theme="dark"] .btn-primary {
-  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(251, 191, 36, 0.55) !important;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-gold {
+  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%) !important;
+  color: #14110b !important;
+  border: 1px solid rgba(212, 175, 55, 0.65) !important;
+  box-shadow: 0 3px 14px rgba(180, 140, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  text-shadow: none !important;
 }
 
-[data-theme="dark"] .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
-  box-shadow: 0 6px 22px rgba(212, 175, 55, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
+[data-theme="dark"] .btn-primary:hover:not(:disabled),
+[data-theme="dark"] .btn-gold:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
+  box-shadow: 0 4px 18px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
 }
 
 [data-theme="dark"] .btn-secondary {
@@ -5382,15 +5380,15 @@ button:focus-visible, input:focus-visible {
 
 /* ─── Roll & End Turn Controls in Dark Theme ────────────────────────── */
 [data-theme="dark"] .roll-button {
-  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
-  border: 1px solid rgba(251, 191, 36, 0.55) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.4) !important;
+  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.65) !important;
+  color: #14110b !important;
+  box-shadow: 0 4px 18px rgba(180, 140, 60, 0.35) !important;
 }
 
 [data-theme="dark"] .roll-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
-  box-shadow: 0 6px 24px rgba(212, 175, 55, 0.55) !important;
+  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
+  box-shadow: 0 6px 22px rgba(180, 140, 60, 0.45) !important;
 }
 
 [data-theme="dark"] .roll-button.end-turn-mode,

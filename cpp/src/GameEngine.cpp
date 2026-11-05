@@ -372,8 +372,8 @@ void GameEngine::advanceTurn(bool extraTurn) {
         if (candidate.cardJailSkipTurns > 0 || candidate.cardJailSkip) {
             candidate.cardJailSkipTurns = 0;
             candidate.cardJailSkip = false;
-            addLogEntry(candidate.id, "jail", candidate.name + " skipped their turn in Jail from a card.");
-            skipped = true;
+            // Retain detention so player receives scheduled turn to pay ₹500 or roll for doubles
+            candidate.inJail = true;
         }
 
         if (skipped) {
@@ -702,7 +702,9 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     // If a roll request somehow arrives for a player with skip flags still set,
     // that is a state error — reject it but do NOT call advanceTurn() here,
     // as that would cause a double-advance past the legitimate next player.
-    if (player.inRestHouse || player.cardJailSkip || player.restHouseTurns > 0 || player.cardJailSkipTurns > 0) {
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
+    if (player.inRestHouse || player.cardJailSkip) {
         result.previousPosition = player.position;
         result.newPosition = player.position;
         result.spaceName = (player.position == 27) ? "REST HOUSE" : "JAIL";
@@ -1088,7 +1090,8 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         m_landingActive = false;
     }
 
-    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail && !result.mustGoToJail && !result.mustGoToRestHouse && !player.cardJailSkip && !player.inRestHouse);
+    // Landing on Rest House schedules a skip for the next scheduled turn, but does NOT cancel an extra roll earned from doubles in the current turn.
+    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail && !result.mustGoToJail && !player.cardJailSkip && !player.inRestHouse);
     result.extraTurnGranted = extra;
     m_lastTurnResult = result;
 
@@ -2158,7 +2161,7 @@ std::string GameEngine::exportStateJson() const {
 bool GameEngine::payJailFine(int playerId) {
     if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
     auto& player = m_players[playerId];
-    if (!player.inJail && player.jailTurns <= 0 && !player.cardJailSkip) return false;
+    if (!player.inJail && player.jailTurns <= 0 && !player.cardJailSkip && player.cardJailSkipTurns <= 0) return false;
     if (player.money < 500) return false;
 
     player.money -= 500;
@@ -2167,6 +2170,7 @@ bool GameEngine::payJailFine(int playerId) {
     player.cardJailSkip = false;
     player.cardJailSkipTurns = 0;
     m_turnState = TurnState::WAITING_FOR_ROLL;
+    m_lastTurnResult.mustGoToJail = false;
 
     recordTransaction("JAIL_FINE", player.name + " paid ₹500 to leave Jail.", 500, player.id, -1, "");
     addLogEntry(player.id, "jail", player.name + " paid ₹500 to leave Jail.", 500);

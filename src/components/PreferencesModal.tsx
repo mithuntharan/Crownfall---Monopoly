@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import {
   type GamePreferences,
-  DEFAULT_PREFERENCES,
   audioSystem,
   triggerHaptic,
 } from "../utils/audioSystem"
@@ -82,7 +81,7 @@ export function PreferencesModal({
     isUserInteractingRef.current = true
     const updated: any = { ...localRules, [key]: val }
     if (key === "defaultStartingMoney") {
-      updated.passStartBonus = Math.floor((val * 5 + 5000) / 10000) * 100
+      updated.passStartBonus = Math.floor((Number(val) * 5 + 5000) / 10000) * 100
     }
     if (key === "requireLandingToBuild") {
       updated.buildingRule = val ? "land" : "anywhere"
