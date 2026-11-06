@@ -52,7 +52,7 @@ export const DetainedJailPanel: React.FC<DetainedJailPanelProps> = ({
       </button>
 
       <span className="detained-jail-status-pill">
-        In Jail • Turn {currentTurn} of 3
+        In Jail • Turn {Math.min(currentTurn, 2)} of 2
       </span>
     </div>
   )

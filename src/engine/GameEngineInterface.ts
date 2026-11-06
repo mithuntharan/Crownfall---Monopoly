@@ -151,8 +151,10 @@ export interface TradeOffer {
   senderCash: number
   receiverPropertyIds: string[]
   receiverCash: number
-  status: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "INVALIDATED"
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "INVALIDATED" | "EXPIRED"
   timestamp: number
+  createdAt?: number
+  expiresAt?: number
 }
 
 export type GamePhase = "LOBBY" | "IN_PROGRESS" | "GAME_OVER"

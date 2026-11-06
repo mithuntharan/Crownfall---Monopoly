@@ -4371,7 +4371,7 @@ function Board({
 
             const tileIdx = (((playerPositions[idx] !== undefined ? playerPositions[idx] : (player.position ?? 0)) % 36) + 36) % 36
 
-            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0 || player.cardJailSkip))
+            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0))
 
             const center = getTileCenterPercent(tileIdx, isDetained)
 
@@ -4397,7 +4397,7 @@ function Board({
 
                 if (tileIdx === 9) {
 
-                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0 || item.p.cardJailSkip)
+                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0)
 
                   return itemDetained === isDetained
 
@@ -11692,7 +11692,7 @@ interface ActivePurchaseOpportunity {
 
   // End Turn Action: Allowed only after mandatory actions resolved, prohibited on doubles and negative debt
 
-  const isMustSkip = Boolean(activePlayer?.inRestHouse || activePlayer?.cardJailSkip)
+  const isMustSkip = Boolean(activePlayer?.inRestHouse)
 
 
 
@@ -11750,7 +11750,7 @@ interface ActivePurchaseOpportunity {
 
     if (activePlayer?.inRestHouse) return isHumanTurn ? "Rest House: Turn Skipped" : `${activePlayer.name} resting (Turn Skipped)`
 
-    if (activePlayer?.cardJailSkip) return isHumanTurn ? "Jail: Turn Skipped" : `${activePlayer.name} in Jail (Turn Skipped)`
+    if (activePlayer?.inJail) return isHumanTurn ? "In Jail: Pay ₹500 or Roll Doubles" : `${activePlayer.name} detained in Jail`
 
     if (turnState === "WAITING_FOR_ROLL") return isHumanTurn ? "Your roll" : "Awaiting roll"
 
@@ -14732,9 +14732,9 @@ interface ActivePurchaseOpportunity {
 
 
 
-    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse).
     // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
-    if (actingPlayer?.inRestHouse || actingPlayer?.cardJailSkip) {
+    if (actingPlayer?.inRestHouse) {
 
       console.warn(`[Roll] Blocked roll: player #${snapPlayerIndex} turn is skipped.`)
 
@@ -16212,9 +16212,9 @@ interface ActivePurchaseOpportunity {
 
                     <b style={{ color: "#fca5a5" }}>REST HOUSE</b>
 
-                  ) : activePlayer?.cardJailSkip ? (
+                  ) : activePlayer?.inJail ? (
 
-                    <b style={{ color: "#fca5a5" }}>JAIL SKIP</b>
+                    <b style={{ color: "#fca5a5" }}>IN JAIL</b>
 
                   ) : (
 
@@ -16412,7 +16412,7 @@ interface ActivePurchaseOpportunity {
 
                 (() => {
 
-                  const isMustSkip = Boolean(activePlayer?.inRestHouse || activePlayer?.cardJailSkip)
+                  const isMustSkip = Boolean(activePlayer?.inRestHouse)
 
                   const isRollPhase = (turnState === "WAITING_FOR_ROLL" || turnState === "EXTRA_TURN") && !isMustSkip
 
@@ -16428,7 +16428,7 @@ interface ActivePurchaseOpportunity {
 
 
 
-                  const isDetainedInJail = Boolean(activePlayer?.inJail || (activePlayer?.jailTurns ?? 0) > 0 || activePlayer?.cardJailSkip)
+                  const isDetainedInJail = Boolean(activePlayer?.inJail || (activePlayer?.jailTurns ?? 0) > 0)
 
                   const canPayFine = isHumanTurn && !isBusy && isDetainedInJail && (activePlayer?.money ?? 0) >= 500
 
@@ -16440,15 +16440,11 @@ interface ActivePurchaseOpportunity {
                         isPayingFine={isPayingJailFine}
                         onPayFine={handlePayJailFine}
                         onAttemptRollOrSkip={() => {
-                          if (isMustSkip) {
-                            handleManualEndTurn()
-                          } else {
-                            if (!rollingRef.current && !movingRef.current) {
-                              roll(false)
-                            }
+                          if (!rollingRef.current && !movingRef.current) {
+                            roll(false)
                           }
                         }}
-                        isCardSkip={Boolean(activePlayer?.cardJailSkip)}
+                        isCardSkip={false}
                         isBusy={isBusy}
                       />
                     )

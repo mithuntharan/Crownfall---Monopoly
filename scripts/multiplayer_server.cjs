@@ -261,12 +261,42 @@ class Room {
     this.lastActivityAt = Date.now();
   }
 
+  cleanExpiredTrades() {
+    if (!this.gameState?.tradeOffers) return;
+    const now = Date.now();
+    for (const trade of this.gameState.tradeOffers) {
+      if (trade.status === 'PENDING') {
+        const expiresAt = trade.expiresAt || (trade.createdAt ? trade.createdAt + 60000 : (trade.timestamp ? trade.timestamp + 60000 : 0));
+        if (expiresAt > 0 && now >= expiresAt) {
+          trade.status = 'EXPIRED';
+          continue;
+        }
+        const s = this.getPlayerById(trade.senderId);
+        const r = this.getPlayerById(trade.receiverId);
+        if (!s || !r || s.isLeft || r.isLeft || s.isBankrupt || r.isBankrupt) {
+          trade.status = 'CANCELLED';
+        }
+      }
+    }
+  }
+
   setGameState(state) {
     if (!state) {
       this.gameState = null;
       return;
     }
     this.gameState = state;
+    if (this.gameState && this.gameState.tradeOffers) {
+      const now = Date.now();
+      for (const t of this.gameState.tradeOffers) {
+        if (!t.createdAt) t.createdAt = t.timestamp || now;
+        if (!t.expiresAt) t.expiresAt = t.createdAt + 60000;
+        if (t.status === 'PENDING' && now >= t.expiresAt) {
+          t.status = 'EXPIRED';
+        }
+      }
+    }
+    this.cleanExpiredTrades();
     if (this.gameState && this.gameState.players) {
       for (const gp of this.gameState.players) {
         const rp = this.getPlayerById(gp.id);
@@ -1145,9 +1175,7 @@ class Room {
           const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
           const isDetained = Boolean(
             engPlayer?.inJail ||
-            (engPlayer?.jailTurns || 0) > 0 ||
-            engPlayer?.cardJailSkip ||
-            (engPlayer?.cardJailSkipTurns || 0) > 0
+            (engPlayer?.jailTurns || 0) > 0
           );
           if (!isDetained) {
             throw new Error('Cannot pay jail fine: player is not currently detained in Jail.');
@@ -1162,9 +1190,9 @@ class Room {
         }
         if (action === 'roll') {
           const engPlayer = this.gameState?.players?.find(p => p.id === playerId);
-          // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+          // Only block roll if the player is currently in an active skipped-turn state (inRestHouse).
           // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
-          if (engPlayer?.inRestHouse || engPlayer?.cardJailSkip) {
+          if (engPlayer?.inRestHouse) {
             throw new Error('Cannot roll: your turn is skipped.');
           }
           const curTurnState = this.gameState.turnState;
@@ -1186,6 +1214,13 @@ class Room {
         if (player.isBankrupt || engP?.isBankrupt) {
           throw new Error('Player has already resigned or been eliminated.');
         }
+        if (this.gameState?.tradeOffers) {
+          for (const trade of this.gameState.tradeOffers) {
+            if (trade.status === 'PENDING' && (trade.senderId === playerId || trade.receiverId === playerId)) {
+              trade.status = 'CANCELLED';
+            }
+          }
+        }
       }
 
       this.actionSequence++;
@@ -1194,6 +1229,29 @@ class Room {
         playerId,
         ...payload,
       };
+
+      if (action === 'tradeCreate') {
+        const now = Date.now();
+        cmd.createdAt = now;
+        cmd.expiresAt = now + 60000;
+      }
+
+      if (action === 'tradeAccept') {
+        this.cleanExpiredTrades();
+        const tradeId = payload.tradeId;
+        const offer = this.gameState?.tradeOffers?.find(t => t.id === tradeId);
+        if (offer) {
+          const now = Date.now();
+          const expiresAt = offer.expiresAt || (offer.createdAt ? offer.createdAt + 60000 : (offer.timestamp ? offer.timestamp + 60000 : 0));
+          if (expiresAt > 0 && now >= expiresAt) {
+            offer.status = 'EXPIRED';
+            throw new Error('Trade offer has expired and can no longer be accepted.');
+          }
+          if (offer.status !== 'PENDING') {
+            throw new Error(`Trade offer is no longer pending (status: ${offer.status}).`);
+          }
+        }
+      }
 
       if (action.startsWith('trade') && cmd.senderId === undefined) {
         cmd.senderId = playerId;
@@ -1956,6 +2014,14 @@ class Room {
         description: `${player.name} was kicked from the match (${reason}).`,
       });
 
+      if (this.gameState?.tradeOffers) {
+        for (const trade of this.gameState.tradeOffers) {
+          if (trade.status === 'PENDING' && (trade.senderId === targetId || trade.receiverId === targetId)) {
+            trade.status = 'CANCELLED';
+          }
+        }
+      }
+
       // Advance turn if it was their active turn
       if (this.gameState && this.gameState.activePlayerIndex === targetId) {
         try {
@@ -2002,6 +2068,7 @@ class Room {
   }
 
   getSnapshot() {
+    this.cleanExpiredTrades();
     return {
       roomCode: this.roomCode,
       hostPlayerId: this.actingHostPlayerId ?? this.hostPlayerId,
@@ -2042,8 +2109,8 @@ class Room {
           jailTurns: engP ? engP.jailTurns : 0,
           inRestHouse: engP ? engP.inRestHouse : false,
           restHouseTurns: engP ? (engP.restHouseTurns || 0) : 0,
-          cardJailSkip: engP ? Boolean(engP.cardJailSkip) : false,
-          cardJailSkipTurns: engP ? (engP.cardJailSkipTurns || 0) : 0,
+          cardJailSkip: false,
+          cardJailSkipTurns: 0,
           ownedProperties: engP ? engP.ownedProperties : [],
           buildings: engP ? engP.buildings : {},
           mortgages: engP ? engP.mortgages : {},

@@ -661,9 +661,9 @@ export class LocalGameEngine implements IGameEngine {
     // If a roll request arrives for a player with pending skip flags, reject without
     // side-effects so endTurn's advanceTurn() remains the sole authoritative consumer.
     // Calling advanceTurn() here would double-advance the turn and skip the wrong player.
-    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse).
     // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
-    if (player.inRestHouse || player.cardJailSkip) {
+    if (player.inRestHouse) {
       throw new Error(
         `Cannot roll: ${player.name}'s turn is being skipped. End your turn instead.`
       )
@@ -904,20 +904,21 @@ export class LocalGameEngine implements IGameEngine {
             res.spaceType = "corner"
             this.handleRestHouseLanding(player, res)
           } else if (decl.kind === "move" && total === 9) {
-            const cardFrom = player.position
-            player.position = 23
-            const cardSteps = (23 - cardFrom + 36) % 36
-            if (cardSteps > 0) {
-              this.recordOwnerCrossings(player.id, cardFrom, cardSteps)
-            }
-            if (cardFrom > 23) {
+            if (player.position === 7) {
+              player.position = 1
+              res.eventDescription = `${player.name} drew Chance: Go back to ${BOARD_SPACES[1].name}.`
+            } else {
               const bonus = this.rules.passStartBonus ?? Math.floor((this.rules.defaultStartingMoney * 5 + 5000) / 10000) * 100
               player.money += bonus
               res.moneyChange = bonus
               res.passStartBonusAwarded = true
+              const cardFrom = player.position
+              player.position = 23
+              const cardSteps = (23 - cardFrom + 36) % 36
+              if (cardSteps > 0) {
+                this.recordOwnerCrossings(player.id, cardFrom, cardSteps)
+              }
               res.eventDescription = `${player.name} drew Chance: Passed Start (+₹${bonus}) and went to ${BOARD_SPACES[23].name}.`
-            } else {
-              res.eventDescription = `${player.name} drew Chance: Go to ${BOARD_SPACES[23].name}.`
             }
             res.newPosition = player.position
             const destSpace = BOARD_SPACES[player.position]
@@ -1103,7 +1104,6 @@ export class LocalGameEngine implements IGameEngine {
       !player.inJail &&
       !wasInJail &&
       !res.mustGoToJail &&
-      !player.cardJailSkip &&
       !player.inRestHouse
     )
 
@@ -1817,9 +1817,15 @@ export class LocalGameEngine implements IGameEngine {
     }
   }
 
-  private invalidateConflictingTrades(acceptedTrade: TradeOffer) {
+  private invalidateConflictingTrades(acceptedTrade?: TradeOffer) {
+    const now = Date.now()
     for (const offer of this.tradeOffers) {
-      if (offer.id === acceptedTrade.id || offer.status !== "PENDING") continue
+      if (offer.status !== "PENDING") continue
+      if (offer.expiresAt && now >= offer.expiresAt) {
+        offer.status = "EXPIRED"
+        continue
+      }
+      if (acceptedTrade && offer.id === acceptedTrade.id) continue
 
       const s = this.players[offer.senderId]
       const r = this.players[offer.receiverId]
@@ -1829,8 +1835,12 @@ export class LocalGameEngine implements IGameEngine {
       }
 
       // Check if any property was traded in the accepted trade
-      const tradedProps = new Set([...acceptedTrade.senderPropertyIds, ...acceptedTrade.receiverPropertyIds])
-      const hasConflict = [...offer.senderPropertyIds, ...offer.receiverPropertyIds].some((p) => tradedProps.has(p))
+      const tradedProps = acceptedTrade
+        ? new Set([...acceptedTrade.senderPropertyIds, ...acceptedTrade.receiverPropertyIds])
+        : new Set<string>()
+      const hasConflict =
+        tradedProps.size > 0 &&
+        [...offer.senderPropertyIds, ...offer.receiverPropertyIds].some((p) => tradedProps.has(p))
 
       // Check if sender/receiver still owns offered properties
       const senderOwnsAll = offer.senderPropertyIds.every((p) => s.ownedProperties.includes(p))
@@ -1893,6 +1903,7 @@ export class LocalGameEngine implements IGameEngine {
     }
 
     const tradeId = `trade_${this.nextTradeId++}`
+    const now = Date.now()
     const offer: TradeOffer = {
       id: tradeId,
       senderId,
@@ -1904,7 +1915,9 @@ export class LocalGameEngine implements IGameEngine {
       receiverPropertyIds: [...receiverPropertyIds],
       receiverCash,
       status: "PENDING",
-      timestamp: Date.now(),
+      timestamp: now,
+      createdAt: now,
+      expiresAt: now + 60000,
     }
     this.tradeOffers.push(offer)
 
@@ -1924,6 +1937,11 @@ export class LocalGameEngine implements IGameEngine {
     const offer = this.tradeOffers.find((o) => o.id === tradeId)
     if (!offer || offer.status !== "PENDING") {
       return { success: false, state: await this.getState(), error: "Offer not found or not pending" }
+    }
+    const now = Date.now()
+    if (offer.expiresAt && now >= offer.expiresAt) {
+      offer.status = "EXPIRED"
+      return { success: false, state: await this.getState(), error: "Trade offer has expired and can no longer be accepted." }
     }
     if (offer.receiverId !== playerId && !this.devMode) {
       return { success: false, state: await this.getState(), error: "Only receiver can accept trade" }

@@ -171,8 +171,10 @@ struct TradeOffer {
     int senderCash = 0;
     std::vector<std::string> receiverPropertyIds;
     int receiverCash = 0;
-    std::string status = "PENDING"; // "PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "INVALIDATED"
+    std::string status = "PENDING"; // "PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "INVALIDATED", "EXPIRED"
     long long timestamp = 0;
+    long long createdAt = 0;
+    long long expiresAt = 0;
 };
 
 // 11. TURN STATE MACHINE

@@ -186,6 +186,24 @@ export function TradeModal({
   }
 
   // Properties eligible for trade (must have 0 houses/hotels)
+  const [now, setNow] = useState<number>(Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const isOfferExpired = (offer: TradeOffer) => {
+    if (offer.status === "EXPIRED") return true
+    const expiresAt = offer.expiresAt || (offer.createdAt ? offer.createdAt + 60000 : (offer.timestamp ? offer.timestamp + 60000 : 0))
+    return expiresAt > 0 && now >= expiresAt
+  }
+
+  const getRemainingSeconds = (offer: TradeOffer) => {
+    const expiresAt = offer.expiresAt || (offer.createdAt ? offer.createdAt + 60000 : (offer.timestamp ? offer.timestamp + 60000 : 0))
+    if (!expiresAt) return 0
+    return Math.max(0, Math.ceil((expiresAt - now) / 1000))
+  }
+
   const eligibleLocalProps = useMemo(() => {
     return localPlayer.ownedProperties.filter(
       (propId) => (localPlayer.buildings[propId] || 0) === 0,
@@ -202,26 +220,26 @@ export function TradeModal({
   // Split trade offers
   const incomingOffers = useMemo(() => {
     return tradeOffers.filter(
-      (t) => t.receiverId === localPlayer.id && t.status === "PENDING",
+      (t) => t.receiverId === localPlayer.id && t.status === "PENDING" && !isOfferExpired(t),
     )
-  }, [tradeOffers, localPlayer.id])
+  }, [tradeOffers, localPlayer.id, now])
 
   const outgoingOffers = useMemo(() => {
     return tradeOffers.filter(
-      (t) => t.senderId === localPlayer.id && t.status === "PENDING",
+      (t) => t.senderId === localPlayer.id && t.status === "PENDING" && !isOfferExpired(t),
     )
-  }, [tradeOffers, localPlayer.id])
+  }, [tradeOffers, localPlayer.id, now])
 
   const pastOffers = useMemo(() => {
     return tradeOffers
       .filter(
         (t) =>
           (t.senderId === localPlayer.id || t.receiverId === localPlayer.id) &&
-          t.status !== "PENDING",
+          (t.status !== "PENDING" || isOfferExpired(t)),
       )
       .slice(-10)
       .reverse()
-  }, [tradeOffers, localPlayer.id])
+  }, [tradeOffers, localPlayer.id, now])
 
   const toggleOfferedProp = (propId: string) => {
     setOfferedProps((prev) =>
@@ -590,13 +608,28 @@ export function TradeModal({
                           transition: "all 0.3s ease",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                           <span style={{ fontWeight: 700, color: "var(--text-primary, #f8fafc)", fontSize: "13px" }}>
                             From: <span style={{ color: "var(--gold-300)" }}>{offer.senderName}</span>
                           </span>
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                            {new Date(offer.timestamp).toLocaleTimeString()}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "2px 8px",
+                                borderRadius: "10px",
+                                background: getRemainingSeconds(offer) <= 10 ? "rgba(239, 68, 68, 0.2)" : "rgba(200, 155, 69, 0.2)",
+                                color: getRemainingSeconds(offer) <= 10 ? "#fca5a5" : "var(--gold-300)",
+                                border: getRemainingSeconds(offer) <= 10 ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid rgba(200, 155, 69, 0.3)",
+                              }}
+                            >
+                              ⏱ {getRemainingSeconds(offer)}s
+                            </span>
+                            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                              {new Date(offer.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
                         </div>
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px", fontSize: "12px", marginBottom: "12px" }}>
@@ -720,8 +753,23 @@ export function TradeModal({
                         }}
                       >
                         <div style={{ fontSize: "12px" }}>
-                          <span style={{ color: "var(--text-muted)" }}>Sent to </span>
-                          <strong style={{ color: "var(--text-primary, #f8fafc)" }}>{offer.receiverName}</strong>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ color: "var(--text-muted)" }}>Sent to </span>
+                            <strong style={{ color: "var(--text-primary, #f8fafc)" }}>{offer.receiverName}</strong>
+                            <span
+                              style={{
+                                fontSize: "10.5px",
+                                fontWeight: 700,
+                                padding: "1px 6px",
+                                borderRadius: "8px",
+                                background: getRemainingSeconds(offer) <= 10 ? "rgba(239, 68, 68, 0.2)" : "rgba(200, 155, 69, 0.2)",
+                                color: getRemainingSeconds(offer) <= 10 ? "#fca5a5" : "var(--gold-300)",
+                                border: getRemainingSeconds(offer) <= 10 ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid rgba(200, 155, 69, 0.3)",
+                              }}
+                            >
+                              ⏱ {getRemainingSeconds(offer)}s
+                            </span>
+                          </div>
                           <div style={{ color: "var(--gold-300)", marginTop: "2px" }}>
                             Giving: ₹{offer.senderCash.toLocaleString()} {offer.senderPropertyIds.map(getPropName).join(", ")} | Asking: ₹{offer.receiverCash.toLocaleString()} {offer.receiverPropertyIds.map(getPropName).join(", ")}
                           </div>
@@ -783,10 +831,12 @@ export function TradeModal({
                                 ? "#ef4444"
                                 : offer.status === "INVALIDATED"
                                 ? "#f59e0b"
+                                : offer.status === "EXPIRED" || isOfferExpired(offer)
+                                ? "#94a3b8"
                                 : "var(--text-muted)",
                           }}
                         >
-                          {offer.status}
+                          {offer.status === "PENDING" && isOfferExpired(offer) ? "EXPIRED" : offer.status}
                         </span>
                       </div>
                     ))}

@@ -1044,9 +1044,9 @@ static void dispatchServerCommand(std::unique_ptr<GameEngine> &engine,
     int activeIdx = engine->getActivePlayerIndex();
     if (activeIdx >= 0 && activeIdx < static_cast<int>(engine->getPlayers().size())) {
       const auto& actP = engine->getPlayers()[activeIdx];
-      // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+      // Only block roll if the player is currently in an active skipped-turn state (inRestHouse).
       // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
-      if (actP.inRestHouse || actP.cardJailSkip) {
+      if (actP.inRestHouse) {
         // Do NOT call advanceTurn() here. Skip consumption is solely handled by
         // advanceTurn() inside endTurn processing. Calling it here would double-advance
         // the turn order, skipping the wrong player. Just reject the roll.

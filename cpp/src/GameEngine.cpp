@@ -702,9 +702,9 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     // If a roll request somehow arrives for a player with skip flags still set,
     // that is a state error — reject it but do NOT call advanceTurn() here,
     // as that would cause a double-advance past the legitimate next player.
-    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse or cardJailSkip).
+    // Only block roll if the player is currently in an active skipped-turn state (inRestHouse).
     // Pending future skips (restHouseTurns > 0) belong to the next scheduled turn and must not block an extra roll from doubles.
-    if (player.inRestHouse || player.cardJailSkip) {
+    if (player.inRestHouse) {
         result.previousPosition = player.position;
         result.newPosition = player.position;
         result.spaceName = (player.position == 27) ? "REST HOUSE" : "JAIL";
@@ -717,7 +717,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     // Check Jail: roll dice HERE; if still in jail, return early.
     bool wasInJail = player.inJail;
     if (player.inJail) {
-        player.jailTurns++;
+        int attempt = player.jailTurns + 1;
         int d1 = (riggedDice && m_devMode) ? riggedDice->first : (std::uniform_int_distribution<int>(1, 6)(m_rng));
         int d2 = (riggedDice && m_devMode) ? riggedDice->second : (std::uniform_int_distribution<int>(1, 6)(m_rng));
         result.dice1 = d1;
@@ -727,19 +727,27 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         m_lastDice1 = d1;
         m_lastDice2 = d2;
 
-        if (result.isDouble || player.jailTurns >= 3) {
+        if (result.isDouble) {
             player.inJail = false;
             player.jailTurns = 0;
-            std::string releaseMsg = player.name + (result.isDouble ? " rolled doubles and was released from Jail!" : " finished 3-turn jail sentence and is released!");
+            std::string releaseMsg = player.name + " rolled doubles and was released from Jail!";
             result.eventDescription = releaseMsg;
             addLogEntry(player.id, "jail", releaseMsg);
+            // Movement proceeds below using this roll. wasInJail prevents extra doubles turn.
         } else {
+            player.jailTurns = attempt;
+            if (attempt >= 2) {
+                player.inJail = false; // Sentence served after consuming 2nd detention turn!
+                player.jailTurns = 0;
+                result.eventDescription = player.name + " failed to roll doubles (attempt 2 of 2). Jail sentence served; released for next turn.";
+            } else {
+                result.eventDescription = player.name + " failed to roll doubles (attempt 1 of 2) and remains in Jail.";
+            }
             result.previousPosition = player.position;
             result.newPosition = player.position;
             result.spaceName = "JAIL";
             result.spaceType = SpaceType::Corner;
             result.mustGoToJail = false;
-            result.eventDescription = player.name + " remains in Jail (turn " + std::to_string(player.jailTurns) + "/3).";
             m_lastTurnResult = result;
             addLogEntry(player.id, "jail", result.eventDescription);
             if (player.isHuman) {
@@ -874,14 +882,14 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
                     player.jailTurns = 0;
-                    player.cardJailSkipTurns = 1;
+                    player.cardJailSkipTurns = 0;
                     player.cardJailSkip = false;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
                     result.spaceName = "JAIL";
                     result.spaceType = SpaceType::Corner;
-                    result.eventDescription = player.name + " drew Chance: Go to Jail (misses next turn).";
+                    result.eventDescription = player.name + " drew Chance: Go to Jail.";
                 } else if (decl->kind == "rest") {
                     player.position = 27;
                     player.restHouseTurns = 1;
@@ -892,19 +900,20 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                     result.spaceType = SpaceType::Corner;
                     result.eventDescription = player.name + " drew Chance: Rest House (skips next turn).";
                 } else if (decl->kind == "move" && result.diceTotal == 9) {
-                    int cardFrom = player.position;
-                    player.position = 23; // Darjeeling
-                    int cardSteps = (23 - cardFrom + 36) % 36;
-                    if (cardSteps > 0) {
-                        recordOwnerCrossings(player.id, cardFrom, cardSteps);
-                    }
-                    if (cardFrom > 23) {
+                    if (player.position == 7) {
+                        player.position = 1; // Bombay
+                        result.eventDescription = player.name + " drew Chance: Go back to " + spaces[1].name + ".";
+                    } else {
                         player.money += m_rules.passStartBonus;
                         result.moneyChange = m_rules.passStartBonus;
                         result.passStartBonusAwarded = true;
+                        int cardFrom = player.position;
+                        player.position = 23; // Darjeeling
+                        int cardSteps = (23 - cardFrom + 36) % 36;
+                        if (cardSteps > 0) {
+                            recordOwnerCrossings(player.id, cardFrom, cardSteps);
+                        }
                         result.eventDescription = player.name + " drew Chance: Passed Start (+₹" + std::to_string(m_rules.passStartBonus) + ") and went to " + spaces[23].name + ".";
-                    } else {
-                        result.eventDescription = player.name + " drew Chance: Go to " + spaces[23].name + ".";
                     }
                     result.newPosition = player.position;
                     const auto& destSpace = spaces[player.position];
@@ -960,14 +969,14 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
                 } else if (decl->kind == "jail") {
                     player.inJail = true;
                     player.jailTurns = 0;
-                    player.cardJailSkipTurns = 1;
+                    player.cardJailSkipTurns = 0;
                     player.cardJailSkip = false;
                     player.position = 9;
                     result.mustGoToJail = true;
                     result.newPosition = 9;
                     result.spaceName = "JAIL";
                     result.spaceType = SpaceType::Corner;
-                    result.eventDescription = player.name + " drew Community Chest: Go to Jail (misses next turn).";
+                    result.eventDescription = player.name + " drew Community Chest: Go to Jail.";
                 } else if (decl->kind == "rest") {
                     player.position = 27;
                     player.restHouseTurns = 1;
@@ -1087,7 +1096,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     }
 
     // Landing on Rest House schedules a skip for the next scheduled turn, but does NOT cancel an extra roll earned from doubles in the current turn.
-    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail && !result.mustGoToJail && !player.cardJailSkip && !player.inRestHouse);
+    bool extra = (m_rules.doublesRuleEnabled && result.isDouble && !player.inJail && !wasInJail && !result.mustGoToJail && !player.inRestHouse);
     result.extraTurnGranted = extra;
     m_lastTurnResult = result;
 
@@ -1719,8 +1728,11 @@ std::string GameEngine::createTradeOffer(int senderId, int receiverId,
     offer.receiverPropertyIds = receiverProps;
     offer.receiverCash = receiverCash;
     offer.status = "PENDING";
-    offer.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+    long long now = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
+    offer.timestamp = now;
+    offer.createdAt = now;
+    offer.expiresAt = now + 60000;
 
     m_tradeOffers.push_back(offer);
     addLogEntry(senderId, "trade_offer", sender.name + " proposed trade " + offer.id + " to " + receiver.name + ".");
@@ -1736,8 +1748,14 @@ std::string GameEngine::createTradeOffer(int senderId, int receiverId,
 }
 
 void GameEngine::invalidateConflictingTrades() {
+    long long now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     for (auto& trade : m_tradeOffers) {
         if (trade.status != "PENDING") continue;
+        if (trade.expiresAt > 0 && now >= trade.expiresAt) {
+            trade.status = "EXPIRED";
+            continue;
+        }
         if (trade.senderId < 0 || trade.senderId >= static_cast<int>(m_players.size())) {
             trade.status = "INVALIDATED";
             continue;
@@ -1778,6 +1796,13 @@ bool GameEngine::acceptTradeOffer(int playerId, const std::string& tradeId, std:
         return false;
     }
     TradeOffer& trade = *it;
+    long long now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    if (trade.expiresAt > 0 && now >= trade.expiresAt) {
+        trade.status = "EXPIRED";
+        outError = "Trade offer has expired and can no longer be accepted.";
+        return false;
+    }
     if (trade.status != "PENDING") {
         outError = "Trade is no longer pending (status: " + trade.status + ").";
         return false;
@@ -2093,6 +2118,8 @@ std::string GameEngine::exportStateJson() const {
         ss << "      \"receiverCash\": " << t.receiverCash << ",\n";
         ss << "      \"status\": \"" << escapeJson(t.status) << "\",\n";
         ss << "      \"timestamp\": " << t.timestamp << ",\n";
+        ss << "      \"createdAt\": " << (t.createdAt > 0 ? t.createdAt : t.timestamp) << ",\n";
+        ss << "      \"expiresAt\": " << (t.expiresAt > 0 ? t.expiresAt : (t.timestamp + 60000)) << ",\n";
         ss << "      \"senderPropertyIds\": [";
         for (size_t j = 0; j < t.senderPropertyIds.size(); ++j) {
             ss << "\"" << escapeJson(t.senderPropertyIds[j]) << "\"" << (j + 1 < t.senderPropertyIds.size() ? ", " : "");

@@ -822,13 +822,14 @@ export const CHANCE_DECLARATIONS: Declaration[] = [
   {
     diceSum: 9,
     section: "Odd",
-    title: "Go to Darjeeling",
+    title: "Go Back to Bombay",
     declaration:
-      "Go to Darjeeling. If you have to pass starting point, collect Rs. 1500.",
+      "Go back to Bombay. If you have to pass starting point, collect Rs. 1500 & go to Darjeeling.",
     kind: "move",
-    targetSpaceIndex: 23,
-    effect: "MOVE TO DARJEELING",
-    effectNote: "PASS START: + ₹1,500 · DARJEELING",
+    targetSpaceIndex: 1,
+    alternateTargetSpaceIndex: 23,
+    effect: "MOVE TO BOMBAY",
+    effectNote: "PASS START: + ₹1,500 · THEN DARJEELING",
   },
   {
     diceSum: 10,
