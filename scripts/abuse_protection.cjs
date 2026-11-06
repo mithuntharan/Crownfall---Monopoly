@@ -317,9 +317,11 @@ async function verifyCaptchaToken(token, clientIp = null) {
 
 const ROOM_CODE_REGEX = /^[A-Za-z0-9_-]{3,16}$/;
 const VALID_COLORS = new Set([
-  'ruby', 'cobalt', 'emerald', 'violet', 'tangerine', 'teal', 'magenta', 'golden',
+  'ruby', 'cobalt', 'emerald', 'violet', 'cyan', 'lime', 'coral', 'amber',
+  'tangerine', 'teal', 'magenta', 'golden', 'platinum', 'obsidian', 'lavender', 'bronze',
   // Backward compatibility aliases
-  'saffron', 'plum', 'blue', 'gold', 'burgundy', 'coral', 'bronze', 'purple', 'red', 'green', 'yellow'
+  'saffron', 'plum', 'blue', 'gold', 'burgundy', 'purple', 'red', 'green', 'yellow',
+  'sky', 'white', 'silver', 'black', 'onyx', 'copper', 'pink', 'chartreuse', 'lilac'
 ]);
 
 function validateRoomCode(code) {

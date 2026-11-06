@@ -177,10 +177,10 @@ def validate_and_parse(sheets_data):
             effect = '- ₹3,000'
             effect_note = 'LOSS IN GODOWN · YOU → BANK'
         elif dice_sum == 9:
-            title = 'Go Back to Bombay'
+            title = 'Go to Darjeeling'
             kind = 'move'
-            effect = 'MOVE TO BOMBAY'
-            effect_note = 'PASS START: + ₹1,500 · THEN DARJEELING'
+            effect = 'MOVE TO DARJEELING'
+            effect_note = 'PASS START: + ₹1,500 · DARJEELING'
         elif dice_sum == 10:
             title = 'Go to Jail'
             kind = 'jail'

@@ -51,14 +51,18 @@ export function TransactionLedgerContent({
       if (typeFilter === "ALL") return true
       if (typeFilter === "PURCHASE") return tx.type === "PURCHASE"
       if (typeFilter === "RENT") return tx.type === "RENT"
-      if (typeFilter === "CONSTRUCTION") return tx.type === "CONSTRUCTION"
-      if (typeFilter === "DESTRUCTION") return tx.type === "DESTRUCTION_REFUND"
-      if (typeFilter === "START/REWARD")
-        return tx.type === "START_REWARD" || tx.type === "CAPITAL_REWARD"
-      if (typeFilter === "TAX/FEE") return tx.type === "TAX" || tx.type === "FEE"
+      if (typeFilter === "BUILD_DESTROY")
+        return tx.type === "CONSTRUCTION" || tx.type === "DESTRUCTION_REFUND"
+      if (typeFilter === "TAX_REWARDS")
+        return (
+          tx.type === "TAX" ||
+          tx.type === "FEE" ||
+          tx.type === "START_REWARD" ||
+          tx.type === "CAPITAL_REWARD" ||
+          tx.type === "REWARD" ||
+          tx.type === "JAIL_FINE"
+        )
       if (typeFilter === "BANKRUPTCY") return tx.type === "BANKRUPTCY_TRANSFER"
-      if (typeFilter === "MORTGAGE")
-        return tx.type === "MORTGAGE" || tx.type === "UNMORTGAGE"
       return true
     })
   }, [deduplicatedLedger, playerFilter, typeFilter])
@@ -115,12 +119,9 @@ export function TransactionLedgerContent({
               { id: "ALL", label: "All Types" },
               { id: "PURCHASE", label: "Purchase" },
               { id: "RENT", label: "Rent" },
-              { id: "CONSTRUCTION", label: "Build" },
-              { id: "DESTRUCTION", label: "Destroy" },
-              { id: "START/REWARD", label: "Rewards" },
-              { id: "TAX/FEE", label: "Tax & Fees" },
+              { id: "BUILD_DESTROY", label: "Build & Destroy" },
+              { id: "TAX_REWARDS", label: "Tax and Rewards" },
               { id: "BANKRUPTCY", label: "Bankruptcy" },
-              { id: "MORTGAGE", label: "Mortgages" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -167,7 +168,13 @@ export function TransactionLedgerContent({
             let amountType: "gain" | "loss" | "neutral" = "neutral"
             let sign = ""
 
-            if (!tx.amount || tx.amount === 0) {
+            if (tx.type === "CONSTRUCTION") {
+              amountType = "loss"
+              sign = "+"
+            } else if (tx.type === "DESTRUCTION_REFUND") {
+              amountType = "gain"
+              sign = "−"
+            } else if (!tx.amount || tx.amount === 0) {
               amountType = "neutral"
               sign = ""
             } else if (playerFilter !== "ALL") {
@@ -207,7 +214,13 @@ export function TransactionLedgerContent({
                     <span className="activity-log-time">{timeStr}</span>
                   </div>
                   <span className={`ledger-type-badge ${tx.type}`}>
-                    {tx.type.replace("_", " ")}
+                    {tx.type === "CONSTRUCTION"
+                      ? "BUILD"
+                      : tx.type === "DESTRUCTION_REFUND"
+                      ? "DESTROY"
+                      : tx.type === "START_REWARD" || tx.type === "CAPITAL_REWARD"
+                      ? "REWARD"
+                      : tx.type.replace("_", " ")}
                   </span>
                 </div>
 

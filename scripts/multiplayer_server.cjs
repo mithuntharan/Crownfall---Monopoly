@@ -35,6 +35,20 @@ const MAX_MESSAGE_SIZE = 64 * 1024; // 64 KB
 const MAX_CONNECTIONS = parseInt(process.env.MAX_CONNECTIONS || '500', 10);
 let activeConnections = 0;
 
+const SERVER_FALLBACK_NICKNAMES = [
+  "ChocoPie", "PixelPanda", "MangoMuffin", "TurboTurtle", "CloudNoodle", "WaffleWizard",
+  "CosmicFox", "BobaBear", "NeonKoala", "SnackTiger", "VelvetOtter", "SugarGlider",
+  "StarDolphin", "PocketFalcon", "SunnyCheetah", "FrostyPuffin", "ButterBadger", "MochiMoose",
+  "PepperPenguin", "CookieCamel", "PandaPop", "LuckyLlama", "MagicMeerkat", "GoldenGoose"
+];
+
+function getRandomServerNickname(excludeList = []) {
+  const normExclude = new Set(excludeList.map(n => (n || '').trim().toLowerCase()));
+  const available = SERVER_FALLBACK_NICKNAMES.filter(n => !normExclude.has(n.toLowerCase()));
+  const pool = available.length > 0 ? available : SERVER_FALLBACK_NICKNAMES;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 function resolveEngineBinary() {
   if (process.env.ENGINE_BIN_PATH && fs.existsSync(process.env.ENGINE_BIN_PATH)) {
     return process.env.ENGINE_BIN_PATH;
@@ -152,7 +166,8 @@ class CppEngineProcess {
 // ─── ROOM MANAGER ─────────────────────────────────────────────────────────────
 
 const AVAILABLE_COLORS = [
-  'ruby', 'cobalt', 'emerald', 'violet', 'tangerine', 'teal', 'magenta', 'golden'
+  'ruby', 'cobalt', 'emerald', 'violet', 'cyan', 'lime', 'coral', 'amber',
+  'tangerine', 'teal', 'magenta', 'golden', 'platinum', 'obsidian', 'lavender', 'bronze'
 ];
 
 const EMPTY_ROOM_TIMEOUT_MS = parseInt(process.env.EMPTY_ROOM_TIMEOUT_MS || String(10 * 60 * 1000), 10); // Exactly 10 minutes default
@@ -208,7 +223,7 @@ class Room {
       {
         id: 0,
         joinOrder: 0,
-        name: hostName.trim() || 'Player 1',
+        name: (hostName && hostName.trim() && !/^Player\s+\d+$/i.test(hostName.trim())) ? hostName.trim() : getRandomServerNickname(),
         color: hostColor || 'saffron',
         token: '1',
         isHuman: true,
@@ -649,7 +664,7 @@ class Room {
     // Join Game when the room exists but has no active host:
     // The first player successfully admitted becomes the host.
     if (!this.hasActiveHost()) {
-      const player = this.addPlayer(cleanName || 'Player 1', preferredColor, clientId, clientIp);
+      const player = this.addPlayer(cleanName, preferredColor, clientId, clientIp);
       this.cancelEmptyExpiration();
       this.touch();
       this.resolveActingHost('admit_when_no_active_host');
@@ -848,7 +863,11 @@ class Room {
     }
 
     const nextId = this.nextPlayerId++;
-    const safeName = sanitizePlayerName(name, `Player ${nextId + 1}`);
+    const existingNames = this.players.filter(p => !p.isLeft).map(p => p.name);
+    const fallbackName = getRandomServerNickname(existingNames);
+    const safeName = (name && name.trim() && !/^Player\s+\d+$/i.test(name.trim()))
+      ? sanitizePlayerName(name, fallbackName)
+      : fallbackName;
     const occupiedNames = new Set(
       this.players.filter(p => !p.isLeft).map(p => (p.name || '').trim().toLowerCase())
     );
@@ -913,12 +932,11 @@ class Room {
         player.name = name.trim().slice(0, 20);
       }
       if (color && color.trim()) {
-        const cleanColor = color.trim().toLowerCase();
-        const validColors = ['saffron', 'teal', 'plum', 'blue', 'gold', 'purple', 'emerald', 'burgundy'];
-        if (!validColors.includes(cleanColor)) {
-          throw new Error(`Invalid color '${color}'. Allowed colors: ${validColors.join(', ')}.`);
+        const cleanColor = validateColor(color);
+        if (!cleanColor) {
+          throw new Error(`Invalid color '${color}'. Please select a valid player color.`);
         }
-        const taken = this.players.some(p => p.id !== playerId && p.connected && !p.isLeft && p.color.toLowerCase() === cleanColor);
+        const taken = this.players.some(p => p.id !== playerId && p.connected && !p.isLeft && (validateColor(p.color) === cleanColor));
         if (taken) {
           throw new Error(`Color '${color}' is already selected by another player.`);
         }
@@ -1048,22 +1066,22 @@ class Room {
         playerCount: this.players.length,
         isMultiplayer: true,
         multiplayer: true,
-        p1Name: this.players[0]?.name || 'Player 1',
+        p1Name: this.players[0]?.name || getRandomServerNickname(),
         p1Color: this.players[0]?.color || 'saffron',
         p1IsHuman: true,
-        p2Name: this.players[1]?.name || 'Player 2',
+        p2Name: this.players[1]?.name || getRandomServerNickname([this.players[0]?.name]),
         p2Color: this.players[1]?.color || 'teal',
         p2IsHuman: true,
-        p3Name: this.players[2]?.name || 'Player 3',
+        p3Name: this.players[2]?.name || getRandomServerNickname([this.players[0]?.name, this.players[1]?.name]),
         p3Color: this.players[2]?.color || 'plum',
         p3IsHuman: true,
-        p4Name: this.players[3]?.name || 'Player 4',
+        p4Name: this.players[3]?.name || getRandomServerNickname([this.players[0]?.name, this.players[1]?.name, this.players[2]?.name]),
         p4Color: this.players[3]?.color || 'blue',
         p4IsHuman: true,
-        p5Name: this.players[4]?.name || 'Player 5',
+        p5Name: this.players[4]?.name || getRandomServerNickname([this.players[0]?.name, this.players[1]?.name, this.players[2]?.name, this.players[3]?.name]),
         p5Color: this.players[4]?.color || 'gold',
         p5IsHuman: true,
-        p6Name: this.players[5]?.name || 'Player 6',
+        p6Name: this.players[5]?.name || getRandomServerNickname([this.players[0]?.name, this.players[1]?.name, this.players[2]?.name, this.players[3]?.name, this.players[4]?.name]),
         p6Color: this.players[5]?.color || 'purple',
         p6IsHuman: true,
         defaultStartingMoney: this.rules.defaultStartingMoney ?? 45000,

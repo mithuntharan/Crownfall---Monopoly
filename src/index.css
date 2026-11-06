@@ -97,7 +97,23 @@
   --yellow: var(--group-yellow);
   --red: var(--group-red);
   --blue: var(--group-blue);
+  /* Player puck color custom properties */
+  --ruby: #e11d48;
+  --cobalt: #2563eb;
+  --emerald: #059669;
+  --violet: #7c3aed;
+  --cyan: #06b6d4;
+  --lime: #84cc16;
+  --coral: #f43f5e;
+  --amber: #eab308;
+  --tangerine: #ea580c;
   --teal: #0d9488;
+  --magenta: #c026d3;
+  --golden: #d97706;
+  --platinum: #e2e8f0;
+  --obsidian: #1e293b;
+  --lavender: #a855f7;
+  --bronze: #b45309;
   --plum: #9333ea;
   --saffron: #d97706;
   --forest: var(--bg-deep-navy);
@@ -1842,12 +1858,12 @@ button:focus-visible, input:focus-visible {
   font-weight: 700;
 }
 
-/* Tile Owner Indicator Ribbons - positioned on the outer perimeter edge of the board */
+/* Tile Owner Indicator Ribbons - outer-facing rounded corners, inner sharp edges */
 .tile-owner-indicator {
   position: absolute;
   z-index: 10;
   pointer-events: none;
-  box-shadow: 0 0 8px currentColor, inset 0 0 2px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 6px currentColor, inset 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
 .tile-owner-indicator.side-bottom {
@@ -1855,6 +1871,8 @@ button:focus-visible, input:focus-visible {
   left: 0;
   right: 0;
   height: 5px;
+  border-radius: 0 0 4px 4px;
+  transform-origin: center bottom;
 }
 
 .tile-owner-indicator.side-top {
@@ -1862,6 +1880,8 @@ button:focus-visible, input:focus-visible {
   left: 0;
   right: 0;
   height: 5px;
+  border-radius: 4px 4px 0 0;
+  transform-origin: center top;
 }
 
 .tile-owner-indicator.side-left {
@@ -1869,6 +1889,8 @@ button:focus-visible, input:focus-visible {
   top: 0;
   bottom: 0;
   width: 5px;
+  border-radius: 4px 0 0 4px;
+  transform-origin: left center;
 }
 
 .tile-owner-indicator.side-right {
@@ -1876,6 +1898,67 @@ button:focus-visible, input:focus-visible {
   top: 0;
   bottom: 0;
   width: 5px;
+  border-radius: 0 4px 4px 0;
+  transform-origin: right center;
+}
+
+/* Fluid purchase entrance animation: expanding outward from center of edge */
+.tile-owner-indicator.is-newly-purchased.side-bottom,
+.tile-owner-indicator.is-newly-purchased.side-top {
+  animation: ownerBarExpandH 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tile-owner-indicator.is-newly-purchased.side-left,
+.tile-owner-indicator.is-newly-purchased.side-right {
+  animation: ownerBarExpandV 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ownerBarExpandH {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ownerBarExpandV {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Subtle background gradient wash behind purchased card text & indicators (approx 40% max opacity) */
+.tile-owner-gradient-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+  transition: opacity 300ms ease;
+}
+
+.tile-owner-gradient-wash.side-bottom {
+  background: linear-gradient(to top, var(--tile-owner-color-40, rgba(200, 155, 69, 0.4)) 0%, var(--tile-owner-color-15, rgba(200, 155, 69, 0.15)) 40%, transparent 80%);
+}
+
+.tile-owner-gradient-wash.side-top {
+  background: linear-gradient(to bottom, var(--tile-owner-color-40, rgba(200, 155, 69, 0.4)) 0%, var(--tile-owner-color-15, rgba(200, 155, 69, 0.15)) 40%, transparent 80%);
+}
+
+.tile-owner-gradient-wash.side-left {
+  background: linear-gradient(to right, var(--tile-owner-color-40, rgba(200, 155, 69, 0.4)) 0%, var(--tile-owner-color-15, rgba(200, 155, 69, 0.15)) 40%, transparent 80%);
+}
+
+.tile-owner-gradient-wash.side-right {
+  background: linear-gradient(to left, var(--tile-owner-color-40, rgba(200, 155, 69, 0.4)) 0%, var(--tile-owner-color-15, rgba(200, 155, 69, 0.15)) 40%, transparent 80%);
 }
 
 /* ─── CROWNFALL REDESIGNED MORTGAGE STATUS INDICATOR ───────────────────── */
@@ -1979,6 +2062,12 @@ button:focus-visible, input:focus-visible {
   width: 18%;
 }
 
+.crownfall-mortgage-indicator.tile-variant.side-left svg,
+.crownfall-mortgage-indicator--tile.side-left svg,
+.tile-mortgage-indicator.side-left svg {
+  transform: rotate(-90deg);
+}
+
 .crownfall-mortgage-indicator.tile-variant.side-right,
 .crownfall-mortgage-indicator--tile.side-right,
 .tile-mortgage-indicator.side-right {
@@ -1986,6 +2075,12 @@ button:focus-visible, input:focus-visible {
   top: 0;
   bottom: 0;
   width: 18%;
+}
+
+.crownfall-mortgage-indicator.tile-variant.side-right svg,
+.crownfall-mortgage-indicator--tile.side-right svg,
+.tile-mortgage-indicator.side-right svg {
+  transform: rotate(90deg);
 }
 
 /* Row Variant — For modal rows and property lists */
@@ -4287,11 +4382,11 @@ button:focus-visible, input:focus-visible {
 
 /* ── 2. Smart Board Highlighting ── */
 .board-space.is-owner-highlighted {
-  outline: 2.5px solid var(--highlight-owner-color, var(--gold, #b45309)) !important;
-  outline-offset: -2.5px;
-  box-shadow: 0 0 14px var(--highlight-owner-color, rgba(180, 130, 40, 0.4)), inset 0 0 10px rgba(255, 255, 255, 0.35) !important;
+  outline: 1px solid var(--highlight-owner-color, var(--gold, #b45309)) !important;
+  outline-offset: -1px;
+  box-shadow: 0 0 5px 0.5px var(--highlight-owner-color, rgba(180, 130, 40, 0.85)), inset 0 0 2px var(--highlight-owner-color, rgba(180, 130, 40, 0.4)) !important;
   z-index: 10 !important;
-  transform: scale(1.02);
+  transform: scale(1.015);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
@@ -7540,26 +7635,129 @@ button:focus-visible, input:focus-visible {
 }
 
 /* Detained Jail Panel Premium Buttons */
+.detained-jail-action-dock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.btn-jail-pay-gold {
+  flex: 1;
+  min-width: 180px;
+  min-height: 46px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md, 8px);
+  background: linear-gradient(135deg, #b45309 0%, #92400e 50%, #78350f 100%);
+  border: 1.5px solid #d97706;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .btn-jail-pay-gold:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d4b870 0%, #c5a869 100%) !important;
-  box-shadow: 0 4px 16px rgba(197, 168, 105, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
   transform: translateY(-1px);
 }
+
 .btn-jail-pay-gold:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(197, 168, 105, 0.3) !important;
+  transform: translateY(1px) scale(0.985);
+  box-shadow: 0 1px 4px rgba(180, 83, 9, 0.4) !important;
+}
+
+.btn-jail-pay-gold:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.btn-jail-pay-gold:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(30, 41, 59, 0.6) !important;
+  border-color: rgba(100, 116, 139, 0.35) !important;
+  color: rgba(226, 232, 240, 0.45) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.btn-jail-pay-gold .btn-jail-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .btn-jail-roll-gold {
-  transition: all 140ms ease-out;
+  flex: 1;
+  min-width: 170px;
+  min-height: 46px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md, 8px);
+  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.65);
+  color: #14110b;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(180, 140, 60, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .btn-jail-roll-gold:hover:not(:disabled) {
-  background: rgba(197, 168, 105, 0.16) !important;
-  border-color: rgba(212, 175, 55, 0.7) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
+  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
   transform: translateY(-1px);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
 }
+
 .btn-jail-roll-gold:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(1px) scale(0.985);
+}
+
+.btn-jail-roll-gold:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.btn-jail-roll-gold:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.detained-jail-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(226, 209, 168, 0.9);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(197, 168, 105, 0.3);
+  white-space: nowrap;
 }

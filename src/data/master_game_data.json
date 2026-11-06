@@ -450,11 +450,13 @@
     {
       "diceSum": 9,
       "section": "Odd",
-      "title": "Go Back to Bombay",
-      "declaration": "Go back to Bombay. If you have to pass starting point, collect Rs. 1500 & go to Darjeeling.",
+      "title": "Go to Darjeeling",
+      "declaration": "Go to Darjeeling. If you have to pass starting point, collect Rs. 1500.",
       "kind": "move",
-      "effect": "MOVE TO BOMBAY",
-      "effectNote": "PASS START: + \u20b91,500 \u00b7 THEN DARJEELING"
+      "targetSpaceIndex": 23,
+      "propertyId": "darjeeling",
+      "effect": "MOVE TO DARJEELING",
+      "effectNote": "PASS START: + \u20b91,500 \u00b7 DARJEELING"
     },
     {
       "diceSum": 10,

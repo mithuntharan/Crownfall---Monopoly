@@ -262,247 +262,27 @@ type RentInfo = {
 
 
 
-const defaultPlayerConfigs: EnginePlayer[] = [
-
-  {
-
-    id: 0,
-
-    name: "Player 1",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "saffron",
-
-    token: "1",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-
-
-  {
-
-    id: 1,
-
-    name: "Player 2",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "teal",
-
-    token: "2",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-
-
-  {
-
-    id: 2,
-
-    name: "Player 3",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "plum",
-
-    token: "3",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-
-
-  {
-
-    id: 3,
-
-    name: "Player 4",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "blue",
-
-    token: "4",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-
-
-  {
-
-    id: 4,
-
-    name: "Player 5",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "gold",
-
-    token: "5",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-
-
-  {
-
-    id: 5,
-
-    name: "Player 6",
-
-    isHuman: true,
-
-    money: 0,
-
-    color: "burgundy",
-
-    token: "6",
-
-    position: 0,
-
-    rotationsCompleted: 0,
-
-    inJail: false,
-
-    jailTurns: 0,
-
-    inRestHouse: false,
-
-    restHouseTurns: 0,
-
-    cardJailSkip: false,
-
-    cardJailSkipTurns: 0,
-
-    ownedProperties: [],
-
-    buildings: {},
-
-    mortgages: {},
-
-  },
-
-]
+const DEFAULT_LOBBY_NICKNAMES = ["ChocoPie", "PixelPanda", "MangoMuffin", "TurboTurtle", "CloudNoodle", "WaffleWizard"]
+
+const defaultPlayerConfigs: EnginePlayer[] = (["saffron", "teal", "plum", "blue", "gold", "burgundy"] as PlayerColor[]).map((color, idx) => ({
+  id: idx,
+  name: DEFAULT_LOBBY_NICKNAMES[idx] || `Tycoon ${idx + 1}`,
+  isHuman: true,
+  money: 0,
+  color,
+  token: String(idx + 1),
+  position: 0,
+  rotationsCompleted: 0,
+  inJail: false,
+  jailTurns: 0,
+  inRestHouse: false,
+  restHouseTurns: 0,
+  cardJailSkip: false,
+  cardJailSkipTurns: 0,
+  ownedProperties: [],
+  buildings: {},
+  mortgages: {},
+}))
 
 
 
@@ -512,7 +292,15 @@ function getStoredPlayerName(idx: number): string | null {
 
   try {
 
-    return sessionStorage.getItem(`crownfall_player_name_${idx}`) ?? sessionStorage.getItem(`dominion_player_name_${idx}`)
+    const val = sessionStorage.getItem(`crownfall_player_name_${idx}`) ?? sessionStorage.getItem(`dominion_player_name_${idx}`)
+
+    if (val && /^Player\s+\d+$/i.test(val.trim())) {
+
+      return null
+
+    }
+
+    return val
 
   } catch (_) {
 
@@ -1495,10 +1283,18 @@ export const AVAILABLE_PLAYER_COLORS = [
   { id: "cobalt", name: "Cobalt Blue", hex: "#2563eb" },
   { id: "emerald", name: "Emerald Green", hex: "#059669" },
   { id: "violet", name: "Violet", hex: "#7c3aed" },
+  { id: "cyan", name: "Electric Cyan", hex: "#06b6d4" },
+  { id: "lime", name: "Neon Lime", hex: "#84cc16" },
+  { id: "coral", name: "Hot Coral", hex: "#f43f5e" },
+  { id: "amber", name: "Sunburst Yellow", hex: "#eab308" },
   { id: "tangerine", name: "Tangerine", hex: "#ea580c" },
   { id: "teal", name: "Teal", hex: "#0d9488" },
   { id: "magenta", name: "Magenta", hex: "#c026d3" },
-  { id: "golden", name: "Golden Yellow", hex: "#d97706" },
+  { id: "golden", name: "Golden Amber", hex: "#d97706" },
+  { id: "platinum", name: "Platinum White", hex: "#e2e8f0" },
+  { id: "obsidian", name: "Midnight Onyx", hex: "#1e293b" },
+  { id: "lavender", name: "Lavender Frost", hex: "#a855f7" },
+  { id: "bronze", name: "Copper Bronze", hex: "#b45309" },
 ]
 
 
@@ -13466,7 +13262,7 @@ interface ActivePurchaseOpportunity {
 
           0,
 
-          targetPos === 9,
+          Boolean(targetPos === 9 && evt.actionResult?.mustGoToJail),
 
           true,
 
@@ -14204,27 +14000,11 @@ interface ActivePurchaseOpportunity {
 
       })
 
-      if (isActingPlayerLocal || isHumanTurn) {
+      setTurnState(engineState.turnState)
 
-        setTurnState("WAITING_FOR_ACTION")
+      setActivePlayerIndex(engineState.activePlayerIndex)
 
-        setHasRolledThisTurn(true)
-
-      } else if (!isMultiplayer && !isActingPlayerHuman && localPlayerId === 0) {
-
-        window.setTimeout(async () => {
-
-          try {
-
-            const endRes = await defaultEngine.endTurn(result.playerId)
-
-            advanceTurn(endRes.state, 500)
-
-          } catch (_) {}
-
-        }, 1200)
-
-      }
+      setHasRolledThisTurn(false)
 
       return
 
@@ -14337,6 +14117,24 @@ interface ActivePurchaseOpportunity {
         playerName: pName,
 
         description: restMsg,
+
+      })
+
+      addBoardNotification({
+
+        id: `board_rest_${Date.now()}_${result.playerId}`,
+
+        type: "REST",
+
+        category: "REST HOUSE",
+
+        message: restMsg,
+
+        durationMs: 1500,
+
+        timestamp: Date.now(),
+
+        icon: "",
 
       })
 
@@ -15208,7 +15006,7 @@ interface ActivePurchaseOpportunity {
 
           0,
 
-          true,
+          Boolean(targetPos === 9 && result.mustGoToJail),
 
           true,
 

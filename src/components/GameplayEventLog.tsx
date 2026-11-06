@@ -26,90 +26,122 @@ export interface GameplayEventLogProps {
   events: GameplayEventEntry[]
   onClear?: () => void
   isEmbedded?: boolean
+  initialCategory?: EventLogCategory
 }
 
 export type EventLogCategory =
   | "ALL"
-  | "TURNS_DICE"
-  | "RENT_PAYMENTS"
-  | "PROPERTIES"
-  | "CONSTRUCTION"
+  | "DICE"
+  | "TURNS"
   | "CHANCE_CHEST"
-  | "MOVEMENT_LOCATIONS"
-  | "SYSTEM_ERRORS"
+  | "JAIL"
+  | "REST_HOUSE"
 
 export const EVENT_LOG_CATEGORIES: { id: EventLogCategory; label: string; icon: string }[] = [
-  { id: "ALL", label: "Full Log", icon: "" },
-  { id: "TURNS_DICE", label: "Turns & Dice", icon: "" },
-  { id: "RENT_PAYMENTS", label: "Rent & Payments", icon: "" },
-  { id: "PROPERTIES", label: "Properties", icon: "" },
-  { id: "CONSTRUCTION", label: "Construction", icon: "" },
-  { id: "CHANCE_CHEST", label: "Chance & Chest", icon: "" },
-  { id: "MOVEMENT_LOCATIONS", label: "Movement & Locations", icon: "" },
-  { id: "SYSTEM_ERRORS", label: "System & Errors", icon: "" },
+  { id: "ALL", label: "All Events", icon: "" },
+  { id: "DICE", label: "Dice", icon: "" },
+  { id: "TURNS", label: "Turns", icon: "" },
+  { id: "CHANCE_CHEST", label: "Cards", icon: "" },
+  { id: "JAIL", label: "Jail", icon: "" },
+  { id: "REST_HOUSE", label: "Rest House", icon: "" },
 ]
+
+/**
+ * Filter out any financial transactions that belong exclusively to the authoritative Ledger.
+ * Events tab owns non-financial game occurrences (dice rolls, cards, turns, jail, rest house).
+ */
+export function isLedgerFinancialEvent(type: string, description: string = ""): boolean {
+  const t = (type || "").toLowerCase().trim()
+  const d = (description || "").toLowerCase()
+
+  if (
+    t === "buy" ||
+    t === "bought" ||
+    t === "purchase" ||
+    t === "decline" ||
+    t === "declined" ||
+    t === "rent" ||
+    t === "rent_payment" ||
+    t === "build" ||
+    t === "building" ||
+    t === "construction" ||
+    t === "house" ||
+    t === "hotel" ||
+    t === "upgrade" ||
+    t === "demolish" ||
+    t === "sell" ||
+    t === "destroy" ||
+    t === "destruction" ||
+    t === "destruction_refund" ||
+    t === "mortgage" ||
+    t === "mortgaged" ||
+    t === "unmortgage" ||
+    t === "unmortgaged" ||
+    t === "tax" ||
+    t === "tax_payment" ||
+    t === "fine" ||
+    t === "fee" ||
+    t === "start_pass" ||
+    t === "pass_start" ||
+    t === "start_bonus" ||
+    t === "capital" ||
+    t === "capital_reward" ||
+    t === "reward" ||
+    t === "bankruptcy" ||
+    t === "bankrupt" ||
+    t === "bankruptcy_transfer"
+  ) {
+    return true
+  }
+
+  // Text matches for Ledger financial records
+  if (
+    /bought\s+/i.test(d) ||
+    /purchased\s+/i.test(d) ||
+    /declined to purchase/i.test(d) ||
+    /paid rent/i.test(d) ||
+    /collected rent/i.test(d) ||
+    /constructed (house|hotel)/i.test(d) ||
+    /demolished (house|hotel)/i.test(d) ||
+    /mortgaged\s+/i.test(d) ||
+    /unmortgaged\s+/i.test(d) ||
+    /paid income tax/i.test(d) ||
+    /paid luxury tax/i.test(d) ||
+    /passed start \(\+₹/i.test(d) ||
+    /received starting capital/i.test(d) ||
+    /declared bankruptcy/i.test(d)
+  ) {
+    return true
+  }
+
+  return false
+}
 
 export function matchGameplayEventCategory(type: string, category: EventLogCategory): boolean {
   if (category === "ALL") return true
   const t = (type || "").toLowerCase().trim()
 
   switch (category) {
-    case "TURNS_DICE":
-      // Prioritize actual dice rolls; omit routine end-turn messages
-      if (t === "end_turn" || t === "turn_change") return false
+    case "DICE":
       return (
         t === "roll" ||
         t === "roll_move" ||
+        t === "roll_dice" ||
+        t === "dice" ||
+        t === "double" ||
+        t === "doubles"
+      )
+    case "TURNS":
+      return (
         t === "turn" ||
         t === "turn_start" ||
         t === "extra_turn" ||
-        t === "double" ||
-        t === "doubles" ||
+        t === "skip" ||
+        t === "skipped" ||
         t === "timeout" ||
         t === "turn_timeout" ||
-        t === "skip" ||
-        t === "skipped"
-      )
-    case "RENT_PAYMENTS":
-      return (
-        t === "rent" ||
-        t === "tax" ||
-        t === "fine" ||
-        t === "fee" ||
-        t === "payment" ||
-        t === "reward" ||
-        t === "start_pass" ||
-        t === "pass_start" ||
-        t === "start_bonus" ||
-        t === "bankruptcy" ||
-        t === "bankrupt" ||
-        t === "capital"
-      )
-    case "PROPERTIES":
-      return (
-        t === "buy" ||
-        t === "bought" ||
-        t === "purchase" ||
-        t === "decline" ||
-        t === "declined" ||
-        t === "mortgage" ||
-        t === "mortgaged" ||
-        t === "unmortgage" ||
-        t === "unmortgaged" ||
-        t === "trade" ||
-        t.startsWith("trade")
-      )
-    case "CONSTRUCTION":
-      return (
-        t === "build" ||
-        t === "building" ||
-        t === "house" ||
-        t === "hotel" ||
-        t === "upgrade" ||
-        t === "demolish" ||
-        t === "sell" ||
-        t === "destroy" ||
-        t === "destruction"
+        t === "turn_change" ||
+        t === "end_turn"
       )
     case "CHANCE_CHEST":
       return (
@@ -117,36 +149,26 @@ export function matchGameplayEventCategory(type: string, category: EventLogCateg
         t === "chest" ||
         t === "community_chest" ||
         t === "card" ||
-        t === "card_draw"
+        t === "card_draw" ||
+        t === "card_action"
       )
-    case "MOVEMENT_LOCATIONS":
+    case "JAIL":
       return (
-        t === "move" ||
-        t === "movement" ||
         t === "jail" ||
         t === "jail_enter" ||
         t === "jail_exit" ||
         t === "in_jail" ||
+        t === "visiting_jail" ||
+        t === "pay_jail_fine" ||
+        t === "jail_fine"
+      )
+    case "REST_HOUSE":
+      return (
         t === "rest" ||
         t === "rest_house" ||
         t === "club" ||
-        t === "start" ||
-        t === "teleport" ||
-        t === "visiting_jail"
-      )
-    case "SYSTEM_ERRORS":
-      return (
-        t === "system" ||
-        t === "error" ||
-        t === "rejected" ||
-        t === "reject" ||
-        t === "invalid" ||
-        t === "resign" ||
-        t === "resignation" ||
-        t === "session_ended" ||
-        t === "game_over" ||
-        t === "settings" ||
-        t === "rules"
+        t === "rest_house_land" ||
+        t === "rest_skip"
       )
     default:
       return false
@@ -221,16 +243,26 @@ function formatConciseDescription(evt: GameplayEventEntry): string {
   return desc
 }
 
-export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear, isEmbedded = false }: GameplayEventLogProps) {
+export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _onClear, isEmbedded = false, initialCategory }: GameplayEventLogProps) {
   const handleToggle = onClose || onToggle || (() => {})
-  const [activeCategory, setActiveCategory] = useState<EventLogCategory>("ALL")
+  const [activeCategory, setActiveCategory] = useState<EventLogCategory>(initialCategory || "ALL")
 
-  // Deduplicate and filter events
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory)
+    }
+  }, [initialCategory])
+
+  // Deduplicate and filter events: Ledger owns financial records, Events tab owns non-financial game occurrences
   const deduplicatedEvents = useMemo(() => {
     const seen = new Set<string>()
     const result: GameplayEventEntry[] = []
     for (const evt of events) {
       if (/ended (their|his|her|the)?\s*turn/i.test(evt.description || "") || /ended turn/i.test(evt.description || "") || /turn ended/i.test(evt.description || "")) {
+        continue
+      }
+      // Strictly exclude any financial transaction belonging to the authoritative Ledger
+      if (isLedgerFinancialEvent(evt.type, evt.description)) {
         continue
       }
       const key = `${evt.id}_${evt.timestamp}_${evt.type}`
@@ -248,28 +280,40 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
     })
   }, [events])
 
-  // Count events per category
+  // Count events per non-financial category
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {
+    const counts: Record<EventLogCategory, number> = {
       ALL: deduplicatedEvents.length,
-      TURNS_DICE: 0,
-      RENT_PAYMENTS: 0,
-      PROPERTIES: 0,
-      CONSTRUCTION: 0,
+      DICE: 0,
+      TURNS: 0,
       CHANCE_CHEST: 0,
-      MOVEMENT_LOCATIONS: 0,
-      SYSTEM_ERRORS: 0,
+      JAIL: 0,
+      REST_HOUSE: 0,
     }
     for (const evt of deduplicatedEvents) {
-      if (matchGameplayEventCategory(evt.type, "TURNS_DICE")) counts.TURNS_DICE++
-      if (matchGameplayEventCategory(evt.type, "RENT_PAYMENTS")) counts.RENT_PAYMENTS++
-      if (matchGameplayEventCategory(evt.type, "PROPERTIES")) counts.PROPERTIES++
-      if (matchGameplayEventCategory(evt.type, "CONSTRUCTION")) counts.CONSTRUCTION++
+      if (matchGameplayEventCategory(evt.type, "DICE")) counts.DICE++
+      if (matchGameplayEventCategory(evt.type, "TURNS")) counts.TURNS++
       if (matchGameplayEventCategory(evt.type, "CHANCE_CHEST")) counts.CHANCE_CHEST++
-      if (matchGameplayEventCategory(evt.type, "MOVEMENT_LOCATIONS")) counts.MOVEMENT_LOCATIONS++
-      if (matchGameplayEventCategory(evt.type, "SYSTEM_ERRORS")) counts.SYSTEM_ERRORS++
+      if (matchGameplayEventCategory(evt.type, "JAIL")) counts.JAIL++
+      if (matchGameplayEventCategory(evt.type, "REST_HOUSE")) counts.REST_HOUSE++
     }
     return counts
+  }, [deduplicatedEvents])
+
+  // Dice Statistics (Dice Only presentation)
+  const diceStats = useMemo(() => {
+    const diceEvents = deduplicatedEvents.filter((e) => matchGameplayEventCategory(e.type, "DICE"))
+    let doublesCount = 0
+    for (const e of diceEvents) {
+      const isDouble =
+        (e.dice1 !== undefined && e.dice2 !== undefined && e.dice1 === e.dice2) ||
+        (e.type || "").toLowerCase().includes("double") ||
+        (e.description || "").toLowerCase().includes("double")
+      if (isDouble) doublesCount++
+    }
+    const total = diceEvents.length
+    const rate = total > 0 ? Math.round((doublesCount / total) * 100) : 0
+    return { total, doubles: doublesCount, rate }
   }, [deduplicatedEvents])
 
   // Filter for active tab
@@ -298,7 +342,7 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
 
   const eventLogBody = (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-      {/* 8 Category Tabs Bar */}
+      {/* 6 Category Tabs Bar */}
       <div className="event-log-tabs-bar custom-scrollbar">
         {EVENT_LOG_CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat.id
@@ -319,6 +363,47 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
           )
         })}
       </div>
+
+      {/* Dice Statistics Bar (Dice Only presentation) */}
+      {activeCategory === "DICE" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "8px",
+            padding: "8px 16px",
+            background: "rgba(0, 0, 0, 0.04)",
+            borderBottom: "1px solid rgba(200, 155, 69, 0.2)",
+            textAlign: "center",
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <small style={{ fontSize: "9px", color: "var(--ink-soft, #78716c)", display: "block", fontWeight: 700, letterSpacing: "0.05em" }}>
+              TOTAL ROLLS
+            </small>
+            <strong style={{ fontSize: "14px", color: "var(--ink, #1c1917)" }}>
+              {diceStats.total}
+            </strong>
+          </div>
+          <div>
+            <small style={{ fontSize: "9px", color: "var(--ink-soft, #78716c)", display: "block", fontWeight: 700, letterSpacing: "0.05em" }}>
+              DOUBLES
+            </small>
+            <strong style={{ fontSize: "14px", color: "var(--gold-dark, #b45309)" }}>
+              {diceStats.doubles}
+            </strong>
+          </div>
+          <div>
+            <small style={{ fontSize: "9px", color: "var(--ink-soft, #78716c)", display: "block", fontWeight: 700, letterSpacing: "0.05em" }}>
+              DOUBLES RATE
+            </small>
+            <strong style={{ fontSize: "14px", color: "#16a34a" }}>
+              {diceStats.rate}%
+            </strong>
+          </div>
+        </div>
+      )}
 
       {/* Events List */}
       <div

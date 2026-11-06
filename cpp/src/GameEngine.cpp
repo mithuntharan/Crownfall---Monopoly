@@ -772,11 +772,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
             m_lastTurnResult = result;
             addLogEntry(player.id, "jail", result.eventDescription);
             m_consecutiveDoubles = 0;
-            if (player.isHuman) {
-                m_turnState = TurnState::WAITING_FOR_ACTION;
-            } else {
-                advanceTurn(false);
-            }
+            advanceTurn(false);
             return result;
         }
     } else if (!wasInJail) {
@@ -1095,7 +1091,10 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     result.extraTurnGranted = extra;
     m_lastTurnResult = result;
 
-    if (result.eligibleToBuy) {
+    if (result.mustGoToJail) {
+        m_consecutiveDoubles = 0;
+        advanceTurn(false);
+    } else if (result.eligibleToBuy) {
         m_turnState = TurnState::WAITING_FOR_ACTION;
     } else if (player.money < 0) {
         m_turnState = TurnState::WAITING_FOR_ACTION;
@@ -2160,6 +2159,7 @@ std::string GameEngine::exportStateJson() const {
 
 bool GameEngine::payJailFine(int playerId) {
     if (playerId < 0 || playerId >= static_cast<int>(m_players.size())) return false;
+    if (playerId != m_activePlayerIndex) return false;
     auto& player = m_players[playerId];
     if (!player.inJail && player.jailTurns <= 0 && !player.cardJailSkip && player.cardJailSkipTurns <= 0) return false;
     if (player.money < 500) return false;

@@ -744,11 +744,7 @@ export class LocalGameEngine implements IGameEngine {
         res.spaceName = "JAIL"
         res.eventDescription = `${player.name} was sent to Jail after three consecutive doubles.`
         this.consecutiveDoubles = 0
-        if (player.isHuman) {
-          this.turnState = "WAITING_FOR_ACTION"
-        } else {
-          this.advanceTurn(false)
-        }
+        this.advanceTurn(false)
         return { result: res, state: await this.getState() }
       }
     } else if (!wasInJail) {
@@ -928,6 +924,37 @@ export class LocalGameEngine implements IGameEngine {
             if (destSpace) {
               res.spaceName = destSpace.name
               res.spaceType = destSpace.type
+              // Atomically resolve destination property
+              const propId = destSpace.propertyId
+              if (destSpace.type === "city" && propId && !player.inJail && !player.inRestHouse) {
+                let ownerIdx = -1
+                for (let oi = 0; oi < this.players.length; oi++) {
+                  if (this.players[oi].ownedProperties?.includes(propId)) {
+                    ownerIdx = oi
+                    break
+                  }
+                }
+                if (ownerIdx === -1) {
+                  if (player.rotationsCompleted > 0 || this.devMode) {
+                    res.eligibleToBuy = true
+                    res.purchasablePropertyId = propId
+                    const city = CITY_PROPERTIES[propId]
+                    if (city) res.purchasePrice = city.purchasePrice
+                  }
+                } else if (ownerIdx !== player.id) {
+                  if (!this.players[ownerIdx].mortgages?.[propId]) {
+                    const rent = this.calculateRent(propId, total)
+                    player.money -= rent
+                    this.players[ownerIdx].money += rent
+                    player.totalRentPaid = (player.totalRentPaid || 0) + rent
+                    this.players[ownerIdx].totalRentReceived = (this.players[ownerIdx].totalRentReceived || 0) + rent
+                    res.rentPaid = true
+                    res.rentAmount = rent
+                    res.rentRecipientId = ownerIdx
+                    this.recordTransaction("RENT", `${player.name} paid ₹${rent.toLocaleString()} rent to ${this.players[ownerIdx].name} for ${destSpace.name}.`, rent, player.id, ownerIdx, propId)
+                  }
+                }
+              }
             }
           }
         }
@@ -1080,7 +1107,10 @@ export class LocalGameEngine implements IGameEngine {
       !player.inRestHouse
     )
 
-    if (res.eligibleToBuy) {
+    if (res.mustGoToJail) {
+      this.consecutiveDoubles = 0
+      this.advanceTurn(false)
+    } else if (res.eligibleToBuy) {
       this.turnState = "WAITING_FOR_ACTION"
     } else if (extra) {
       this.turnState = "EXTRA_TURN"
@@ -1630,6 +1660,9 @@ export class LocalGameEngine implements IGameEngine {
   }> {
     if (playerId < 0 || playerId >= this.players.length) {
       return { success: false, state: await this.getState(), error: "Invalid player" }
+    }
+    if (playerId !== this.activePlayerIndex) {
+      return { success: false, state: await this.getState(), error: "Not your turn" }
     }
     const player = this.players[playerId]
     const isDetained = Boolean(

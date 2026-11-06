@@ -117,19 +117,43 @@ export function getPlayerColorHex(color?: string): string {
     case "plum":
       return "#7c3aed"
     case "tangerine":
-    case "coral":
     case "orange":
       return "#ea580c"
+    case "coral":
+    case "pink":
+      return "#f43f5e"
     case "teal":
       return "#0d9488"
+    case "cyan":
+    case "sky":
+      return "#06b6d4"
+    case "lime":
+    case "chartreuse":
+      return "#84cc16"
     case "magenta":
+    case "fuchsia":
       return "#c026d3"
+    case "amber":
+    case "yellow":
+      return "#eab308"
     case "golden":
     case "gold":
     case "saffron":
-    case "bronze":
-    case "yellow":
       return "#d97706"
+    case "platinum":
+    case "silver":
+    case "white":
+      return "#e2e8f0"
+    case "obsidian":
+    case "black":
+    case "onyx":
+      return "#1e293b"
+    case "lavender":
+    case "lilac":
+      return "#a855f7"
+    case "bronze":
+    case "copper":
+      return "#b45309"
     default:
       if (c.startsWith("#") || c.startsWith("rgb")) {
         return c
@@ -137,3 +161,53 @@ export function getPlayerColorHex(color?: string): string {
       return "#d97706"
   }
 }
+
+/**
+ * Exponential ease-in-out curve for fluid, organic puck gliding.
+ * Starts with smooth acceleration, cruises through the middle, and decelerates into landing.
+ */
+export function easeInOutExpo(t: number): number {
+  if (t <= 0) return 0
+  if (t >= 1) return 1
+  return t < 0.5
+    ? Math.pow(2, 20 * t - 10) / 2
+    : (2 - Math.pow(2, -20 * t + 10)) / 2
+}
+
+/**
+ * Calculates continuous coordinates along a discrete sequence of tile spaces on the board perimeter.
+ * Returns exact { x, y } percentage coordinates for any fractional progress (0 to 1).
+ */
+export function getPathCoordinates(
+  path: number[],
+  fraction: number,
+  isTargetDetained: boolean = false
+): { x: number; y: number } {
+  if (!path || path.length === 0) {
+    return { x: 50, y: 50 }
+  }
+  if (path.length === 1) {
+    return getTileCenterPercent(path[0], isTargetDetained)
+  }
+
+  const clamped = Math.max(0, Math.min(1, fraction))
+  const totalSegments = path.length - 1
+  const s = clamped * totalSegments
+  const segmentIdx = Math.min(Math.floor(s), totalSegments - 1)
+  const segmentFrac = s - segmentIdx
+
+  const fromTile = path[segmentIdx]
+  const toTile = path[segmentIdx + 1]
+
+  const fromPt = getTileCenterPercent(fromTile, false)
+  const toPt = getTileCenterPercent(
+    toTile,
+    segmentIdx + 1 === totalSegments ? isTargetDetained : false
+  )
+
+  return {
+    x: fromPt.x + (toPt.x - fromPt.x) * segmentFrac,
+    y: fromPt.y + (toPt.y - fromPt.y) * segmentFrac,
+  }
+}
+

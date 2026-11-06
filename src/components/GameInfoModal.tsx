@@ -11,7 +11,7 @@ import { GameplayEventLog } from "./GameplayEventLog"
 import { FinancialInsightsModal } from "./FinancialInsightsModal"
 import { PropertyComparisonView } from "./PropertyComparisonView"
 
-export type GameInfoTab = "ledger" | "trade" | "events" | "insights" | "compare"
+export type GameInfoTab = "ledger" | "trade" | "events" | "dice" | "insights" | "compare"
 
 export interface GameInfoModalProps {
   isOpen: boolean
@@ -68,6 +68,7 @@ export function GameInfoModal({
     ledger: null,
     trade: null,
     events: null,
+    dice: null,
     insights: null,
     compare: null,
   })
@@ -280,6 +281,45 @@ export function GameInfoModal({
 
             <button
               ref={(el) => {
+                tabRefs.current.dice = el
+              }}
+              type="button"
+              className={`game-info-subtab-btn ${activeTab === "dice" ? "active" : ""}`}
+              onClick={() => setActiveTab("dice")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: activeTab === "dice" ? "1px solid var(--gold)" : "1px solid transparent",
+                background: activeTab === "dice" ? "rgba(200, 155, 69, 0.22)" : "transparent",
+                color: activeTab === "dice" ? "var(--ink, #1c1917)" : "var(--ink-soft, #78716c)",
+                fontWeight: 700,
+                fontSize: "11.5px",
+                cursor: "pointer",
+                transition: "all 180ms cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span>DICE</span>
+              {events.filter((e) => (e.type || "").toLowerCase().includes("roll")).length > 0 && (
+                <span
+                  style={{
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    fontSize: "10px",
+                    background: activeTab === "dice" ? "rgba(200, 155, 69, 0.35)" : "rgba(0, 0, 0, 0.08)",
+                  }}
+                >
+                  {events.filter((e) => (e.type || "").toLowerCase().includes("roll")).length}
+                </span>
+              )}
+            </button>
+
+            <button
+              ref={(el) => {
                 tabRefs.current.insights = el
               }}
               type="button"
@@ -429,7 +469,26 @@ export function GameInfoModal({
             />
           </div>
 
-          {/* Subtab 4: Insights */}
+          {/* Subtab 4: Dice Only */}
+          <div
+            style={{
+              display: activeTab === "dice" ? "flex" : "none",
+              flexDirection: "column",
+              height: "100%",
+              minHeight: 0,
+            }}
+          >
+            <GameplayEventLog
+              isOpen={true}
+              events={events}
+              onClear={onClearEvents}
+              onClose={onClose}
+              isEmbedded
+              initialCategory="DICE"
+            />
+          </div>
+
+          {/* Subtab 5: Insights */}
           <div
             style={{
               display: activeTab === "insights" ? "flex" : "none",

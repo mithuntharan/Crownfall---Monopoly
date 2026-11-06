@@ -17,12 +17,13 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "turn_order",
-    title: "2. Authoritative Turns & Dice Rolls",
+    id: "dice_mechanics",
+    title: "2. Authoritative Dice Rolls",
     content: [
-      "Players take turns rolling two authoritative 6-sided dice in clockwise perimeter order.",
-      "Rolling doubles awards an immediate subsequent roll.",
-      "Caution: Rolling three consecutive doubles in a single turn constitutes reckless velocity and sends your token directly to Jail detention.",
+      "Authoritative Dice: Each move is governed by two synchronized 6-sided dice.",
+      "Doubles Bonus: Rolling matching dice awards an immediate subsequent roll during the active turn.",
+      "Speeding Penalty: Rolling three consecutive doubles in a single turn constitutes reckless velocity and sends your token directly to Jail detention.",
+      "Multiplier Scaling: Dynamic utility properties multiply the rolled dice total to establish rent obligations.",
     ],
   },
   {

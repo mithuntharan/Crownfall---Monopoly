@@ -29,6 +29,7 @@ cpp/.clangd/
 logs/
 
 # Agent & temporary files
+scratch/
 .tmp-*
 .claude*
 CLAUDE.md
