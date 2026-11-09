@@ -1072,7 +1072,7 @@ export const PropertyLandmarkArtwork: React.FC<PropertyLandmarkArtworkProps> = (
         >
           <span
             style={{
-              fontFamily: '"Oswald", sans-serif',
+              fontFamily: '"Nunito Sans", sans-serif',
               fontWeight: 700,
               fontSize: "11px",
               letterSpacing: "0.06em",
@@ -1085,7 +1085,7 @@ export const PropertyLandmarkArtwork: React.FC<PropertyLandmarkArtworkProps> = (
           </span>
           <span
             style={{
-              fontFamily: '"Oswald", sans-serif',
+              fontFamily: '"Nunito Sans", sans-serif',
               fontWeight: 600,
               fontSize: "8.5px",
               letterSpacing: "0.05em",

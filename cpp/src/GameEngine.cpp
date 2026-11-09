@@ -47,6 +47,7 @@ void GameEngine::addPlayer(const std::string& name, const std::string& color, co
 
 void GameEngine::startGame() {
     m_gameStarted = true;
+    m_winnerId = -1;
     m_activePlayerIndex = 0;
     m_roundNumber = 1;
     m_consecutiveDoubles = 0;
@@ -279,6 +280,7 @@ bool GameEngine::setTimerConfig(bool enabled, int seconds) {
 
 bool GameEngine::checkGameOver() {
     if (m_players.size() <= 1) return false;
+    if (m_turnState == TurnState::GAME_OVER) return true;
     int activeCount = 0;
     int lastAliveIdx = -1;
     for (size_t i = 0; i < m_players.size(); ++i) {
@@ -287,9 +289,14 @@ bool GameEngine::checkGameOver() {
             lastAliveIdx = static_cast<int>(i);
         }
     }
-    if (activeCount <= 1 && lastAliveIdx != -1) {
+    if (activeCount <= 1) {
         m_turnState = TurnState::GAME_OVER;
-        addLogEntry(lastAliveIdx, "game_over", "GAME OVER! " + m_players[lastAliveIdx].name + " is the winner!", m_players[lastAliveIdx].money);
+        m_winnerId = (lastAliveIdx != -1) ? m_players[lastAliveIdx].id : -1;
+        if (lastAliveIdx != -1) {
+            addLogEntry(m_players[lastAliveIdx].id, "game_over", "GAME OVER! " + m_players[lastAliveIdx].name + " is the winner!", m_players[lastAliveIdx].money);
+        } else {
+            addLogEntry(-1, "game_over", "GAME OVER! All players have been eliminated.");
+        }
         return true;
     }
     return false;
@@ -352,6 +359,14 @@ void GameEngine::advanceTurn(bool extraTurn) {
             nextIdx = (nextIdx + 1) % m_players.size();
             attempts++;
             continue;
+        }
+
+        if (m_players.size() > 1 && (candidate.jailTurns >= 2 || (candidate.inJail && candidate.jailTurns >= 2))) {
+            candidate.inJail = false;
+            candidate.jailTurns = 0;
+            candidate.cardJailSkip = false;
+            candidate.cardJailSkipTurns = 0;
+            addLogEntry(candidate.id, "jail", candidate.name + " served their jail sentence and was released from Jail.");
         }
 
         // Authoritatively activate Rest House skip or consume card-induced Jail skip
@@ -715,6 +730,12 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
     }
 
     // Check Jail: roll dice HERE; if still in jail, return early.
+    if (player.inJail && player.jailTurns >= 2) {
+        player.inJail = false;
+        player.jailTurns = 0;
+        player.cardJailSkip = false;
+        player.cardJailSkipTurns = 0;
+    }
     bool wasInJail = player.inJail;
     if (player.inJail) {
         int attempt = player.jailTurns + 1;
@@ -730,6 +751,8 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         if (result.isDouble) {
             player.inJail = false;
             player.jailTurns = 0;
+            player.cardJailSkip = false;
+            player.cardJailSkipTurns = 0;
             std::string releaseMsg = player.name + " rolled doubles and was released from Jail!";
             result.eventDescription = releaseMsg;
             addLogEntry(player.id, "jail", releaseMsg);
@@ -737,9 +760,8 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
         } else {
             player.jailTurns = attempt;
             if (attempt >= 2) {
-                player.inJail = false; // Sentence served after consuming 2nd detention turn!
-                player.jailTurns = 0;
-                result.eventDescription = player.name + " failed to roll doubles (attempt 2 of 2). Jail sentence served; released for next turn.";
+                player.inJail = true; // Sentence completed; remains in jail until released at start of 3rd turn
+                result.eventDescription = player.name + " failed to roll doubles (attempt 2 of 2) and remains in Jail. Jail sentence completed; will be released on next turn.";
             } else {
                 result.eventDescription = player.name + " failed to roll doubles (attempt 1 of 2) and remains in Jail.";
             }
@@ -750,11 +772,7 @@ TurnResult GameEngine::rollAndMove(std::optional<std::pair<int, int>> riggedDice
             result.mustGoToJail = false;
             m_lastTurnResult = result;
             addLogEntry(player.id, "jail", result.eventDescription);
-            if (player.isHuman) {
-                m_turnState = TurnState::WAITING_FOR_ACTION;
-            } else {
-                advanceTurn(false);
-            }
+            advanceTurn(false);
             return result;
         }
     } else {
@@ -1939,6 +1957,7 @@ bool GameEngine::cancelTradeOffer(int playerId, const std::string& tradeId) {
 
 void GameEngine::endSession() {
     m_turnState = TurnState::GAME_OVER;
+    m_winnerId = -1;
     addLogEntry(-1, "session_ended", "The host ended the game session.");
 }
 
@@ -2000,6 +2019,7 @@ std::string GameEngine::exportStateJson() const {
     ss << "{\n";
     ss << "  \"roundNumber\": " << m_roundNumber << ",\n";
     ss << "  \"activePlayerIndex\": " << m_activePlayerIndex << ",\n";
+    ss << "  \"winnerId\": " << m_winnerId << ",\n";
     ss << "  \"currentTurnId\": " << m_currentTurnId << ",\n";
     ss << "  \"turnState\": \"" << turnStateToString(m_turnState) << "\",\n";
     ss << "  \"gameStarted\": " << (m_gameStarted ? "true" : "false") << ",\n";

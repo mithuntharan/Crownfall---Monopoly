@@ -93,7 +93,7 @@ export function LayoutDiagnosticsOverlay({ enabled = false }: { enabled?: boolea
         top: "70px",
         right: "12px",
         zIndex: 9999,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Nunito Sans', sans-serif",
       }}
     >
       <button

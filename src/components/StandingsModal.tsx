@@ -222,7 +222,7 @@ export function StandingsModal({
                         border: "1px solid rgba(239, 68, 68, 0.6)",
                         borderRadius: "6px",
                         color: "#fca5a5",
-                        fontFamily: "'Oswald', sans-serif",
+                        fontFamily: "'Nunito Sans', sans-serif",
                         fontSize: "11px",
                         fontWeight: 700,
                         cursor: "pointer",

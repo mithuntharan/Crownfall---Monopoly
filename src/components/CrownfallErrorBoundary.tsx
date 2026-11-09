@@ -94,7 +94,7 @@ export class CrownfallErrorBoundary extends Component<Props, State> {
                 <h2
                   style={{
                     margin: 0,
-                    fontFamily: "Oswald, sans-serif",
+                    fontFamily: "Nunito Sans, sans-serif",
                     fontSize: "18px",
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
@@ -198,7 +198,7 @@ export class CrownfallErrorBoundary extends Component<Props, State> {
               style={{
                 width: "100%",
                 minHeight: "48px",
-                fontFamily: "Oswald, sans-serif",
+                fontFamily: "Nunito Sans, sans-serif",
                 letterSpacing: "0.08em",
               }}
             >
@@ -211,7 +211,7 @@ export class CrownfallErrorBoundary extends Component<Props, State> {
               style={{
                 width: "100%",
                 minHeight: "44px",
-                fontFamily: "Oswald, sans-serif",
+                fontFamily: "Nunito Sans, sans-serif",
                 letterSpacing: "0.08em",
               }}
             >

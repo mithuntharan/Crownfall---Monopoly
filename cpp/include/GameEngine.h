@@ -88,6 +88,7 @@ public:
     bool updatePlayerColor(int playerId, const std::string& newColor, std::string& outError);
     TurnState getTurnState() const { return m_turnState; }
     bool isGameOver() const { return m_turnState == TurnState::GAME_OVER; }
+    int getWinnerId() const { return m_winnerId; }
     void endTurn(int playerId);
     bool endTurn(int playerId, std::string& outError);
 
@@ -159,6 +160,7 @@ private:
     int m_consecutiveDoubles = 0;
     bool m_gameStarted = false;
     TurnState m_turnState = TurnState::WAITING_FOR_ROLL;
+    int m_winnerId = -1;
     std::mt19937 m_rng;
 
     int m_currentTurnId = 1;

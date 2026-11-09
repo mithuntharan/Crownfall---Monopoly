@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Oswald:wght@500;600;700&family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..900;1,6..12,300..900&display=swap");
 @import "tailwindcss";
 
 /* ==============================================================================
@@ -21,9 +21,9 @@
   --glass-floating: rgba(255, 253, 248, 0.97);
   --glass-border: rgba(196, 184, 166, 0.35);
   --glass-border-subtle: rgba(196, 184, 166, 0.22);
-  --glass-border-accent: rgba(180, 130, 40, 0.38);
-  --glass-border-gold: rgba(180, 130, 40, 0.4);
-  --glass-border-gold-strong: rgba(180, 100, 20, 0.65);
+  --glass-border-accent: rgba(82, 107, 133, 0.35);
+  --glass-border-gold: rgba(82, 107, 133, 0.35);
+  --glass-border-gold-strong: rgba(82, 107, 133, 0.60);
   --glass-border-crimson: rgba(160, 24, 60, 0.35);
   --glass-specular: linear-gradient(135deg, rgba(255, 253, 248, 0.95) 0%, rgba(245, 238, 224, 0.4) 60%, transparent 100%);
   --glass-blur: blur(16px);
@@ -38,19 +38,20 @@
   --text-muted: #686d76;
   --text-dim: #9398a2;
 
-  /* ─── Refined Accents & Antique Gold ─────────────────────────────────── */
-  --accent-primary: #4338ca;
-  --accent-periwinkle: #4f46e5;
-  --gold: #b45309;
-  --gold-light: #d97706;
-  --gold-bright: #b45309;
-  --gold-antique: #92400e;
+  /* ─── Refined Accents: Muted Slate-Blue ────────────────────────────────── */
+  --accent-primary: #526B85;
+  --accent-periwinkle: #627D9B;
+  --gold: #526B85;
+  --gold-light: #627D9B;
+  --gold-bright: #7591AF;
+  --gold-antique: #455A70;
   --gold-ivory: #1e2024;
-  --gold-glow: rgba(180, 130, 40, 0.2);
-  --gold-glow-soft: rgba(217, 119, 6, 0.1);
-  --gold-300: #d97706;
-  --gold-400: #b45309;
-  --gold-500: #92400e;
+  --gold-glow: rgba(82, 107, 133, 0.2);
+  --gold-glow-soft: rgba(82, 107, 133, 0.1);
+  --gold-300: #7591AF;
+  --gold-400: #526B85;
+  --gold-500: #455A70;
+  --accent-champagne: #526B85;
   --red: #dc2626;
 
   /* ─── Restrained Burgundy & Crimson Accents ─────────────────────────── */
@@ -177,54 +178,54 @@
 
 /* ==============================================================================
    CROWNFALL — DARK THEME SEMANTIC TOKEN ARCHITECTURE
-   Premium Charcoal & Graphite Liquid Glass with Restrained Champagne Accents
+   Pitch-Black Liquid Glass with Slate-Blue Accents
    ============================================================================== */
 
 [data-theme="dark"] {
-  /* ─── Warm Charcoal & Graphite Foundations ──────────────────────────── */
-  --bg-void: #20242A;
-  --bg-midnight: #20242A;
-  --bg-deep-navy: #252B32;
-  --bg-surface: #2C333B;
-  --bg-surface-elevated: #343C45;
+  /* ─── Pitch-Black Void & Deep Surfaces ──────────────────────────────── */
+  --bg-void: #000000;
+  --bg-midnight: #000000;
+  --bg-deep-navy: #050505;
+  --bg-surface: #0a0a0a;
+  --bg-surface-elevated: #141414;
 
   /* ─── Translucent Dark Smoked Glass Surfaces ────────────────────────── */
-  --glass-heavy: rgba(52, 60, 69, 0.94);
-  --glass-medium: rgba(44, 51, 59, 0.90);
-  --glass-light: rgba(37, 43, 50, 0.85);
-  --glass-floating: rgba(52, 60, 69, 0.97);
-  --glass-border: rgba(232, 224, 210, 0.13);
-  --glass-border-subtle: rgba(232, 224, 210, 0.08);
-  --glass-border-accent: rgba(197, 177, 138, 0.35);
-  --glass-border-gold: rgba(197, 177, 138, 0.42);
-  --glass-border-gold-strong: rgba(197, 177, 138, 0.70);
+  --glass-heavy: rgba(14, 14, 14, 0.94);
+  --glass-medium: rgba(10, 10, 10, 0.90);
+  --glass-light: rgba(18, 18, 18, 0.85);
+  --glass-floating: rgba(16, 16, 16, 0.97);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-border-subtle: rgba(255, 255, 255, 0.06);
+  --glass-border-accent: rgba(129, 152, 176, 0.35);
+  --glass-border-gold: rgba(129, 152, 176, 0.35);
+  --glass-border-gold-strong: rgba(129, 152, 176, 0.60);
   --glass-border-crimson: rgba(210, 126, 120, 0.35);
-  --glass-specular: linear-gradient(135deg, rgba(240, 237, 230, 0.10) 0%, rgba(240, 237, 230, 0.02) 60%, transparent 100%);
+  --glass-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.01) 60%, transparent 100%);
   --glass-blur: blur(16px);
   --glass-blur-heavy: blur(24px);
 
-  /* ─── Warm Neutral & Off-White Typography ───────────────────────────── */
-  --text-primary: #F0EDE6;
-  --text-ivory: #F0EDE6;
-  --text-ivory-soft: #C1BDB4;
-  --text-secondary: #C1BDB4;
-  --text-subtle: #97948C;
-  --text-muted: #97948C;
-  --text-dim: #78756E;
+  /* ─── Clean Off-White & Neutral Dark Typography ─────────────────────── */
+  --text-primary: #F4F4F5;
+  --text-ivory: #F4F4F5;
+  --text-ivory-soft: #D4D4D8;
+  --text-secondary: #A1A1AA;
+  --text-subtle: #8E939B;
+  --text-muted: #71717A;
+  --text-dim: #52525B;
 
-  /* ─── Restrained Champagne Accents ──────────────────────────────────── */
-  --accent-primary: #6366f1;
-  --accent-periwinkle: #818cf8;
-  --gold: #C5B18A;
-  --gold-light: #E0D4BA;
-  --gold-bright: #D4C3A3;
-  --gold-antique: #C5B18A;
-  --gold-ivory: #F0EDE6;
-  --gold-glow: rgba(197, 177, 138, 0.25);
-  --gold-glow-soft: rgba(197, 177, 138, 0.12);
-  --gold-300: #D4C3A3;
-  --gold-400: #C5B18A;
-  --gold-500: #A89368;
+  /* ─── Muted Slate-Blue Accents ──────────────────────────────────────── */
+  --accent-primary: #8198B0;
+  --accent-periwinkle: #98ADC3;
+  --gold: #8198B0;
+  --gold-light: #98ADC3;
+  --gold-bright: #AFC2D5;
+  --gold-antique: #6C839B;
+  --gold-ivory: #F4F4F5;
+  --gold-glow: rgba(129, 152, 176, 0.20);
+  --gold-glow-soft: rgba(129, 152, 176, 0.10);
+  --gold-300: #AFC2D5;
+  --gold-400: #8198B0;
+  --gold-500: #6C839B;
   --red: #D27E78;
 
   /* ─── Restrained Burgundy & Crimson Accents ─────────────────────────── */
@@ -235,26 +236,26 @@
   --crimson-glow: rgba(210, 126, 120, 0.30);
 
   /* ─── Board & Perimeter Tile Tokens ─────────────────────────────────── */
-  --board-bg: #252B32;
-  --board-border: rgba(197, 177, 138, 0.35);
-  --board-center-bg: radial-gradient(circle at center, rgba(44, 51, 59, 0.98) 0%, rgba(37, 43, 50, 0.98) 100%);
-  --tile-bg: #2C333B;
-  --tile-border: rgba(232, 224, 210, 0.13);
-  --tile-hover-bg: #343C45;
-  --corner-bg: radial-gradient(circle at center, #343C45 0%, #252B32 100%);
+  --board-bg: #050505;
+  --board-border: rgba(255, 255, 255, 0.10);
+  --board-center-bg: #000000;
+  --tile-bg: #0d0d0d;
+  --tile-border: rgba(255, 255, 255, 0.08);
+  --tile-hover-bg: #161616;
+  --corner-bg: #080808;
 
   /* ─── Coordinated Special Squares & Price Chips ──────────────────────── */
-  --special-card-bg: rgba(44, 51, 59, 0.94);
-  --special-card-border: rgba(197, 177, 138, 0.30);
-  --special-card-text: #F0EDE6;
-  --price-chip-bg: rgba(52, 60, 69, 0.95);
-  --price-chip-border: rgba(197, 177, 138, 0.30);
-  --price-chip-text: #D4C3A3;
+  --special-card-bg: rgba(14, 14, 14, 0.94);
+  --special-card-border: rgba(255, 255, 255, 0.10);
+  --special-card-text: #F4F4F5;
+  --price-chip-bg: rgba(20, 20, 20, 0.95);
+  --price-chip-border: rgba(255, 255, 255, 0.12);
+  --price-chip-text: #AFC2D5;
 
   /* ─── Tactile Dice Tokens ────────────────────────────────────────────── */
-  --die-bg: linear-gradient(145deg, #343C45, #252B32);
-  --die-border: rgba(197, 177, 138, 0.45);
-  --die-pip: radial-gradient(circle at 35% 35%, #E0D4BA, #C5B18A);
+  --die-bg: linear-gradient(145deg, #181818, #0a0a0a);
+  --die-border: rgba(255, 255, 255, 0.14);
+  --die-pip: radial-gradient(circle at 35% 35%, #F4F4F5, #8198B0);
 
   /* ─── Property Color Group Accents ──────────────────────────────────── */
   --group-green: #10b981;
@@ -281,9 +282,9 @@
   --surface: var(--bg-surface);
   --ink: var(--text-ivory);
   --ink-soft: var(--text-muted);
-  --border-subtle: rgba(232, 224, 210, 0.13);
-  --bg-card: #2C333B;
-  --line: rgba(232, 224, 210, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --bg-card: #0a0a0a;
+  --line: rgba(255, 255, 255, 0.08);
 
   /* ─── Financial & Status Semantic Tokens ────────────────────────────── */
   --financial-gain: #79B78C;
@@ -298,38 +299,37 @@
   --status-info: #3b82f6;
 
   /* ─── Universal Input Semantic Tokens ───────────────────────────────── */
-  --input-bg: #252B32;
-  --input-color: #F0EDE6;
-  --input-border: rgba(232, 224, 210, 0.15);
-  --input-placeholder: #97948C;
-  --input-focus-ring: rgba(197, 177, 138, 0.25);
-  --input-disabled-bg: rgba(232, 224, 210, 0.04);
+  --input-bg: #0e0e0e;
+  --input-color: #F4F4F5;
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-placeholder: #71717A;
+  --input-focus-ring: rgba(129, 152, 176, 0.30);
+  --input-disabled-bg: rgba(255, 255, 255, 0.03);
 
   /* --- Liquid-Glass Scrollbar Semantic Tokens (Dark Theme) --- */
-  --scrollbar-track: rgba(37, 43, 50, 0.55);
-  --scrollbar-thumb: rgba(197, 177, 138, 0.35);
-  --scrollbar-thumb-hover: rgba(212, 195, 163, 0.75);
+  --scrollbar-track: rgba(10, 10, 10, 0.55);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
 
   /* ─── Explicit Semantic Tokens Specified in Crownfall Palette ───────── */
-  --bg-main: #20242A;
-  --bg-board-surround: #252B32;
-  --bg-card-warm: #2C333B;
-  --bg-elevated-warm: #343C45;
-  --input-bg-warm: #252B32;
-  --text-primary-warm: #F0EDE6;
-  --text-secondary-warm: #C1BDB4;
-  --text-muted-warm: #97948C;
-  --accent-champagne: #C5B18A;
+  --bg-main: #000000;
+  --bg-board-surround: #050505;
+  --bg-card-warm: #0a0a0a;
+  --bg-elevated-warm: #141414;
+  --input-bg-warm: #0e0e0e;
+  --text-primary-warm: #F4F4F5;
+  --text-secondary-warm: #A1A1AA;
+  --text-muted-warm: #71717A;
+  --accent-champagne: #8198B0;
   --color-positive: #79B78C;
   --color-negative: #D27E78;
-  --border-warm: rgba(232, 224, 210, 0.13);
+  --border-warm: rgba(255, 255, 255, 0.08);
 
-  /* ─── Refined Dark Shadows
   /* ─── Refined Dark Shadows with Specular Borders ─────────────────────── */
-  --shadow-subtle: 0 4px 14px rgba(0, 0, 0, 0.40);
-  --shadow-glass: 0 12px 30px rgba(0, 0, 0, 0.50), 0 0 1px rgba(255, 255, 255, 0.10) inset;
-  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(212, 175, 55, 0.25);
-  --shadow-floating: 0 10px 28px rgba(0, 0, 0, 0.60), 0 0 16px rgba(212, 175, 55, 0.15);
+  --shadow-subtle: 0 4px 14px rgba(0, 0, 0, 0.70);
+  --shadow-glass: 0 12px 30px rgba(0, 0, 0, 0.80), 0 0 1px rgba(255, 255, 255, 0.07) inset;
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.10);
+  --shadow-floating: 0 10px 28px rgba(0, 0, 0, 0.85), 0 0 16px rgba(129, 152, 176, 0.10);
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
@@ -356,7 +356,7 @@
   box-sizing: border-box;
 }
 
-html, body {
+html, body, #root {
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -368,7 +368,7 @@ html, body {
     radial-gradient(circle at 90% 80%, rgba(246, 240, 228, 0.65) 0%, transparent 45%);
   background-attachment: fixed;
   color: var(--text-primary);
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -388,11 +388,8 @@ body[data-theme="light"],
 html[data-theme="dark"],
 body[data-theme="dark"],
 [data-theme="dark"] {
-  background-color: var(--bg-void);
-  background-image:
-    radial-gradient(circle at 50% 0%, rgba(35, 42, 54, 0.60) 0%, transparent 60%),
-    radial-gradient(circle at 10% 90%, rgba(22, 28, 38, 0.50) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(28, 35, 48, 0.55) 0%, transparent 45%);
+  background-color: #000000 !important;
+  background-image: none !important;
   color: var(--text-primary);
 }
 
@@ -539,7 +536,7 @@ button:focus-visible, input:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 0.08em;
@@ -562,18 +559,18 @@ button:focus-visible, input:focus-visible {
 
 .btn-primary,
 .btn-gold {
-  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
-  color: #14110b;
-  border: 1px solid rgba(212, 175, 55, 0.65);
-  box-shadow: 0 3px 12px rgba(180, 140, 60, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #526B85 0%, #455A70 100%);
+  color: #ffffff;
+  border: 1px solid rgba(82, 107, 133, 0.65);
+  box-shadow: 0 3px 12px rgba(82, 107, 133, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-shadow: none;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%);
-  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  background: linear-gradient(135deg, #627D9B 0%, #526B85 100%);
+  box-shadow: 0 4px 16px rgba(82, 107, 133, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transform: translateY(-1px);
 }
 
@@ -581,16 +578,16 @@ button:focus-visible, input:focus-visible {
   background: rgba(250, 246, 238, 0.92);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border-gold);
-  color: #78350f;
+  border: 1px solid rgba(82, 107, 133, 0.35);
+  color: #2D3D4E;
   box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: rgba(246, 240, 228, 0.98);
-  border-color: var(--gold-bright);
-  color: #92400e;
-  box-shadow: 0 4px 14px rgba(60, 50, 40, 0.12), 0 0 10px rgba(180, 130, 40, 0.2);
+  border-color: #526B85;
+  color: #1A2530;
+  box-shadow: 0 4px 14px rgba(60, 50, 40, 0.12), 0 0 10px rgba(82, 107, 133, 0.2);
 }
 
 .btn-ghost {
@@ -609,21 +606,21 @@ button:focus-visible, input:focus-visible {
 .btn-ghost:hover:not(:disabled) {
   background: rgba(240, 232, 216, 0.85);
   border-color: var(--gold);
-  color: #78350f;
+  color: #2D3D4E;
   box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
 }
 
 .btn-outline {
   background: transparent;
-  color: #78350f;
-  border: 1.5px solid var(--glass-border-gold);
+  color: #455A70;
+  border: 1.5px solid rgba(82, 107, 133, 0.45);
   min-height: 48px;
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: rgba(180, 130, 40, 0.12);
-  border-color: var(--gold);
-  color: #92400e;
+  background: rgba(82, 107, 133, 0.12);
+  border-color: #526B85;
+  color: #2D3D4E;
   box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
 }
 
@@ -666,7 +663,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .logo strong {
-  font-family: "Playfair Display", serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: clamp(38px, 9vw, 56px);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -682,7 +679,7 @@ button:focus-visible, input:focus-visible {
   padding: 4px 16px;
   border-top: 1px solid rgba(217, 119, 6, 0.5);
   border-bottom: 1px solid rgba(217, 119, 6, 0.5);
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   letter-spacing: 0.35em;
   font-size: 10px;
   font-weight: 600;
@@ -723,7 +720,7 @@ button:focus-visible, input:focus-visible {
   border: 1.5px solid var(--gold);
   border-radius: 18px;
   transform: rotate(45deg);
-  font: 800 36px "Playfair Display", serif;
+  font: 800 36px "Nunito Sans", sans-serif;
   background: rgba(17, 26, 48, 0.7);
   box-shadow: 0 0 30px rgba(217, 119, 6, 0.35), inset 0 0 15px rgba(217, 119, 6, 0.2);
 }
@@ -734,7 +731,7 @@ button:focus-visible, input:focus-visible {
 
 .splash > span {
   color: var(--gold-light);
-  font: 600 11px "Oswald", sans-serif;
+  font: 600 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.32em;
 }
 
@@ -802,7 +799,7 @@ button:focus-visible, input:focus-visible {
   border: 1px solid var(--gold-bright);
   background: rgba(217, 119, 6, 0.12);
   color: var(--gold-bright);
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.16em;
   backdrop-filter: var(--glass-blur);
   box-shadow: 0 0 14px rgba(217, 119, 6, 0.25);
@@ -811,7 +808,7 @@ button:focus-visible, input:focus-visible {
 .menu-hero p {
   margin: 18px 0 0;
   color: var(--text-subtle);
-  font: 500 13px/1.8 "Oswald", sans-serif;
+  font: 500 13px/1.8 "Nunito Sans", sans-serif;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   max-width: 320px;
@@ -846,7 +843,7 @@ button:focus-visible, input:focus-visible {
   padding: 8px 14px;
   border-radius: var(--radius-sm, 6px);
   border: 1px solid rgba(200, 155, 69, 0.4);
-  font: 700 11px "Oswald", sans-serif;
+  font: 700 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.12em;
   transition: all 0.18s ease;
 }
@@ -874,7 +871,7 @@ button:focus-visible, input:focus-visible {
   align-items: center;
   padding: 10px 4px 0;
   color: var(--text-dim);
-  font: 600 10px "Oswald", sans-serif;
+  font: 600 10px "Nunito Sans", sans-serif;
   letter-spacing: 0.14em;
 }
 
@@ -933,7 +930,7 @@ button:focus-visible, input:focus-visible {
 .header-title,
 [data-theme="light"] .header-title {
   text-align: center;
-  font: 800 17px "Oswald", sans-serif;
+  font: 800 17px "Nunito Sans", sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   background: linear-gradient(180deg, #0f172a 30%, #78350f 100%);
@@ -948,7 +945,7 @@ button:focus-visible, input:focus-visible {
   display: block;
   color: #b45309;
   -webkit-text-fill-color: #b45309;
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.28em;
   margin-top: 2px;
   opacity: 0.9;
@@ -960,7 +957,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(217, 119, 6, 0.14);
   border: 1px solid var(--glass-border-gold);
   color: var(--gold-light);
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.12em;
 }
 
@@ -981,7 +978,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .field > span, .section-label {
-  font: 700 11px "Oswald", sans-serif;
+  font: 700 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.14em;
   color: var(--gold);
   text-transform: uppercase;
@@ -1000,7 +997,7 @@ button:focus-visible, input:focus-visible {
   border-radius: var(--radius-md);
   background: #ffffff;
   padding: 0 16px;
-  font: 700 18px "Oswald", sans-serif;
+  font: 700 18px "Nunito Sans", sans-serif;
   letter-spacing: 0.08em;
   color: #0f172a;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
@@ -1063,7 +1060,7 @@ button:focus-visible, input:focus-visible {
 
 .setting-row strong {
   display: block;
-  font: 700 13px "Oswald", sans-serif;
+  font: 700 13px "Nunito Sans", sans-serif;
   letter-spacing: 0.06em;
   color: var(--text-ivory);
   overflow-wrap: break-word;
@@ -1169,12 +1166,12 @@ button:focus-visible, input:focus-visible {
 
 .room-code small {
   color: var(--gold-bright);
-  font: 700 10px "Oswald", sans-serif;
+  font: 700 10px "Nunito Sans", sans-serif;
   letter-spacing: 0.2em;
 }
 
 .room-code strong {
-  font: 800 28px "Oswald", sans-serif;
+  font: 800 28px "Nunito Sans", sans-serif;
   letter-spacing: 0.12em;
   color: #fff;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
@@ -1186,7 +1183,7 @@ button:focus-visible, input:focus-visible {
   color: var(--gold-light);
   background: rgba(217, 119, 6, 0.12);
   padding: 8px 14px;
-  font: 700 11px "Oswald", sans-serif;
+  font: 700 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.1em;
   cursor: pointer;
   transition: all 0.18s ease;
@@ -1201,7 +1198,7 @@ button:focus-visible, input:focus-visible {
 .lobby-meta {
   display: flex;
   justify-content: space-between;
-  font: 700 10px "Oswald", sans-serif;
+  font: 700 10px "Nunito Sans", sans-serif;
   letter-spacing: 0.1em;
   color: var(--text-muted);
 }
@@ -1244,7 +1241,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .lobby-name strong {
-  font: 700 14px "DM Sans", sans-serif;
+  font: 700 14px "Nunito Sans", sans-serif;
   color: var(--text-ivory);
 }
 
@@ -1276,7 +1273,7 @@ button:focus-visible, input:focus-visible {
   height: 48px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 14px;
   background: var(--glass-heavy);
   backdrop-filter: var(--glass-blur);
@@ -1318,13 +1315,17 @@ button:focus-visible, input:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 5px;
+  height: 30px;
   min-height: 30px;
-  padding: 3px 9px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  line-height: 1;
+  vertical-align: middle;
   border-radius: 6px;
   background: rgba(253, 250, 244, 0.95);
   border: 1px solid rgba(180, 130, 40, 0.35);
   color: #2b261f;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1521,7 +1522,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .ps-name {
-  font: 700 12px "DM Sans", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   color: var(--text-ivory);
   white-space: nowrap;
   overflow: hidden;
@@ -1530,7 +1531,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .ps-balance {
-  font: 800 13px "Oswald", sans-serif;
+  font: 800 13px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
   letter-spacing: 0.04em;
 }
@@ -1569,7 +1570,7 @@ button:focus-visible, input:focus-visible {
   background: var(--board-bg);
   box-shadow: var(--shadow-modal);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   container-type: inline-size;
   transition: background-color 0.22s ease, border-color 0.22s ease;
   box-sizing: border-box;
@@ -1607,7 +1608,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .board-center-motto {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 8px;
   font-weight: 600;
   letter-spacing: 0.28em;
@@ -1640,14 +1641,18 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 15;
+  z-index: 30;
 }
 
 .board-gliding-token-wrapper {
   position: absolute;
   pointer-events: none;
-  z-index: 16;
+  z-index: 31;
   will-change: left, top, transform;
+}
+
+.board-gliding-token-wrapper.is-gliding {
+  z-index: 35;
 }
 
 /* Perimeter Tile Styles */
@@ -1686,13 +1691,17 @@ button:focus-visible, input:focus-visible {
   box-sizing: border-box;
 }
 
+.board-space,
+.board-space-content,
 .board-space b,
-.board-space-label {
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 550;
+.board-space-label,
+.space-name-line {
+  font-family: "Nunito Sans", sans-serif !important;
+  font-weight: 700;
   color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.01em;
+  line-height: 1.15;
 }
 
 /* Standardized Neutral Liquid Glass Price Chip */
@@ -1705,11 +1714,11 @@ button:focus-visible, input:focus-visible {
   background: var(--price-chip-bg);
   border: 1px solid var(--price-chip-border);
   color: var(--price-chip-text);
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Nunito Sans", sans-serif !important;
   font-size: 9px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.15;
   white-space: nowrap;
   pointer-events: none;
   margin-top: 2px;
@@ -1718,10 +1727,11 @@ button:focus-visible, input:focus-visible {
 }
 
 .board-space small {
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 500;
+  font-family: "Nunito Sans", sans-serif !important;
+  font-weight: 600;
   color: var(--price-chip-text);
   letter-spacing: 0.01em;
+  line-height: 1.15;
 }
 
 /* Group Color Banners */
@@ -1762,19 +1772,19 @@ button:focus-visible, input:focus-visible {
 /* Consistent Content Layout & Inset System Across All 4 Board Edges */
 .side-bottom:not(.space-corner) .board-space-content {
   padding-top: calc(18% + 2px);
-  padding-bottom: 6px;
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-bottom: 4px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
 .side-top:not(.space-corner) .board-space-content {
   padding-bottom: calc(18% + 2px);
-  padding-top: 6px;
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-top: 4px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
-/* Side Rotations for Lateral Tiles */
+/* Side Rotations for Lateral Tiles (aspect ratio 1.7fr : 1.0fr) */
 .side-right:not(.space-corner) .board-space-content {
   position: absolute;
   top: 50%;
@@ -1784,9 +1794,9 @@ button:focus-visible, input:focus-visible {
   transform: translate(-50%, -50%) rotate(90deg);
   transform-origin: center center;
   padding-bottom: calc(18% + 2px);
-  padding-top: 6px;
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-top: 4px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
 .side-left:not(.space-corner) .board-space-content {
@@ -1798,9 +1808,9 @@ button:focus-visible, input:focus-visible {
   transform: translate(-50%, -50%) rotate(-90deg);
   transform-origin: center center;
   padding-bottom: calc(18% + 2px);
-  padding-top: 6px;
-  padding-left: 2px;
-  padding-right: 2px;
+  padding-top: 4px;
+  padding-left: 1px;
+  padding-right: 1px;
 }
 
 /* Corner Spaces */
@@ -1815,7 +1825,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .space-corner b {
-  font-family: "Playfair Display", serif !important;
+  font-family: "Nunito Sans", sans-serif !important;
   color: var(--gold-antique) !important;
   font-weight: 700 !important;
 }
@@ -1864,6 +1874,7 @@ button:focus-visible, input:focus-visible {
   z-index: 10;
   pointer-events: none;
   box-shadow: 0 0 6px currentColor, inset 0 0 2px rgba(255, 255, 255, 0.4);
+  transition: all 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tile-owner-indicator.side-bottom {
@@ -1902,21 +1913,24 @@ button:focus-visible, input:focus-visible {
   transform-origin: right center;
 }
 
-/* Fluid purchase entrance animation: expanding outward from center of edge */
+/* Slower, deliberate purchase entrance animation: expanding outward smoothly from center of edge (650ms) */
 .tile-owner-indicator.is-newly-purchased.side-bottom,
 .tile-owner-indicator.is-newly-purchased.side-top {
-  animation: ownerBarExpandH 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: ownerBarExpandH 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .tile-owner-indicator.is-newly-purchased.side-left,
 .tile-owner-indicator.is-newly-purchased.side-right {
-  animation: ownerBarExpandV 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: ownerBarExpandV 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes ownerBarExpandH {
   0% {
     transform: scaleX(0);
-    opacity: 0.2;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
   }
   100% {
     transform: scaleX(1);
@@ -1927,11 +1941,28 @@ button:focus-visible, input:focus-visible {
 @keyframes ownerBarExpandV {
   0% {
     transform: scaleY(0);
-    opacity: 0.2;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
   }
   100% {
     transform: scaleY(1);
     opacity: 1;
+  }
+}
+
+/* Deliberate soft purchase glow on board space */
+.board-space.is-newly-purchased {
+  animation: tilePurchaseSoftFlash 650ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tilePurchaseSoftFlash {
+  0% {
+    filter: brightness(1.28);
+  }
+  100% {
+    filter: brightness(1);
   }
 }
 
@@ -1966,7 +1997,7 @@ button:focus-visible, input:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 3.5px;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   text-transform: uppercase;
   user-select: none;
   line-height: 1;
@@ -2452,36 +2483,46 @@ button:focus-visible, input:focus-visible {
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
-  border: 1px solid rgba(212, 175, 55, 0.65);
-  color: #14110b;
-  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.35);
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: linear-gradient(135deg, #526B85 0%, #455A70 100%);
+  border: 1px solid rgba(82, 107, 133, 0.65);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(82, 107, 133, 0.25);
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .roll-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%);
-  box-shadow: 0 6px 20px rgba(180, 140, 60, 0.45);
+  background: linear-gradient(135deg, #627D9B 0%, #526B85 100%);
+  box-shadow: 0 6px 20px rgba(82, 107, 133, 0.35);
+}
+
+.roll-button:disabled {
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #8E939B !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  animation: none !important;
 }
 
 /* Adaptive Action Button: End Turn Mode */
 .roll-button.end-turn-mode {
-  background: linear-gradient(135deg, #701a35 0%, #4c0519 100%);
-  border-color: rgba(200, 155, 69, 0.5);
-  color: var(--gold-bright);
+  background: rgba(82, 107, 133, 0.15);
+  border-color: rgba(82, 107, 133, 0.40);
+  color: #2D3D4E;
+  box-shadow: none;
 }
 
 .roll-button.end-turn-mode:not(:disabled) {
-  background: linear-gradient(135deg, #be123c 0%, #881337 100%);
-  color: #fff;
-  border-color: var(--gold-bright);
-  box-shadow: 0 4px 18px rgba(190, 18, 60, 0.5), 0 0 12px rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, #526B85 0%, #455A70 100%);
+  color: #ffffff;
+  border-color: rgba(82, 107, 133, 0.70);
+  box-shadow: 0 4px 16px rgba(82, 107, 133, 0.25);
   animation: none;
 }
 
 .roll-button.end-turn-mode:not(:disabled):hover {
-  background: linear-gradient(135deg, #e11d48 0%, #9f1239 100%);
-  box-shadow: 0 6px 24px rgba(225, 29, 72, 0.65), 0 0 16px rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, #627D9B 0%, #526B85 100%);
+  box-shadow: 0 6px 20px rgba(82, 107, 133, 0.35);
 }
 
 .end-turn-button {
@@ -2489,11 +2530,11 @@ button:focus-visible, input:focus-visible {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   border-radius: var(--radius-md);
-  border: 1.5px solid var(--gold);
-  color: var(--gold-bright);
-  background: rgba(136, 19, 55, 0.35);
+  border: 1.5px solid rgba(82, 107, 133, 0.50);
+  color: #2D3D4E;
+  background: rgba(82, 107, 133, 0.12);
   cursor: pointer;
   transition: transform var(--duration-btn-press) var(--ease-out-expo),
               background-color var(--duration-btn) var(--ease-out-expo),
@@ -2537,7 +2578,7 @@ button:focus-visible, input:focus-visible {
   background: var(--glass-light);
   border: 1px solid var(--glass-border);
   color: var(--text-primary);
-  font: 600 11px "Oswald", sans-serif;
+  font: 600 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: transform var(--duration-btn-press) var(--ease-out-expo),
@@ -2619,6 +2660,223 @@ button:focus-visible, input:focus-visible {
   }
 }
 
+@keyframes modalBackdropFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modalSheetScaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+.modal-backdrop.is-closing {
+  animation: modalBackdropFadeOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.modal-sheet.is-closing {
+  animation: modalSheetScaleOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+/* Property details card expansion & collapse from clicked tile origin (FLIP transform) */
+.modal-sheet.property-details-sheet {
+  animation: propertyModalExpand 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.modal-sheet.property-details-sheet.is-closing {
+  animation: propertyModalCollapse 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+@keyframes propertyModalExpand {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--tile-dx, 0px), var(--tile-dy, 12px), 0) scale(var(--tile-scale-x, 0.35), var(--tile-scale-y, 0.35));
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1, 1);
+  }
+}
+
+@keyframes propertyModalCollapse {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--tile-dx, 0px), var(--tile-dy, 12px), 0) scale(var(--tile-scale-x, 0.35), var(--tile-scale-y, 0.35));
+  }
+}
+
+/* ==============================================================================
+   COMPACT ANCHORED PROPERTY INSPECTION FLOATING CARD
+   ============================================================================== */
+
+.property-inspection-anchored-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(11, 15, 25, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(82, 107, 133, 0.45);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: var(--text-ivory);
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  will-change: transform, opacity;
+  animation: anchoredInspectionEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-theme="light"] .property-inspection-anchored-card {
+  background: rgba(253, 250, 245, 0.96);
+  border: 1.5px solid rgba(196, 184, 166, 0.55);
+  box-shadow: 0 16px 40px rgba(44, 34, 18, 0.16), 0 0 0 1px rgba(196, 184, 166, 0.22);
+  color: var(--text-primary);
+}
+
+.property-inspection-anchored-card.is-closing {
+  animation: anchoredInspectionExit 0.18s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+  pointer-events: none;
+}
+
+@keyframes anchoredInspectionEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes anchoredInspectionExit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.anchored-inspection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(82, 107, 133, 0.12);
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.anchored-inspection-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.anchored-inspection-badge {
+  font-family: "Nunito Sans", sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  background: var(--accent-primary, #526B85);
+  color: #ffffff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.anchored-inspection-title {
+  font: 700 12px/1.2 "Nunito Sans", sans-serif;
+  letter-spacing: 0.06em;
+  color: var(--gold-bright, #7591AF);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme="light"] .anchored-inspection-title {
+  color: var(--accent-primary, #526B85);
+}
+
+.anchored-inspection-close-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.anchored-inspection-close-btn:hover {
+  background: rgba(82, 107, 133, 0.25);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+}
+
+[data-theme="light"] .anchored-inspection-close-btn:hover {
+  background: rgba(82, 107, 133, 0.15);
+  color: var(--text-primary);
+}
+
+.anchored-inspection-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+  flex: 1 1 auto;
+}
+
+/* Compact Property Visual overrides for anchored floating card */
+.property-inspection-anchored-card .property-card {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-shadow: none;
+}
+
+.property-inspection-anchored-card .property-card-mortgage-section {
+  margin-top: 6px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+}
+
+.property-inspection-anchored-card .property-card-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--glass-heavy);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--glass-border-subtle);
+  margin-top: 4px;
+  z-index: 5;
+}
+
 .sheet-handle {
   width: 44px;
   height: 4px;
@@ -2637,7 +2895,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .modal-header strong {
-  font: 800 17px "Oswald", sans-serif;
+  font: 800 17px "Nunito Sans", sans-serif;
   letter-spacing: 0.1em;
   color: var(--gold-bright);
 }
@@ -2682,18 +2940,18 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .property-head small {
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.16em;
   opacity: 0.85;
 }
 .property-head strong {
-  font: 800 24px "Playfair Display", serif;
+  font: 800 24px "Nunito Sans", sans-serif;
   letter-spacing: 0.04em;
   margin: 4px 0;
   text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
 .property-head span {
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.14em;
 }
 
@@ -2724,12 +2982,12 @@ button:focus-visible, input:focus-visible {
   min-width: 0;
 }
 .property-price small {
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.12em;
   color: var(--text-muted);
 }
 .property-price strong {
-  font: 800 20px "Oswald", sans-serif;
+  font: 800 20px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
 }
 .property-status-badges {
@@ -2744,7 +3002,7 @@ button:focus-visible, input:focus-visible {
 .owner-badge {
   padding: 3px 8px;
   border-radius: 6px;
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.06em;
   background: rgba(16, 185, 129, 0.2);
   color: #047857;
@@ -2778,7 +3036,7 @@ button:focus-visible, input:focus-visible {
 .rent-table span,
 .rent-tier-row span {
   color: var(--text-subtle);
-  font: 600 11px "Oswald", sans-serif;
+  font: 600 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.04em;
   display: inline-flex;
   align-items: center;
@@ -2786,7 +3044,7 @@ button:focus-visible, input:focus-visible {
 }
 .rent-table b,
 .rent-tier-row b {
-  font: 700 13px "Oswald", sans-serif;
+  font: 700 13px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
 }
 
@@ -2819,7 +3077,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .rent-tier-active-badge {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -2847,7 +3105,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(159, 18, 57, 0.12);
   border: 1px solid rgba(190, 18, 60, 0.5);
   color: #9f1239;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -2866,7 +3124,7 @@ button:focus-visible, input:focus-visible {
   display: flex;
   justify-content: space-between;
   border-top: 1px solid var(--glass-border);
-  font: 600 10.5px "Oswald", sans-serif;
+  font: 600 10.5px "Nunito Sans", sans-serif;
   color: var(--text-secondary);
 }
 .property-foot b {
@@ -2878,7 +3136,7 @@ button:focus-visible, input:focus-visible {
   text-align: center;
   background: rgba(240, 234, 222, 0.95);
   border-top: 1px solid var(--glass-border-subtle);
-  font: 700 8.5px "Oswald", sans-serif;
+  font: 700 8.5px "Nunito Sans", sans-serif;
   letter-spacing: 0.16em;
   color: var(--gold-antique);
 }
@@ -2901,12 +3159,12 @@ button:focus-visible, input:focus-visible {
   border-bottom: 1px solid var(--glass-border);
 }
 .mortgage-info-header strong {
-  font: 700 11px "Oswald", sans-serif;
+  font: 700 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.08em;
   color: var(--gold-bright);
 }
 .mortgage-badge {
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   padding: 2px 7px;
   border-radius: 4px;
 }
@@ -2927,12 +3185,12 @@ button:focus-visible, input:focus-visible {
   text-align: center;
 }
 .mortgage-info-grid small {
-  font: 600 9px "Oswald", sans-serif;
+  font: 600 9px "Nunito Sans", sans-serif;
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 .mortgage-info-grid b {
-  font: 700 13px "Oswald", sans-serif;
+  font: 700 13px "Nunito Sans", sans-serif;
   color: var(--text-ivory);
 }
 .property-card-actions {
@@ -3001,7 +3259,7 @@ button:focus-visible, input:focus-visible {
   flex-shrink: 0;
 }
 .board-center-notification-card .notification-message {
-  font: 600 11.5px/1.3 "DM Sans", sans-serif;
+  font: 600 11.5px/1.3 "Nunito Sans", sans-serif;
   color: var(--text-ivory);
   flex: 1;
 }
@@ -3054,7 +3312,7 @@ button:focus-visible, input:focus-visible {
   margin-bottom: 6px;
 }
 .purchase-card-badge {
-  font: 800 11px "Oswald", sans-serif;
+  font: 800 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.12em;
   color: var(--gold-bright, #ffd57e);
   text-transform: uppercase;
@@ -3098,12 +3356,12 @@ button:focus-visible, input:focus-visible {
   text-align: center;
 }
 .purchase-name {
-  font: 800 15px "Oswald", sans-serif;
+  font: 800 15px "Nunito Sans", sans-serif;
   color: var(--text-ivory);
   letter-spacing: 0.06em;
 }
 .purchase-price-tag {
-  font: 800 18px "Oswald", sans-serif;
+  font: 800 18px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
 }
 .purchase-action-buttons {
@@ -3117,7 +3375,7 @@ button:focus-visible, input:focus-visible {
   border-radius: var(--radius-sm);
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   color: #fff;
-  font: 700 12px "Oswald", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   letter-spacing: 0.05em;
   border: 1px solid rgba(52, 211, 153, 0.4);
   box-shadow: 0 3px 10px rgba(5, 150, 105, 0.4);
@@ -3148,7 +3406,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle, rgba(200, 155, 69, 0.25));
   color: var(--text-muted);
-  font: 700 12px "Oswald", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -3187,12 +3445,12 @@ button:focus-visible, input:focus-visible {
   align-items: flex-end;
 }
 .ledger-stat-label {
-  font: 700 9px "Oswald", sans-serif;
+  font: 700 9px "Nunito Sans", sans-serif;
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 .ledger-stat-value {
-  font: 700 13px "Oswald", sans-serif;
+  font: 700 13px "Nunito Sans", sans-serif;
   color: var(--gold-bright, #ffd57e);
 }
 .ledger-filters-wrap {
@@ -3207,7 +3465,7 @@ button:focus-visible, input:focus-visible {
   gap: 4px;
 }
 .ledger-filter-label {
-  font: 700 10px "Oswald", sans-serif;
+  font: 700 10px "Nunito Sans", sans-serif;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -3225,7 +3483,7 @@ button:focus-visible, input:focus-visible {
   border: 1px solid rgba(200, 155, 69, 0.25);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
-  font: 700 10.5px "Oswald", sans-serif;
+  font: 700 10.5px "Nunito Sans", sans-serif;
   letter-spacing: 0.04em;
   cursor: pointer;
   white-space: nowrap;
@@ -3249,13 +3507,13 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 2px 8px rgba(60, 50, 40, 0.05);
 }
 .unowned-status-heading {
-  font: 700 12px "Oswald", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   color: var(--gold, #b45309);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .unowned-status-desc {
-  font: 500 11.5px "DM Sans", sans-serif;
+  font: 500 11.5px "Nunito Sans", sans-serif;
   color: var(--text-secondary, #4b4f56);
   margin: 0;
   line-height: 1.4;
@@ -3326,7 +3584,7 @@ button:focus-visible, input:focus-visible {
   font-size: 38px;
 }
 .winner-name {
-  font: 800 36px "Playfair Display", serif;
+  font: 800 36px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
   margin: 12px 0 4px;
   text-shadow: 0 2px 12px rgba(0,0,0,0.7);
@@ -3348,7 +3606,7 @@ button:focus-visible, input:focus-visible {
   border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
-  font: 700 12px "Oswald", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   color: var(--gold-bright);
   letter-spacing: 0.1em;
 }
@@ -3400,7 +3658,7 @@ button:focus-visible, input:focus-visible {
   display: flex;
   align-items: center;
   gap: 5px;
-  font: 600 8.5px "Oswald", sans-serif;
+  font: 600 8.5px "Nunito Sans", sans-serif;
   letter-spacing: 0.1em;
   color: #78350f;
   line-height: 1;
@@ -3413,7 +3671,7 @@ button:focus-visible, input:focus-visible {
   box-shadow: 0 0 4px rgba(180, 83, 9, 0.4);
 }
 .board-center-recent-events-log-link {
-  font: 600 8px "Oswald", sans-serif;
+  font: 600 8px "Nunito Sans", sans-serif;
   letter-spacing: 0.06em;
   color: #92400e;
   cursor: pointer;
@@ -3472,7 +3730,7 @@ button:focus-visible, input:focus-visible {
 .board-center-recent-event-time {
   font-size: 8px;
   color: #475569;
-  font-family: "DM Sans", monospace;
+  font-family: "Nunito Sans", monospace;
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -3509,7 +3767,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid var(--glass-border-gold);
   color: #fff;
-  font: 700 11px "Oswald", sans-serif;
+  font: 700 11px "Nunito Sans", sans-serif;
   letter-spacing: 0.05em;
 }
 .human-turn-timer-badge.low-time {
@@ -3620,12 +3878,6 @@ button:focus-visible, input:focus-visible {
     justify-content: flex-start;
   }
 
-  .turn-banner {
-    padding: 8px 12px;
-    margin: 0;
-    border-radius: var(--radius-sm);
-  }
-
   .player-strip {
     min-height: 54px;
     padding: 4px 8px;
@@ -3642,22 +3894,31 @@ button:focus-visible, input:focus-visible {
 
 @media (max-width: 899px) {
   .game-topbar {
-    height: auto;
+    height: 48px;
     min-height: 48px;
-    padding: 6px 12px;
+    padding: 0 10px;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
   }
 
   .game-topbar-actions {
-    gap: 4px;
-    flex-wrap: wrap;
+    gap: 5px;
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
   .topbar-action-btn {
-    min-height: 28px;
-    padding: 2px 7px;
+    height: 29px;
+    min-height: 29px;
+    padding: 0 8px;
     font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .game-layout-container {
@@ -3689,6 +3950,28 @@ button:focus-visible, input:focus-visible {
     border-radius: var(--radius-sm);
     box-sizing: border-box;
     margin: 0 auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .board-grid {
+    max-width: min(96vw, 420px);
+    width: min(calc(100vw - 12px), calc(100dvh - 180px), 420px);
+    grid-template-columns: 1.7fr repeat(8, 1fr) 1.7fr;
+    grid-template-rows: 1.7fr repeat(8, 1fr) 1.7fr;
+    overflow: visible;
+  }
+
+  .cash-transfers-overlay {
+    top: clamp(68px, 18%, 105px);
+    max-width: 90%;
+    gap: 4px;
+  }
+
+  .cash-transfer-pill {
+    padding: 4px 10px;
+    font-size: 11px;
   }
 
   .game-sidebar-column {
@@ -3705,27 +3988,51 @@ button:focus-visible, input:focus-visible {
     min-height: 44px;
     padding: 0 8px;
     gap: 4px;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
   }
 
   .game-topbar-actions {
     gap: 4px;
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
   .topbar-actions-divider {
-    height: 14px;
+    height: 16px;
     margin: 0 1px;
+    align-self: center;
   }
 
   .topbar-action-btn {
-    min-height: 27px;
-    padding: 2px 6px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 6px;
     font-size: 9.5px;
     gap: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .topbar-player-badge {
-    padding: 2px 6px;
+    height: 28px;
+    padding: 0 6px;
     font-size: 9.5px;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    max-width: 120px;
+  }
+
+  .topbar-player-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
   }
 
   .topbar-player-label {
@@ -3733,8 +4040,8 @@ button:focus-visible, input:focus-visible {
   }
 
   .game-menu {
-    width: 27px;
-    height: 27px;
+    width: 28px;
+    height: 28px;
   }
 
   .turn-timer-badge {
@@ -3751,29 +4058,66 @@ button:focus-visible, input:focus-visible {
   }
 
   .board-space-label {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-family: "Nunito Sans", sans-serif !important;
+    font-weight: 700;
+    overflow: visible;
+    text-overflow: clip;
     max-width: 100%;
+    line-height: 1.15;
   }
 
   .space-name-line {
+    font-family: "Nunito Sans", sans-serif !important;
+    font-weight: 700;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
     max-width: 100%;
+    line-height: 1.15;
   }
 
   .price-chip {
+    font-family: "Nunito Sans", sans-serif !important;
     font-size: 7.5px;
+    font-weight: 600;
     padding: 0 3px;
     margin-top: 1px;
-    line-height: 1.1;
+    line-height: 1.15;
   }
 
   .special-space-icon {
     font-size: 10px;
     margin-bottom: 0px;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-topbar {
+    padding: 0 4px;
+    gap: 2px;
+  }
+
+  .game-topbar-actions {
+    gap: 3px;
+  }
+
+  .topbar-action-btn {
+    height: 27px;
+    min-height: 27px;
+    padding: 0 4.5px;
+    font-size: 9px;
+    gap: 2px;
+  }
+
+  .topbar-player-badge {
+    height: 27px;
+    padding: 0 4px;
+    font-size: 9px;
+    max-width: 95px;
+  }
+
+  .topbar-player-name {
+    max-width: 60px;
   }
 }
 
@@ -4085,7 +4429,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .ledger-amount-tag {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -4309,7 +4653,7 @@ button:focus-visible, input:focus-visible {
 /* ── 1. Animated Cash Transfers Overlay ── */
 .cash-transfers-overlay {
   position: absolute;
-  top: 16px;
+  top: clamp(84px, 18.5%, 130px);
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
@@ -4317,9 +4661,9 @@ button:focus-visible, input:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: max-content;
-  max-width: 90%;
+  max-width: min(92%, 400px);
 }
 
 .cash-transfer-pill {
@@ -4329,21 +4673,21 @@ button:focus-visible, input:focus-visible {
   gap: 6px;
   padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(253, 250, 244, 0.94);
-  border: 1.5px solid rgba(180, 130, 40, 0.45);
-  box-shadow: 0 4px 16px rgba(60, 50, 40, 0.08), 0 0 10px rgba(200, 155, 69, 0.2);
+  background: rgba(253, 250, 244, 0.96);
+  border: 1.5px solid rgba(82, 107, 133, 0.40);
+  box-shadow: 0 4px 16px rgba(60, 50, 40, 0.08), 0 0 10px rgba(82, 107, 133, 0.15);
   color: #1e2024;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  animation: cashTransferFloat 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cashTransferFloat 4.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .cash-transfer-pill.p2p {
-  border-color: rgba(180, 130, 40, 0.55);
+  border-color: rgba(82, 107, 133, 0.50);
 }
 
 .cash-transfer-pill.bank-income {
@@ -4366,28 +4710,74 @@ button:focus-visible, input:focus-visible {
     opacity: 0;
     transform: translateY(16px) scale(0.92);
   }
-  15% {
+  8% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-  80% {
+  88% {
     opacity: 1;
-    transform: translateY(-4px) scale(1);
+    transform: translateY(-2px) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-20px) scale(0.96);
+    transform: translateY(-16px) scale(0.96);
   }
 }
 
-/* ── 2. Smart Board Highlighting ── */
+/* ── 2. Directional Smart Board Highlighting & Building Construction ── */
 .board-space.is-owner-highlighted {
-  outline: 1px solid var(--highlight-owner-color, var(--gold, #b45309)) !important;
-  outline-offset: -1px;
-  box-shadow: 0 0 5px 0.5px var(--highlight-owner-color, rgba(180, 130, 40, 0.85)), inset 0 0 2px var(--highlight-owner-color, rgba(180, 130, 40, 0.4)) !important;
+  outline: 1.5px solid var(--highlight-owner-color, rgba(129, 152, 176, 0.85)) !important;
+  outline-offset: -1.5px;
   z-index: 10 !important;
-  transform: scale(1.015);
+  transform: scale(1.02);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.board-space.is-owner-highlighted.side-bottom {
+  box-shadow: 0 10px 18px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.85)), inset 0 -2px 6px rgba(0,0,0,0.2) !important;
+}
+
+.board-space.is-owner-highlighted.side-top {
+  box-shadow: 0 -10px 18px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.85)), inset 0 2px 6px rgba(0,0,0,0.2) !important;
+}
+
+.board-space.is-owner-highlighted.side-left {
+  box-shadow: -10px 0 18px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.85)), inset -2px 0 6px rgba(0,0,0,0.2) !important;
+}
+
+.board-space.is-owner-highlighted.side-right {
+  box-shadow: 10px 0 18px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.85)), inset 2px 0 6px rgba(0,0,0,0.2) !important;
+}
+
+/* Building construction directional highlight */
+.board-space.is-recently-built {
+  outline: 2px solid var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+  outline-offset: -2px;
+  z-index: 15 !important;
+  animation: constructionGlowPulse 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.board-space.is-recently-built.side-bottom {
+  box-shadow: 0 12px 22px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+}
+
+.board-space.is-recently-built.side-top {
+  box-shadow: 0 -12px 22px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+}
+
+.board-space.is-recently-built.side-left {
+  box-shadow: -12px 0 22px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+}
+
+.board-space.is-recently-built.side-right {
+  box-shadow: 12px 0 22px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+}
+
+@keyframes constructionGlowPulse {
+  0% { transform: scale(0.98); opacity: 0.8; }
+  25% { transform: scale(1.03); opacity: 1; }
+  75% { transform: scale(1.02); opacity: 0.95; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .board-space.is-property-highlighted {
@@ -4496,7 +4886,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .compare-picker-box label {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -4561,7 +4951,7 @@ button:focus-visible, input:focus-visible {
   border: 1px solid rgba(185, 28, 28, 0.4);
   background: rgba(185, 28, 28, 0.08);
   color: #b91c1c;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -4652,7 +5042,7 @@ button:focus-visible, input:focus-visible {
 
 .prop-title {
   margin: 0;
-  font-family: "Playfair Display", serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 16px;
   font-weight: 800;
   color: var(--ink, #1c1917);
@@ -4685,24 +5075,7 @@ button:focus-visible, input:focus-visible {
   color: var(--gold, #b45309);
 }
 
-.prop-highlight-board-btn {
-  padding: 3px 8px;
-  border-radius: 5px;
-  border: 1px solid rgba(200, 155, 69, 0.4);
-  background: rgba(200, 155, 69, 0.12);
-  color: var(--ink, #1c1917);
-  font-family: "Oswald", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.prop-highlight-board-btn:hover {
-  background: var(--gold, #b45309);
-  color: #ffffff;
-}
+/* Highlight on board button removed */
 
 .property-compare-section {
   display: flex;
@@ -4713,7 +5086,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .section-label {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -4868,7 +5241,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .empty-slot-badge {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -4947,7 +5320,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .sell-property-title-name {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary, #1e2024);
@@ -4959,7 +5332,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .sell-property-type-tag {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -4975,7 +5348,7 @@ button:focus-visible, input:focus-visible {
   border: 1px solid var(--glass-border, rgba(196, 184, 166, 0.35));
   border-radius: 9999px;
   padding: 4px 10px;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -4997,7 +5370,7 @@ button:focus-visible, input:focus-visible {
   gap: 8px;
   border-radius: var(--radius-sm, 8px);
   padding: 10px 12px;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 12px;
   line-height: 1.45;
   margin-bottom: 12px;
@@ -5018,7 +5391,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .sell-warning-label {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 700;
   font-size: 10.5px;
   letter-spacing: 0.06em;
@@ -5043,13 +5416,13 @@ button:focus-visible, input:focus-visible {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 12px;
   color: var(--text-secondary, #4b4f56);
 }
 
 .sell-breakdown-row b {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary, #1e2024);
@@ -5068,7 +5441,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .sell-breakdown-row.net-proceeds-row span {
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.04em;
@@ -5101,7 +5474,7 @@ button:focus-visible, input:focus-visible {
   color: #fff !important;
   border: 1px solid rgba(244, 63, 94, 0.4) !important;
   box-shadow: 0 4px 12px rgba(190, 18, 60, 0.3) !important;
-  font-family: "Oswald", sans-serif !important;
+  font-family: "Nunito Sans", sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: 0.04em !important;
   padding: 10px 14px !important;
@@ -5133,7 +5506,7 @@ button:focus-visible, input:focus-visible {
   min-height: 48px;
   padding: 8px 10px;
   border-radius: var(--radius-sm, 8px);
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   text-align: center;
   line-height: 1.25;
   cursor: pointer;
@@ -5142,15 +5515,16 @@ button:focus-visible, input:focus-visible {
 }
 
 .prop-action-btn.prop-btn-build {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 60%, #881337 100%);
-  color: #fff;
-  border: 1px solid rgba(251, 191, 36, 0.5);
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+  background: linear-gradient(135deg, #526B85 0%, #455A70 100%);
+  color: #ffffff;
+  border: 1px solid rgba(82, 107, 133, 0.65);
+  box-shadow: 0 2px 8px rgba(82, 107, 133, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .prop-action-btn.prop-btn-build:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #9f1239 100%);
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.5);
+  background: linear-gradient(135deg, #627D9B 0%, #526B85 100%);
+  border-color: #627D9B;
+  box-shadow: 0 4px 14px rgba(82, 107, 133, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transform: translateY(-1px);
 }
 
@@ -5170,27 +5544,28 @@ button:focus-visible, input:focus-visible {
   transform: translateY(-1px);
 }
 
-/* Restrained destructive styling for Destroy and Sell */
+/* Restrained slate-blue styling for Destroy House */
 .prop-action-btn.prop-btn-destructive {
-  background: rgba(255, 241, 242, 0.92);
-  border: 1px solid rgba(225, 29, 72, 0.35);
-  color: #9f1239;
-  box-shadow: 0 2px 6px rgba(159, 18, 57, 0.06);
+  background: rgba(250, 246, 238, 0.95);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(82, 107, 133, 0.45);
+  color: #2D3D4E;
+  box-shadow: 0 2px 6px rgba(60, 50, 40, 0.06);
 }
 
 .prop-action-btn.prop-btn-destructive:hover:not(:disabled) {
-  background: rgba(255, 228, 230, 0.98);
-  border-color: rgba(225, 29, 72, 0.6);
-  color: #881337;
-  box-shadow: 0 3px 10px rgba(159, 18, 57, 0.15);
+  background: rgba(246, 240, 228, 0.98);
+  border-color: #526B85;
+  color: #1A2530;
+  box-shadow: 0 3px 10px rgba(82, 107, 133, 0.2);
   transform: translateY(-1px);
 }
 
 .prop-action-btn:disabled {
   opacity: 0.45;
-  background: rgba(240, 236, 228, 0.5) !important;
-  border-color: rgba(196, 184, 166, 0.3) !important;
-  color: var(--text-dim, #9398a2) !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #857563 !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
   transform: none !important;
@@ -5294,31 +5669,31 @@ button:focus-visible, input:focus-visible {
 /* ─── Buttons in Dark Theme ─────────────────────────────────────────── */
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .btn-gold {
-  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%) !important;
-  color: #14110b !important;
-  border: 1px solid rgba(212, 175, 55, 0.65) !important;
-  box-shadow: 0 3px 14px rgba(180, 140, 60, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  background: linear-gradient(135deg, #8198B0 0%, #6C839B 100%) !important;
+  color: #000000 !important;
+  border: 1px solid rgba(129, 152, 176, 0.65) !important;
+  box-shadow: 0 3px 14px rgba(129, 152, 176, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
   text-shadow: none !important;
 }
 
 [data-theme="dark"] .btn-primary:hover:not(:disabled),
 [data-theme="dark"] .btn-gold:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
-  box-shadow: 0 4px 18px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  background: linear-gradient(135deg, #98ADC3 0%, #8198B0 100%) !important;
+  box-shadow: 0 4px 18px rgba(129, 152, 176, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
 }
 
 [data-theme="dark"] .btn-secondary {
-  background: rgba(28, 34, 46, 0.9) !important;
-  border: 1px solid rgba(212, 175, 55, 0.35) !important;
-  color: var(--gold-bright) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  background: #141414 !important;
+  border: 1px solid rgba(129, 152, 176, 0.35) !important;
+  color: #AFC2D5 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  background: rgba(36, 44, 60, 0.98) !important;
-  border-color: var(--gold-bright) !important;
+  background: #1c1c1c !important;
+  border-color: #8198B0 !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(129, 152, 176, 0.25) !important;
 }
 
 [data-theme="dark"] .btn-ghost {
@@ -5328,20 +5703,20 @@ button:focus-visible, input:focus-visible {
 }
 
 [data-theme="dark"] .btn-ghost:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.15) !important;
-  border-color: var(--gold) !important;
-  color: var(--gold-bright) !important;
+  background: rgba(129, 152, 176, 0.15) !important;
+  border-color: #8198B0 !important;
+  color: #AFC2D5 !important;
 }
 
 [data-theme="dark"] .btn-outline {
   background: transparent !important;
-  border: 1.5px solid rgba(212, 175, 55, 0.4) !important;
-  color: var(--gold-bright) !important;
+  border: 1.5px solid rgba(129, 152, 176, 0.4) !important;
+  color: #AFC2D5 !important;
 }
 
 [data-theme="dark"] .btn-outline:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.15) !important;
-  border-color: var(--gold-bright) !important;
+  background: rgba(129, 152, 176, 0.15) !important;
+  border-color: #8198B0 !important;
   color: #ffffff !important;
 }
 
@@ -5366,17 +5741,17 @@ button:focus-visible, input:focus-visible {
 
 /* ─── Topbar Controls in Dark Theme ─────────────────────────────────── */
 [data-theme="dark"] .topbar-action-btn {
-  background: rgba(26, 32, 44, 0.9) !important;
-  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  background: #141414 !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
   color: var(--text-primary) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-theme="dark"] .topbar-action-btn:hover {
-  background: rgba(35, 43, 60, 0.98) !important;
-  border-color: var(--gold-bright) !important;
+  background: #1c1c1c !important;
+  border-color: #8198B0 !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(129, 152, 176, 0.25) !important;
 }
 
 [data-theme="dark"] .topbar-action-btn.game-info-btn {
@@ -5475,23 +5850,47 @@ button:focus-visible, input:focus-visible {
 
 /* ─── Roll & End Turn Controls in Dark Theme ────────────────────────── */
 [data-theme="dark"] .roll-button {
-  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%) !important;
-  border: 1px solid rgba(212, 175, 55, 0.65) !important;
-  color: #14110b !important;
-  box-shadow: 0 4px 18px rgba(180, 140, 60, 0.35) !important;
+  background: linear-gradient(135deg, #8198B0 0%, #6C839B 100%) !important;
+  border: 1px solid rgba(129, 152, 176, 0.65) !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 18px rgba(129, 152, 176, 0.25) !important;
 }
 
 [data-theme="dark"] .roll-button:not(:disabled):hover {
-  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
-  box-shadow: 0 6px 22px rgba(180, 140, 60, 0.45) !important;
+  background: linear-gradient(135deg, #98ADC3 0%, #8198B0 100%) !important;
+  box-shadow: 0 6px 22px rgba(129, 152, 176, 0.35) !important;
+}
+
+[data-theme="dark"] .roll-button:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  color: #71717A !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  animation: none !important;
 }
 
 [data-theme="dark"] .roll-button.end-turn-mode,
 [data-theme="dark"] .end-turn-button {
-  background: linear-gradient(135deg, #be123c 0%, #881337 100%) !important;
+  background: #141414 !important;
+  color: #F4F4F5 !important;
+  border: 1px solid rgba(129, 152, 176, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="dark"] .roll-button.end-turn-mode:not(:disabled):hover,
+[data-theme="dark"] .end-turn-button:not(:disabled):hover {
+  background: #1c1c1c !important;
+  border-color: #8198B0 !important;
   color: #ffffff !important;
-  border-color: var(--gold-bright) !important;
-  box-shadow: 0 4px 18px rgba(190, 18, 60, 0.5), 0 0 12px rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(129, 152, 176, 0.25) !important;
+}
+
+[data-theme="dark"] .roll-button.end-turn-mode.end-turn-ready {
+  background: linear-gradient(135deg, #8198B0 0%, #6C839B 100%) !important;
+  color: #000000 !important;
+  border-color: rgba(129, 152, 176, 0.65) !important;
+  box-shadow: 0 4px 18px rgba(129, 152, 176, 0.30) !important;
 }
 
 /* ─── Property Cards & Actions in Dark Theme ────────────────────────── */
@@ -5593,15 +5992,16 @@ button:focus-visible, input:focus-visible {
 }
 
 [data-theme="dark"] .prop-action-btn.prop-btn-build {
-  background: linear-gradient(135deg, #d4af37 0%, #b48a1e 60%, #881337 100%) !important;
+  background: linear-gradient(135deg, #627D9B 0%, #4B637D 100%) !important;
   color: #ffffff !important;
-  border: 1px solid rgba(251, 191, 36, 0.5) !important;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3) !important;
+  border: 1px solid rgba(129, 152, 176, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
 
 [data-theme="dark"] .prop-action-btn.prop-btn-build:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f59e0b 0%, #d4af37 60%, #9f1239 100%) !important;
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
+  background: linear-gradient(135deg, #7491B0 0%, #597491 100%) !important;
+  border-color: #8198B0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
 }
 
 [data-theme="dark"] .prop-action-btn.prop-btn-neutral {
@@ -5617,15 +6017,17 @@ button:focus-visible, input:focus-visible {
 }
 
 [data-theme="dark"] .prop-action-btn.prop-btn-destructive {
-  background: rgba(45, 18, 28, 0.85) !important;
-  border: 1px solid rgba(244, 63, 94, 0.35) !important;
-  color: #fca5a5 !important;
+  background: rgba(18, 24, 32, 0.85) !important;
+  border: 1px solid rgba(129, 152, 176, 0.4) !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
 }
 
 [data-theme="dark"] .prop-action-btn.prop-btn-destructive:hover:not(:disabled) {
-  background: rgba(60, 22, 35, 0.95) !important;
-  border-color: rgba(244, 63, 94, 0.6) !important;
-  color: #fee2e2 !important;
+  background: rgba(28, 36, 48, 0.95) !important;
+  border-color: #8198B0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45) !important;
 }
 
 [data-theme="dark"] .prop-action-btn:disabled {
@@ -5772,14 +6174,14 @@ button:focus-visible, input:focus-visible {
 }
 
 [data-theme="dark"] .cash-transfer-pill {
-  background: rgba(22, 27, 36, 0.96) !important;
-  border-color: rgba(212, 175, 55, 0.5) !important;
-  color: #f3f4f6 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.2) !important;
+  background: rgba(14, 14, 14, 0.96) !important;
+  border-color: rgba(129, 152, 176, 0.40) !important;
+  color: #F4F4F5 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 10px rgba(129, 152, 176, 0.15) !important;
 }
 
 [data-theme="dark"] .cash-transfer-pill .bank-party-label {
-  color: var(--gold-bright) !important;
+  color: var(--accent-primary, #8198B0) !important;
 }
 
 /* ─── Game Info Modal & Subtabs in Dark Theme ────────────────────────── */
@@ -5884,7 +6286,7 @@ button:focus-visible, input:focus-visible {
   color: #f3f4f6 !important;
 }
 
-[data-theme="dark"] .prop-highlight-board-btn {
+[data-theme="dark"] .prop-highlight-board-btn-removed {
   background: rgba(212, 175, 55, 0.15) !important;
   border-color: rgba(212, 175, 55, 0.4) !important;
   color: var(--gold-bright) !important;
@@ -5981,7 +6383,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(212, 175, 55, 0.18) !important;
   border: 1px solid rgba(212, 175, 55, 0.45) !important;
   color: var(--gold-bright) !important;
-  font-family: "Oswald", sans-serif !important;
+  font-family: "Nunito Sans", sans-serif !important;
   font-size: 11px !important;
   font-weight: 700 !important;
   border-radius: 6px !important;
@@ -6127,7 +6529,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .owner-other-note strong {
-  font: 700 12px "Oswald", sans-serif;
+  font: 700 12px "Nunito Sans", sans-serif;
   letter-spacing: 0.05em;
   color: var(--text-primary);
 }
@@ -6263,7 +6665,7 @@ button:focus-visible, input:focus-visible {
 .notification-queue-pill {
   padding: 2px 7px;
   border-radius: 10px;
-  font: 700 10px "Oswald", sans-serif;
+  font: 700 10px "Nunito Sans", sans-serif;
   background: var(--gold-bright);
   color: #0c0e12;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
@@ -6434,7 +6836,7 @@ button:focus-visible, input:focus-visible {
   min-height: 34px;
   border-radius: 7px;
   font-size: 11px;
-  font-family: "Oswald", "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -6573,7 +6975,7 @@ button:focus-visible, input:focus-visible {
 /* Event Type Badges (Base) */
 .event-type-badge {
   font-size: 9.5px;
-  font-family: "Oswald", "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 800;
   letter-spacing: 0.06em;
   padding: 2px 6px;
@@ -6716,7 +7118,7 @@ button:focus-visible, input:focus-visible {
 /* Timestamp */
 .event-timestamp {
   font-size: 10px;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-weight: 500;
 }
 
@@ -6863,7 +7265,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 14px;
   display: flex;
   flex-direction: column;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   overflow: hidden;
 }
 
@@ -6901,7 +7303,7 @@ button:focus-visible, input:focus-visible {
 }
 
 .event-log-card-title {
-  font-family: "Playfair Display", serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 17px;
   font-weight: 800;
   display: flex;
@@ -7073,7 +7475,7 @@ button:focus-visible, input:focus-visible {
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
 }
 
 [data-theme="light"] .starting-capital-current-val {
@@ -7095,7 +7497,7 @@ button:focus-visible, input:focus-visible {
   padding: 8px 4px;
   border-radius: 6px;
   font-weight: 700;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 12px;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -7214,7 +7616,7 @@ button:focus-visible, input:focus-visible {
   letter-spacing: 0.6px;
   color: var(--gold-antique, #b45309);
   text-transform: uppercase;
-  font-family: "Playfair Display", serif;
+  font-family: "Nunito Sans", sans-serif;
   line-height: 1;
 }
 
@@ -7222,7 +7624,7 @@ button:focus-visible, input:focus-visible {
   color: #fbbf24;
 }
 
-/* jail-visiting-zone / jail-visiting-label removed — Just Visiting label removed */
+/* jail-visiting-zone / jail-visiting-label removed — Just Visiting label removed */
 
 
 /* ─── Modal Dialog Shared Components (Build, Sell, Mortgage, Unmortgage) ────────── */
@@ -7290,7 +7692,7 @@ button:focus-visible, input:focus-visible {
 }
 .rent-change b {
   font-size: 14px;
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   color: var(--text-primary, #f8fafc);
 }
 
@@ -7315,7 +7717,7 @@ button:focus-visible, input:focus-visible {
 }
 .balance-check b {
   color: var(--text-primary, #f8fafc);
-  font-family: "Oswald", sans-serif;
+  font-family: "Nunito Sans", sans-serif;
   font-size: 13px;
   text-align: right;
 }
@@ -7455,51 +7857,61 @@ button:focus-visible, input:focus-visible {
   --chat-bubble-peer: #FFFFFF;
   --chat-bubble-peer-border: rgba(196, 184, 166, 0.40);
   --chat-bubble-peer-text: #1C1917;
-  --chat-bubble-self: #EDE4D0;
-  --chat-bubble-self-border: rgba(180, 130, 40, 0.45);
+  --chat-bubble-self: #E6EDF4;
+  --chat-bubble-self-border: rgba(82, 107, 133, 0.45);
   --chat-bubble-self-text: #1C1917;
   --chat-input-bg: #FFFFFF;
-  --chat-input-border: rgba(180, 130, 40, 0.35);
+  --chat-input-border: rgba(82, 107, 133, 0.35);
   --chat-input-text: #1C1917;
   --chat-input-placeholder: #78716C;
-  --chat-btn-bg: #B45309;
+  --chat-btn-bg: #526B85;
   --chat-btn-text: #FFFFFF;
-  --chat-btn-hover: #92400E;
+  --chat-btn-hover: #455A70;
   --chat-btn-disabled-bg: rgba(0, 0, 0, 0.08);
   --chat-btn-disabled-text: #A8A29E;
   --chat-toggle-bg: #FAF7F2;
-  --chat-toggle-border: rgba(180, 130, 40, 0.45);
+  --chat-toggle-border: rgba(82, 107, 133, 0.45);
   --chat-toggle-text: #1C1917;
 }
 
 /* Dark Theme Quick Chat */
 [data-theme="dark"] {
-  --chat-bg: #20242A;
-  --chat-header-bg: #252B32;
-  --chat-feed-bg: #1B1E24;
-  --chat-composer-bg: #252B32;
-  --chat-border: rgba(232, 224, 210, 0.15);
-  --chat-border-subtle: rgba(232, 224, 210, 0.10);
-  --chat-text-primary: #F0EDE6;
-  --chat-text-muted: #97948C;
-  --chat-bubble-peer: #2C333B;
-  --chat-bubble-peer-border: rgba(232, 224, 210, 0.13);
-  --chat-bubble-peer-text: #F0EDE6;
-  --chat-bubble-self: rgba(197, 177, 138, 0.20);
-  --chat-bubble-self-border: rgba(197, 177, 138, 0.40);
-  --chat-bubble-self-text: #F0EDE6;
-  --chat-input-bg: #20242A;
-  --chat-input-border: rgba(232, 224, 210, 0.18);
-  --chat-input-text: #F0EDE6;
-  --chat-input-placeholder: #97948C;
-  --chat-btn-bg: #C5B18A;
-  --chat-btn-text: #20242A;
-  --chat-btn-hover: #D4C3A3;
-  --chat-btn-disabled-bg: rgba(232, 224, 210, 0.08);
-  --chat-btn-disabled-text: #97948C;
-  --chat-toggle-bg: #252B32;
-  --chat-toggle-border: rgba(197, 177, 138, 0.40);
-  --chat-toggle-text: #F0EDE6;
+  --chat-bg: #0a0a0a;
+  --chat-header-bg: #101010;
+  --chat-feed-bg: #050505;
+  --chat-composer-bg: #101010;
+  --chat-border: rgba(255, 255, 255, 0.09);
+  --chat-border-subtle: rgba(255, 255, 255, 0.06);
+  --chat-text-primary: #F4F4F5;
+  --chat-text-muted: #71717A;
+  --chat-bubble-peer: #141414;
+  --chat-bubble-peer-border: rgba(255, 255, 255, 0.08);
+  --chat-bubble-peer-text: #F4F4F5;
+  --chat-bubble-self: #1c2430;
+  --chat-bubble-self-border: rgba(129, 152, 176, 0.45);
+  --chat-bubble-self-text: #F4F4F5;
+  --chat-input-bg: #141414;
+  --chat-input-border: rgba(255, 255, 255, 0.12);
+  --chat-input-text: #F4F4F5;
+  --chat-input-placeholder: #71717A;
+  --chat-btn-bg: #8198B0;
+  --chat-btn-text: #000000;
+  --chat-btn-hover: #98ADC3;
+  --chat-btn-disabled-bg: rgba(255, 255, 255, 0.05);
+  --chat-btn-disabled-text: #52525B;
+  --chat-toggle-bg: #101010;
+  --chat-toggle-border: rgba(129, 152, 176, 0.40);
+  --chat-toggle-text: #F4F4F5;
+}
+
+.chat-emoji-only {
+  background: transparent !important;
+  border: none !important;
+  padding: 2px 4px !important;
+  box-shadow: none !important;
+  line-height: 1.25 !important;
+  display: inline-block !important;
+  user-select: none;
 }
 
 .chat-toggle-pill {
@@ -7653,44 +8065,65 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-md, 8px);
-  background: linear-gradient(135deg, #b45309 0%, #92400e 50%, #78350f 100%);
-  border: 1.5px solid #d97706;
+  background: linear-gradient(135deg, #526B85 0%, #455A70 100%);
+  border: 1px solid rgba(82, 107, 133, 0.65);
   color: #ffffff;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(82, 107, 133, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-jail-pay-gold:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
-  border-color: #f59e0b !important;
+  background: linear-gradient(135deg, #627D9B 0%, #526B85 100%) !important;
+  border-color: #627D9B !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(82, 107, 133, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
   transform: translateY(-1px);
 }
 
 .btn-jail-pay-gold:active:not(:disabled) {
   transform: translateY(1px) scale(0.985);
-  box-shadow: 0 1px 4px rgba(180, 83, 9, 0.4) !important;
+  box-shadow: 0 1px 4px rgba(82, 107, 133, 0.3) !important;
 }
 
 .btn-jail-pay-gold:focus-visible {
-  outline: 2px solid var(--gold-bright);
+  outline: 2px solid #8198B0;
   outline-offset: 2px;
 }
 
 .btn-jail-pay-gold:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  background: rgba(30, 41, 59, 0.6) !important;
-  border-color: rgba(100, 116, 139, 0.35) !important;
-  color: rgba(226, 232, 240, 0.45) !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #857563 !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+[data-theme="dark"] .btn-jail-pay-gold {
+  background: linear-gradient(135deg, #627D9B 0%, #4B637D 100%) !important;
+  border-color: rgba(129, 152, 176, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .btn-jail-pay-gold:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7491B0 0%, #597491 100%) !important;
+  border-color: #8198B0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .btn-jail-pay-gold:disabled {
+  opacity: 0.4 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: none !important;
 }
 
 .btn-jail-pay-gold .btn-jail-icon {
@@ -7715,21 +8148,23 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-md, 8px);
-  background: linear-gradient(135deg, #c5a869 0%, #b3924f 100%);
-  border: 1.5px solid rgba(212, 175, 55, 0.65);
-  color: #14110b;
+  background: rgba(250, 246, 238, 0.92);
+  border: 1.5px solid rgba(82, 107, 133, 0.45);
+  color: #2D3D4E;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(180, 140, 60, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(60, 50, 40, 0.08);
   transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-jail-roll-gold:hover:not(:disabled) {
-  background: linear-gradient(135deg, #d4b876 0%, #bfa05b 100%) !important;
-  box-shadow: 0 4px 16px rgba(180, 140, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  background: rgba(246, 240, 228, 0.98) !important;
+  border-color: #526B85 !important;
+  color: #1A2530 !important;
+  box-shadow: 0 4px 14px rgba(60, 50, 40, 0.12), 0 0 10px rgba(82, 107, 133, 0.2) !important;
   transform: translateY(-1px);
 }
 
@@ -7738,14 +8173,39 @@ button:focus-visible, input:focus-visible {
 }
 
 .btn-jail-roll-gold:focus-visible {
-  outline: 2px solid var(--gold-bright);
+  outline: 2px solid #8198B0;
   outline-offset: 2px;
 }
 
 .btn-jail-roll-gold:disabled {
   opacity: 0.45;
+  background: rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #857563 !important;
   cursor: not-allowed;
   transform: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .btn-jail-roll-gold {
+  background: rgba(18, 24, 32, 0.85) !important;
+  border-color: rgba(129, 152, 176, 0.4) !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-theme="dark"] .btn-jail-roll-gold:hover:not(:disabled) {
+  background: rgba(28, 36, 48, 0.95) !important;
+  border-color: #8198B0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .btn-jail-roll-gold:disabled {
+  opacity: 0.4 !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
   box-shadow: none !important;
 }
 
@@ -7760,4 +8220,543 @@ button:focus-visible, input:focus-visible {
   background: rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(197, 168, 105, 0.3);
   white-space: nowrap;
+}
+
+/* ==============================================================================
+   CROWNFALL — 13 REFINED UI & INTERACTION ANIMATIONS SYSTEM
+   ============================================================================== */
+
+/* ── 2. Property Selection in Compare ── */
+.property-compare-card {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.24s ease,
+              border-color 0.24s ease !important;
+  animation: compareCardMount 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.property-compare-card:hover,
+.property-compare-card.is-selected {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(200, 155, 69, 0.22) !important;
+  border-color: rgba(200, 155, 69, 0.55) !important;
+}
+
+[data-theme="dark"] .property-compare-card:hover,
+[data-theme="dark"] .property-compare-card.is-selected {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 16px rgba(129, 152, 176, 0.25) !important;
+  border-color: rgba(129, 152, 176, 0.6) !important;
+}
+
+@keyframes compareCardMount {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── 3. Full Color-Set Completion Glow ── */
+.board-space.is-color-set-glow {
+  outline: 2.5px solid var(--highlight-owner-color, rgba(129, 152, 176, 0.95)) !important;
+  outline-offset: -2px;
+  z-index: 18 !important;
+  animation: colorSetGlowPulse 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.board-space.is-color-set-glow.side-bottom {
+  box-shadow: 0 14px 26px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)),
+              inset 0 -3px 8px rgba(255, 255, 255, 0.35) !important;
+}
+
+.board-space.is-color-set-glow.side-top {
+  box-shadow: 0 -14px 26px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)),
+              inset 0 3px 8px rgba(255, 255, 255, 0.35) !important;
+}
+
+.board-space.is-color-set-glow.side-left {
+  box-shadow: -14px 0 26px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)),
+              inset -3px 0 8px rgba(255, 255, 255, 0.35) !important;
+}
+
+.board-space.is-color-set-glow.side-right {
+  box-shadow: 14px 0 26px -2px var(--highlight-owner-color, rgba(129, 152, 176, 0.95)),
+              inset 3px 0 8px rgba(255, 255, 255, 0.35) !important;
+}
+
+@keyframes colorSetGlowPulse {
+  0% {
+    transform: scale(0.97);
+    opacity: 0.75;
+  }
+  25% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  65% {
+    transform: scale(1.02);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── 4. Property Resale Transition ── */
+.tile-owner-indicator.is-reselling {
+  animation: resaleMorphFade 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none;
+}
+
+@keyframes resaleMorphFade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  45% {
+    opacity: 0.7;
+    transform: scale(1.2);
+    filter: blur(1px) grayscale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+    filter: blur(2px) grayscale(1);
+  }
+}
+
+/* ── 5 & 6. Trade Offer Arrival & Accepted Transition ── */
+.trade-notification-card {
+  animation: tradeOfferSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.trade-notification-card.is-dismissing {
+  animation: tradeOfferDismiss 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.trade-notification-card.is-completed,
+.trade-offer-card.is-completed {
+  animation: tradeAcceptedGlow 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.trade-snooze-reopen-pill {
+  animation: tradeOfferSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.trade-snooze-reopen-pill:hover {
+  transform: translateY(-2px);
+  border-color: rgba(234, 179, 8, 0.95) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(234, 179, 8, 0.35) !important;
+}
+
+.trade-snooze-reopen-pill:active {
+  transform: translateY(0);
+}
+
+@keyframes tradeOfferSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tradeOfferDismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+}
+
+@keyframes tradeAcceptedGlow {
+  0% {
+    transform: scale(1);
+    border-color: #10b981;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  }
+  40% {
+    transform: scale(1.02);
+    border-color: #34d399;
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.7), inset 0 0 12px rgba(16, 185, 129, 0.3);
+  }
+  80% {
+    transform: scale(1);
+    opacity: 0.95;
+    border-color: #10b981;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+}
+
+/* ── 7. Player Joins Lobby ── */
+.lobby-player {
+  animation: lobbyPlayerEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.lobby-player.is-newly-joined {
+  animation: lobbyPlayerJoinGlow 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes lobbyPlayerEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lobbyPlayerJoinGlow {
+  0% {
+    box-shadow: 0 0 0 1px rgba(82, 107, 133, 0.3), 0 0 0 0 rgba(82, 107, 133, 0);
+    border-color: rgba(82, 107, 133, 0.5);
+  }
+  25% {
+    box-shadow: 0 0 0 2px rgba(82, 107, 133, 0.75), 0 0 16px 2px rgba(82, 107, 133, 0.45);
+    border-color: #8198b0;
+  }
+  70% {
+    box-shadow: 0 0 0 1.5px rgba(82, 107, 133, 0.4), 0 0 8px 1px rgba(82, 107, 133, 0.2);
+    border-color: rgba(82, 107, 133, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* ── 8. Player Disconnect & Reconnect ── */
+.ps-player {
+  transition: opacity 0.35s ease, filter 0.35s ease, background 0.22s ease, border-color 0.22s ease !important;
+}
+
+.ps-player.is-disconnected {
+  opacity: 0.42 !important;
+  filter: grayscale(0.85) !important;
+}
+
+.ps-player.is-disconnected:hover {
+  opacity: 0.65 !important;
+}
+
+.ps-status-icon.is-disconnected {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+}
+
+/* ── 9. Game Info Tab Transitions (Immediate & Instant) ── */
+.game-info-tab-pane.is-active {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── 10. Ledger Entry Animations ── */
+.ledger-entry-card.is-new-entry {
+  animation: ledgerRowEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ledgerRowEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 11. Start Space (Space 0) Synchronized Highlight ── */
+.board-space.is-start-highlighted {
+  outline: 2px solid rgba(16, 185, 129, 0.95) !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 16px 3px rgba(16, 185, 129, 0.65), 0 0 32px 6px rgba(16, 185, 129, 0.35) !important;
+  z-index: 8 !important;
+  animation: startSpaceGlowPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes startSpaceGlowPulse {
+  0% {
+    outline-color: rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 8px 1px rgba(16, 185, 129, 0.4), 0 0 16px 2px rgba(16, 185, 129, 0.2) !important;
+  }
+  30% {
+    outline-color: rgba(16, 185, 129, 0.95);
+    box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.75), 0 0 36px 8px rgba(16, 185, 129, 0.4) !important;
+  }
+  70% {
+    outline-color: rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 14px 2px rgba(16, 185, 129, 0.5), 0 0 24px 4px rgba(16, 185, 129, 0.25) !important;
+  }
+  100% {
+    outline-color: rgba(16, 185, 129, 0);
+    box-shadow: 0 0 2px 0px rgba(16, 185, 129, 0) !important;
+  }
+}
+
+/* ── 12. Chat Message Animations ── */
+.chat-message-item {
+  animation: chatMsgEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes chatMsgEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Board Center Notifications Stack & Multi-Popup System ── */
+.board-center-notifications-stack {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: min(92%, 390px);
+  pointer-events: none;
+}
+
+.board-center-notifications-stack > .board-center-notification-wrapper {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  pointer-events: auto;
+  width: 100%;
+}
+
+.board-center-notifications-stack > .board-center-notification-wrapper.entering {
+  animation: centerNotificationStackEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.board-center-notifications-stack > .board-center-notification-wrapper.dismissing {
+  animation: centerNotificationStackDismiss 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes centerNotificationStackEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes centerNotificationStackDismiss {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.95);
+  }
+}
+
+.board-center-notification-wrapper {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: max-content;
+  max-width: min(92%, 380px);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.board-center-notification-wrapper.entering {
+  animation: centerNotificationEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.board-center-notification-wrapper.dismissing {
+  animation: centerNotificationDismiss 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes centerNotificationEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes centerNotificationDismiss {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.95);
+  }
+}
+
+.board-center-notification-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(254, 252, 247, 0.95);
+  border: 1.5px solid rgba(180, 130, 40, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  color: #1e2024;
+  font-family: "Nunito Sans", sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .board-center-notification-card {
+  background: rgba(18, 22, 30, 0.95);
+  border-color: rgba(129, 152, 176, 0.45);
+  color: #f3f4f6;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+.board-center-notification-card.badge-chance {
+  border-color: rgba(245, 158, 11, 0.7);
+}
+
+.board-center-notification-card.badge-chest {
+  border-color: rgba(59, 130, 246, 0.7);
+}
+
+.board-center-notification-card.badge-rent,
+.board-center-notification-card.badge-rent_expense {
+  border-color: rgba(239, 68, 68, 0.75);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.14);
+}
+
+.board-center-notification-card.badge-rent .notification-message,
+.board-center-notification-card.badge-rent_expense .notification-message {
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .board-center-notification-card.badge-rent,
+[data-theme="dark"] .board-center-notification-card.badge-rent_expense {
+  border-color: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+[data-theme="dark"] .board-center-notification-card.badge-rent .notification-message,
+[data-theme="dark"] .board-center-notification-card.badge-rent_expense .notification-message {
+  color: #f87171;
+}
+
+.board-center-notification-card.badge-rent_income {
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.16);
+}
+
+.board-center-notification-card.badge-rent_income .notification-message {
+  color: #047857;
+}
+
+[data-theme="dark"] .board-center-notification-card.badge-rent_income {
+  border-color: rgba(16, 185, 129, 0.85);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 14px rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .board-center-notification-card.badge-rent_income .notification-message {
+  color: #34d399;
+}
+
+.board-center-notification-card.badge-purchase {
+  border-color: rgba(16, 185, 129, 0.65);
+}
+
+.board-center-notification-card.badge-start_pass {
+  border-color: rgba(16, 185, 129, 0.75);
+}
+
+.board-center-notification-card.badge-transfer,
+.board-center-notification-card.badge-payment,
+.board-center-notification-card.badge-payout {
+  border-color: rgba(129, 152, 176, 0.65);
+}
+
+[data-theme="dark"] .board-center-notification-card.badge-transfer,
+[data-theme="dark"] .board-center-notification-card.badge-payment,
+[data-theme="dark"] .board-center-notification-card.badge-payout {
+  border-color: rgba(129, 152, 176, 0.6);
+}
+
+.notification-message {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+.notification-dismiss-btn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+/* ── Reduced Motion Overrides ── */
+@media (prefers-reduced-motion: reduce) {
+  .property-compare-card,
+  .board-space.is-color-set-glow,
+  .board-space.is-start-highlighted,
+  .tile-owner-indicator.is-reselling,
+  .trade-notification-card,
+  .lobby-player,
+  .lobby-player.is-newly-joined,
+  .game-info-tab-pane.is-active,
+  .ledger-entry-card.is-new-entry,
+  .chat-message-item,
+  .board-center-notification-wrapper.entering,
+  .board-center-notification-wrapper.dismissing,
+  .board-center-notifications-stack > .board-center-notification-wrapper.entering,
+  .board-center-notifications-stack > .board-center-notification-wrapper.dismissing {
+    animation: none !important;
+    transition: none !important;
+  }
 }

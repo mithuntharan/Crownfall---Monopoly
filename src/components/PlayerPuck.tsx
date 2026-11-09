@@ -114,20 +114,20 @@ const COLOR_CONFIGS: Record<
     text: "#f5f3ff",
   },
 
-  // 5. Electric Cyan (Ultra-Bright Neon Turquoise)
+  // 5. Electric Cyan (Refined Cerulean Turquoise - High contrast on both Ivory Light & Pitch Dark)
   cyan: {
     primary: "#0891b2",
-    highlight: "#67e8f9",
-    deep: "#164e63",
-    rim: "rgba(103, 232, 249, 0.8)",
-    text: "#082f49",
+    highlight: "#38bdf8",
+    deep: "#155e75",
+    rim: "rgba(56, 189, 248, 0.75)",
+    text: "#f0f9ff",
   },
   sky: {
-    primary: "#0284c7",
-    highlight: "#7dd3fc",
-    deep: "#0c4a6e",
-    rim: "rgba(125, 211, 252, 0.75)",
-    text: "#082f49",
+    primary: "#0891b2",
+    highlight: "#38bdf8",
+    deep: "#155e75",
+    rim: "rgba(56, 189, 248, 0.75)",
+    text: "#f0f9ff",
   },
 
   // 6. Neon Lime (Electric Chartreuse)
@@ -346,24 +346,11 @@ export const PlayerPuck: React.FC<PlayerPuckProps> = ({
       text: "#ffffff",
     }
 
-  // Display initial or token identifier
-  const initial =
-    player?.token && player.token.length > 0 && player.token !== "•"
-      ? player.token
-      : player?.name
-      ? player.name.trim().charAt(0).toUpperCase()
-      : typeof player?.id === "number"
-      ? String(player.id + 1)
-      : "•"
-
-  const fontSize = Math.max(9, Math.round(pixelSize * 0.42))
-  const bevelWidth = Math.max(1.5, Math.round(pixelSize * 0.08))
-
   return (
     <div
       className={`crownfall-puck-container ${active ? "puck-active-turn" : ""} ${
         gliding ? "puck-is-gliding" : ""
-      } ${className}`}
+      } ${className || ""}`}
       style={{
         width: `${pixelSize}px`,
         height: `${pixelSize}px`,
@@ -380,109 +367,25 @@ export const PlayerPuck: React.FC<PlayerPuckProps> = ({
       onClick={onClick}
       aria-label={`${player?.name || "Player"} Puck`}
     >
-      {/* Active turn ambient pulse halo */}
-      {active && showGlow && (
-        <div
-          className="puck-turn-halo"
-          style={{
-            position: "absolute",
-            inset: `-${Math.max(3, Math.round(pixelSize * 0.16))}px`,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${config.rim} 0%, ${config.primary}40 60%, transparent 100%)`,
-            animation: "puckAuraPulse 2s infinite ease-in-out",
-            pointerEvents: "none",
-            zIndex: 1,
-          }}
-        />
-      )}
-
-      {/* Main 3D Dimensional Puck Body */}
+      {/* Blank, simple, and subtly raised physical game token with radial depth */}
       <div
-        className="puck-body"
+        className="puck-disc"
         style={{
           width: "100%",
           height: "100%",
           borderRadius: "50%",
           position: "relative",
-          zIndex: 2,
-          // Metallic outer bevel ring + deep drop shadow
-          background: `linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, ${config.rim} 35%, #18181b 95%)`,
-          padding: `${bevelWidth}px`,
+          background: `radial-gradient(circle at 36% 32%, ${config.highlight} 0%, ${config.primary} 52%, ${config.deep} 100%)`,
           boxShadow: gliding
-            ? `0 5px 12px rgba(0,0,0,0.45), 0 0 0 1.5px ${config.highlight}`
+            ? `0 2.5px 0 ${config.deep}, 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.45)`
             : active
-            ? `0 2px 6px rgba(0,0,0,0.5), 0 0 0 1.5px ${config.highlight}`
-            : "0 1.5px 4px rgba(0,0,0,0.35)",
+            ? `0 2px 0 ${config.deep}, 0 3px 8px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4)`
+            : `0 1.5px 0 ${config.deep}, 0 2px 5px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.35)`,
+          border: `1px solid rgba(255, 255, 255, ${active ? "0.6" : "0.28"})`,
+          transform: gliding ? "translateY(-1px) scale(1.06)" : active ? "scale(1.04)" : "scale(1)",
           transition: "transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1)",
-          transform: gliding ? "translateY(-2.5px) scale(1.08)" : active ? "scale(1.05)" : "scale(1)",
         }}
-      >
-        {/* Core Jewel Lacquer Face */}
-        <div
-          className="puck-face"
-          style={{
-            width: "100%",
-            height: "100%",
-            borderRadius: "50%",
-            position: "relative",
-            overflow: "hidden",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: `radial-gradient(circle at 38% 30%, ${config.highlight} 0%, ${config.primary} 48%, ${config.deep} 100%)`,
-            boxShadow: "inset 0 1.5px 2px rgba(255,255,255,0.45), inset 0 -2px 3px rgba(0,0,0,0.6)",
-          }}
-        >
-          {/* Top Specular Arc Reflection */}
-          <div
-            style={{
-              position: "absolute",
-              top: "4%",
-              left: "15%",
-              right: "15%",
-              height: "42%",
-              borderRadius: "50% 50% 40% 40%",
-              background:
-                "linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.08) 75%, transparent 100%)",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* Player Identifier Monogram */}
-          <span
-            style={{
-              position: "relative",
-              zIndex: 3,
-              fontFamily: '"DM Sans", -apple-system, sans-serif',
-              fontWeight: 700,
-              fontSize: `${fontSize}px`,
-              lineHeight: 1,
-              letterSpacing: "-0.01em",
-              color: config.text,
-              textShadow:
-                config.text.toLowerCase().startsWith("#f")
-                  ? "0 1px 2px rgba(0, 0, 0, 0.75)"
-                  : "0 1px 1px rgba(255, 255, 255, 0.4)",
-            }}
-          >
-            {initial}
-          </span>
-        </div>
-      </div>
-
-      {/* Optional Badge (e.g. Host Crown, Rank, Status) */}
-      {badge && (
-        <div
-          style={{
-            position: "absolute",
-            top: "-3px",
-            right: "-3px",
-            zIndex: 4,
-          }}
-        >
-          {badge}
-        </div>
-      )}
+      />
     </div>
   )
 }

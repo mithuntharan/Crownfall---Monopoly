@@ -215,7 +215,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
           <div>
             <h2
               style={{
-                fontFamily: "'Playfair Display', Georgia, serif",
+                fontFamily: "'Nunito Sans', sans-serif",
                 fontSize: "18px",
                 fontWeight: 800,
                 color: "var(--gold-bright, #d97706)",
@@ -355,7 +355,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
           >
             <h3
               style={{
-                fontFamily: "'Playfair Display', Georgia, serif",
+                fontFamily: "'Nunito Sans', sans-serif",
                 fontSize: "17px",
                 fontWeight: 800,
                 color: "var(--gold-bright, #d97706)",

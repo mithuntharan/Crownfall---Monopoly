@@ -13,6 +13,35 @@ export interface ChatMessage {
   timestamp: number
 }
 
+function getEmojiOnlyDetails(text: string): { isEmojiOnly: boolean; count: number } {
+  const trimmed = text.trim()
+  if (!trimmed) return { isEmojiOnly: false, count: 0 }
+
+  try {
+    if (typeof Intl !== "undefined" && (Intl as any).Segmenter) {
+      const segmenter = new (Intl as any).Segmenter("en", { granularity: "grapheme" })
+      const segments: string[] = Array.from(segmenter.segment(trimmed)).map((s: any) => s.segment)
+      const emojiRegex = /^\p{Extended_Pictographic}$/u
+      const nonEmoji = segments.filter((seg) => !emojiRegex.test(seg) && seg.trim() !== "")
+      if (nonEmoji.length === 0 && segments.length >= 1 && segments.length <= 5) {
+        return { isEmojiOnly: true, count: segments.length }
+      }
+      return { isEmojiOnly: false, count: segments.length }
+    }
+  } catch (_) {}
+
+  const emojiClusterRegex = /^(?:\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic}|[\uFE0E\uFE0F]|\p{Emoji_Modifier})*\s*)+$/u
+  if (!emojiClusterRegex.test(trimmed)) {
+    return { isEmojiOnly: false, count: 0 }
+  }
+  const matches = trimmed.match(/\p{Extended_Pictographic}/gu)
+  const count = matches ? matches.length : 0
+  if (count >= 1 && count <= 5) {
+    return { isEmojiOnly: true, count }
+  }
+  return { isEmojiOnly: false, count }
+}
+
 interface QuickChatWidgetProps {
   localPlayer: EnginePlayer
   isMultiplayer?: boolean
@@ -32,7 +61,19 @@ export function QuickChatWidget({
   const [unreadCount, setUnreadCount] = useState(0)
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const isNearBottomRef = useRef(true)
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
+
+  const scrollToBottom = (smooth = false) => {
+    if (!scrollContainerRef.current) return
+    const el = scrollContainerRef.current
+    if (smooth) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+    } else {
+      el.scrollTop = el.scrollHeight
+    }
+  }
 
   // Append a message while deduplicating by ID
   const appendMessage = (newMsg: ChatMessage) => {
@@ -96,13 +137,38 @@ export function QuickChatWidget({
     }
   }, [soundEnabled, isOpen])
 
-  // Scroll to bottom on new message or open
+  // Scroll to bottom on open (wait for layout to settle)
   useEffect(() => {
     if (isOpen) {
       setUnreadCount(0)
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+      isNearBottomRef.current = true
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom(false)
+        })
+      })
+      const timer = setTimeout(() => {
+        scrollToBottom(false)
+      }, 50)
+      return () => clearTimeout(timer)
     }
-  }, [isOpen, messages.length])
+  }, [isOpen])
+
+  // Auto-scroll on new messages only if user is near bottom
+  useEffect(() => {
+    if (isOpen && isNearBottomRef.current) {
+      requestAnimationFrame(() => {
+        scrollToBottom(true)
+      })
+    }
+  }, [messages.length, isOpen])
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return
+    const el = scrollContainerRef.current
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    isNearBottomRef.current = distanceToBottom < 60
+  }
 
   const charCount = [...inputText].length
   const isOverLimit = charCount > 64
@@ -207,7 +273,7 @@ export function QuickChatWidget({
                   fontSize: "12px",
                   letterSpacing: "0.5px",
                   textTransform: "uppercase",
-                  color: "var(--gold-400, #ca8a04)",
+                  color: "var(--accent-primary, #8198B0)",
                 }}
               >
                 Room Chat
@@ -243,7 +309,11 @@ export function QuickChatWidget({
           </div>
 
           {/* Messages Feed */}
-          <div className="chat-messages-scroll custom-scrollbar">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="chat-messages-scroll custom-scrollbar"
+          >
             {messages.length === 0 ? (
               <p
                 style={{
@@ -263,9 +333,11 @@ export function QuickChatWidget({
                   hour: "2-digit",
                   minute: "2-digit",
                 })
+                const emojiDetails = getEmojiOnlyDetails(m.text)
                 return (
                   <div
                     key={m.id}
+                    className="chat-message-item"
                     style={{
                       display: "flex",
                       flexDirection: "column",
@@ -284,7 +356,7 @@ export function QuickChatWidget({
                         style={{
                           fontSize: "10px",
                           fontWeight: 700,
-                          color: m.senderColor || "var(--gold-400, #ca8a04)",
+                          color: m.senderColor || "var(--accent-primary, #8198B0)",
                           letterSpacing: "0.3px",
                         }}
                       >
@@ -299,11 +371,29 @@ export function QuickChatWidget({
                         {timeStr}
                       </span>
                     </div>
-                    <div
-                      className={isSelf ? "chat-bubble-self" : "chat-bubble-peer"}
-                    >
-                      {m.text}
-                    </div>
+                    {emojiDetails.isEmojiOnly ? (
+                      <div
+                        className="chat-emoji-only"
+                        style={{
+                          fontSize:
+                            emojiDetails.count === 1
+                              ? "38px"
+                              : emojiDetails.count === 2
+                              ? "32px"
+                              : emojiDetails.count === 3
+                              ? "28px"
+                              : "24px",
+                        }}
+                      >
+                        {m.text}
+                      </div>
+                    ) : (
+                      <div
+                        className={isSelf ? "chat-bubble-self" : "chat-bubble-peer"}
+                      >
+                        {m.text}
+                      </div>
+                    )}
                   </div>
                 )
               })

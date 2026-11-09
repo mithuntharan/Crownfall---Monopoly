@@ -62,6 +62,9 @@ export interface MultiplayerRoomSnapshot {
   gameState: GameState | null
   eventLog: GameplayEventEntry[]
   transactionLedger: any[]
+  action?: string
+  actionResult?: any
+  turnState?: string
 }
 
 export interface RollEvent {
@@ -880,6 +883,10 @@ export class MultiplayerClient {
 
           if (msg.type === "ACTION_RESULT") {
             if (msg.action === "roll" && msg.actionResult) {
+              if (msg.snapshot) {
+                msg.snapshot.action = "roll"
+                msg.snapshot.actionResult = msg.actionResult
+              }
               const rollEvt: RollEvent = {
                 rollId: msg.actionResult.rollId || `roll_${msg.sequence || Date.now()}_${msg.playerId}`,
                 sequence: msg.sequence || 0,
@@ -893,6 +900,10 @@ export class MultiplayerClient {
                 spaceName: msg.actionResult.spaceName,
                 actionResult: msg.actionResult,
                 snapshot: msg.snapshot,
+              }
+              if (msg.snapshot) {
+                msg.snapshot.action = "roll"
+                msg.snapshot.actionResult = msg.actionResult
               }
               this.rollEventListeners.forEach((l) => l(rollEvt))
             }
@@ -1116,6 +1127,10 @@ export class MultiplayerClient {
           spaceName: data.actionResult.spaceName,
           actionResult: data.actionResult,
           snapshot: data.snapshot,
+        }
+        if (data.snapshot) {
+          data.snapshot.action = "roll"
+          data.snapshot.actionResult = data.actionResult
         }
         this.rollEventListeners.forEach((l) => l(rollEvt))
       }

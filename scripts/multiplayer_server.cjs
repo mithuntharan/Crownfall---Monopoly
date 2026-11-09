@@ -215,6 +215,7 @@ class Room {
       timerEnabled: rules.timerEnabled ?? false,
       timerSeconds: rules.timerSeconds ?? 60,
       requireLandingToBuild: rules.requireLandingToBuild ?? false,
+      randomizePlayerOrder: rules.randomizePlayerOrder ?? false,
     };
 
     const hostToken = crypto.randomBytes(16).toString('hex');
@@ -313,6 +314,18 @@ class Room {
         color: this.players[idx]?.color || gp.color,
         isHuman: this.players[idx] ? Boolean(this.players[idx].isHuman !== false) : true,
       }));
+    }
+    if (this.gameState) {
+      if (state.winnerId !== undefined && state.winnerId !== null && state.winnerId >= 0) {
+        this.gameState.winnerId = state.winnerId;
+      }
+      if (this.gameState.turnState === 'GAME_OVER') {
+        this.gamePhase = 'GAME_OVER';
+        if (this.gameState.winnerId === undefined || this.gameState.winnerId === null || this.gameState.winnerId < 0) {
+          const alive = this.players.filter(p => p.connected && !p.isBankrupt && !p.isLeft);
+          this.gameState.winnerId = alive.length > 0 ? alive[0].id : null;
+        }
+      }
     }
   }
 
@@ -1018,6 +1031,9 @@ class Room {
     if (newRules.requireLandingToBuild !== undefined) {
       this.rules.requireLandingToBuild = Boolean(newRules.requireLandingToBuild);
     }
+    if (newRules.randomizePlayerOrder !== undefined) {
+      this.rules.randomizePlayerOrder = Boolean(newRules.randomizePlayerOrder);
+    }
     if (newRules.buildingRule !== undefined || newRules.buildingMode !== undefined || newRules.buildingRules !== undefined) {
       const modeVal = String(newRules.buildingRule ?? newRules.buildingMode ?? newRules.buildingRules);
       if (modeVal === 'land' || modeVal === 'WhenYouLand' || modeVal === 'ModeA' || modeVal === 'modeA' || modeVal === 'A') {
@@ -1059,25 +1075,55 @@ class Room {
         seenColors.add(c);
       }
 
-      // Set effective player list with deterministic IDs, maintaining host at ID 0 and preserving object references
-      const hostIdx = confirmed.findIndex(p => p.id === requesterId);
-      if (hostIdx > 0) {
-        const [actingP] = confirmed.splice(hostIdx, 1);
-        confirmed.unshift(actingP);
+      // Identify active host player before any reordering
+      const actingHostPlayer = confirmed.find(p => p.id === requesterId) || confirmed.find(p => p.isHost) || confirmed[0];
+
+      if (this.rules.randomizePlayerOrder) {
+        // Fisher-Yates shuffle confirmed human players
+        for (let i = confirmed.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [confirmed[i], confirmed[j]] = [confirmed[j], confirmed[i]];
+        }
+      } else {
+        // Fixed order: maintain host at ID 0
+        const hostIdx = confirmed.indexOf(actingHostPlayer);
+        if (hostIdx > 0) {
+          const [actingP] = confirmed.splice(hostIdx, 1);
+          confirmed.unshift(actingP);
+        }
       }
+
       this.players = confirmed;
+      let newActingHostId = 0;
       this.players.forEach((p, idx) => {
         p.id = idx;
-        p.joinOrder = (idx === 0) ? 0 : (p.joinOrder !== undefined && p.joinOrder !== null ? p.joinOrder : idx);
+        p.joinOrder = (idx === 0 && !this.rules.randomizePlayerOrder) ? 0 : (p.joinOrder !== undefined && p.joinOrder !== null ? p.joinOrder : idx);
         p.token = p.token || String(idx + 1);
         p.isHuman = true;
-        p.isHost = (idx === 0);
-        p.isOriginalHost = (p.isOriginalHost || idx === 0);
+        const isHost = (p === actingHostPlayer);
+        p.isHost = isHost;
+        p.isOriginalHost = (p.isOriginalHost || isHost);
+        if (isHost) {
+          newActingHostId = idx;
+        }
         p.isLeft = false;
+        p.isBankrupt = false;
+        p.money = this.rules.defaultStartingMoney;
+        p.position = 0;
+        p.rotationsCompleted = 0;
+        p.inJail = false;
+        p.jailTurns = 0;
+        p.inRestHouse = false;
+        p.restHouseTurns = 0;
+        p.cardJailSkip = false;
+        p.cardJailSkipTurns = 0;
+        p.ownedProperties = [];
+        p.buildings = {};
+        p.mortgages = {};
       });
-      this.originalHostPlayerId = 0;
-      this.actingHostPlayerId = 0;
-      this.hostPlayerId = 0;
+      this.originalHostPlayerId = newActingHostId;
+      this.actingHostPlayerId = newActingHostId;
+      this.hostPlayerId = newActingHostId;
 
       // Adjust effective player count while preserving configured maxPlayers capacity limit
       this.rules.playerCount = this.players.length;
@@ -1428,6 +1474,18 @@ class Room {
           sequenceNumber: seq,
           description: `${player.name} is just visiting Jail.`,
         });
+      } else if (res.eventDescription?.toLowerCase().includes('failed to roll doubles') || res.eventDescription?.toLowerCase().includes('remains in jail')) {
+        this.addEvent({
+          id: `ev_jail_attempt_${now}_${player.id}_${seq}`,
+          type: 'JAIL',
+          category: 'TURNS_DICE',
+          timestamp: now,
+          playerId: player.id,
+          playerName: player.name,
+          playerColor: player.color,
+          sequenceNumber: seq,
+          description: res.eventDescription,
+        });
       }
 
       // 6. Special Square: Royal Club (MOVEMENT_LOCATIONS)
@@ -1770,6 +1828,7 @@ class Room {
         throw new Error('Only the host can initiate a rematch.');
       }
       if (this.isRematching) {
+        if (this.gameState) return this.getSnapshot();
         throw new Error('A rematch is already in progress.');
       }
 
@@ -1777,6 +1836,11 @@ class Room {
       if (eligible.length < this.rules.minPlayers) {
         throw new Error(`Cannot start rematch: at least ${this.rules.minPlayers} connected players required (currently ${eligible.length}).`);
       }
+
+      // Existing constraint: If only two human players are present in a room configured for four,
+      // adjust the room size to the actual participating humans while preserving the other settings. Never create bots.
+      this.rules.maxPlayers = Math.max(this.rules.minPlayers, eligible.length);
+      this.rules.playerCount = eligible.length;
 
       this.isRematching = true;
       try {
@@ -1803,6 +1867,22 @@ class Room {
           p.isHost = (idx === 0);
           p.isOriginalHost = (idx === 0);
           p.isLeft = false;
+          p.isBankrupt = false;
+          p.kickedByHost = false;
+          p.disconnectedAt = null;
+          p.disconnectIp = null;
+          p.money = this.rules.defaultStartingMoney;
+          p.position = 0;
+          p.rotationsCompleted = 0;
+          p.inJail = false;
+          p.jailTurns = 0;
+          p.inRestHouse = false;
+          p.restHouseTurns = 0;
+          p.cardJailSkip = false;
+          p.cardJailSkipTurns = 0;
+          p.ownedProperties = [];
+          p.buildings = {};
+          p.mortgages = {};
         });
         this.originalHostPlayerId = 0;
         this.actingHostPlayerId = 0;
@@ -1867,7 +1947,7 @@ class Room {
         return { ok: true, message: 'Successfully left room lobby.' };
       }
 
-      // In-progress match: record event and handle turn advancement
+      // In-progress match: record event and handle turn advancement / engine resignation
       this.addEvent({
         id: `ev_leave_${Date.now()}_${player.id}`,
         type: 'PLAYER_LEFT',
@@ -1878,8 +1958,15 @@ class Room {
         description: `${player.name} left the match.`,
       });
 
-      // If it was this player's active turn, advance turn so match is not blocked
-      if (this.gameState && this.gameState.activePlayerIndex === playerId) {
+      // Liquidate and resign in the engine so they don't block turn order or leave debt/ghost state
+      if (this.gameState && !player.isBankrupt) {
+        try {
+          const res = await this.engine.sendCommand({ action: 'resign', playerId });
+          if (res && res.ok && res.state) {
+            this.setGameState(res.state);
+          }
+        } catch (_) {}
+      } else if (this.gameState && this.gameState.activePlayerIndex === playerId) {
         try {
           const res = await this.engine.sendCommand({ action: 'endTurn', playerId });
           if (res && res.ok && res.state) {
@@ -1894,7 +1981,9 @@ class Room {
         this.gamePhase = 'GAME_OVER';
         if (this.gameState) {
           this.gameState.turnState = 'GAME_OVER';
-          this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+          if (this.gameState.winnerId === undefined || this.gameState.winnerId === null || this.gameState.winnerId < 0) {
+            this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+          }
         }
       }
 
@@ -2022,8 +2111,15 @@ class Room {
         }
       }
 
-      // Advance turn if it was their active turn
-      if (this.gameState && this.gameState.activePlayerIndex === targetId) {
+      // Liquidate and resign in the engine so they don't block turn order or leave debt/ghost state
+      if (this.gameState && !player.isBankrupt) {
+        try {
+          const res = await this.engine.sendCommand({ action: 'resign', playerId: targetId });
+          if (res && res.ok && res.state) {
+            this.setGameState(res.state);
+          }
+        } catch (_) {}
+      } else if (this.gameState && this.gameState.activePlayerIndex === targetId) {
         try {
           const res = await this.engine.sendCommand({ action: 'endTurn', playerId: targetId });
           if (res && res.ok && res.state) {
@@ -2038,7 +2134,9 @@ class Room {
         this.gamePhase = 'GAME_OVER';
         if (this.gameState) {
           this.gameState.turnState = 'GAME_OVER';
-          this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+          if (this.gameState.winnerId === undefined || this.gameState.winnerId === null || this.gameState.winnerId < 0) {
+            this.gameState.winnerId = activeRemaining[0]?.id ?? null;
+          }
         }
       }
 
@@ -2114,7 +2212,7 @@ class Room {
           ownedProperties: engP ? engP.ownedProperties : [],
           buildings: engP ? engP.buildings : {},
           mortgages: engP ? engP.mortgages : {},
-          isBankrupt: engP ? engP.isBankrupt : false,
+          isBankrupt: Boolean(engP?.isBankrupt || p.isBankrupt),
         };
       }),
       gameState: this.gameState,

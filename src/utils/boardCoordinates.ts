@@ -1,7 +1,13 @@
 /**
  * Board geometry calculation for 10x10 CSS Grid with 1.7fr corners and 1.0fr edges.
  * Total grid fraction units: 1.7 + 8 * 1.0 + 1.7 = 11.4 units.
+ * Corner-to-edge footprint ratio: 1.70 / 1.0 = 1.70x (170% >= 120% requirement).
+ * Balanced width-to-depth ratio (~0.59) gives properly proportioned, readable board spaces.
  */
+
+export const CORNER_FR = 1.7
+export const EDGE_FR = 1.0
+export const TOTAL_GRID_FR = 2 * CORNER_FR + 8 * EDGE_FR // 11.4
 
 export interface BoardPosition {
   row: number
@@ -49,9 +55,9 @@ export const BOARD_POSITIONS: Record<number, BoardPosition> = {
 
 export function getAxisCenterPercent(gridIndex: number): number {
   // gridIndex is 1 to 10
-  if (gridIndex <= 1) return (0.85 / 11.4) * 100 // 7.4561%
-  if (gridIndex >= 10) return (10.55 / 11.4) * 100 // 92.5439%
-  return ((1.7 + (gridIndex - 2) * 1.0 + 0.5) / 11.4) * 100
+  if (gridIndex <= 1) return ((0.5 * CORNER_FR) / TOTAL_GRID_FR) * 100 // (0.85 / 11.4) * 100 = 7.4561%
+  if (gridIndex >= 10) return ((TOTAL_GRID_FR - 0.5 * CORNER_FR) / TOTAL_GRID_FR) * 100 // (10.55 / 11.4) * 100 = 92.5439%
+  return ((CORNER_FR + (gridIndex - 2 + 0.5) * EDGE_FR) / TOTAL_GRID_FR) * 100
 }
 
 export function getTileCenterPercent(tileIndex: number, isDetained = false): { x: number; y: number } {
@@ -63,43 +69,68 @@ export function getTileCenterPercent(tileIndex: number, isDetained = false): { x
   }
   if (norm === 9) {
     // Space 9 (Bottom-Left Corner): Split into detention cell (inner top-right) and visiting corridor (outer bottom-left)
+    // Corner spans X: [0%, 14.9123%], Y: [85.0877%, 100%]
+    // Base center: x: 7.4561%, y: 92.5439%
     if (isDetained) {
       return {
-        x: base.x + 2.6,
-        y: base.y - 2.6,
+        x: base.x + 2.8,
+        y: base.y - 2.8,
       }
     } else {
       return {
-        x: base.x - 2.2,
-        y: base.y + 2.2,
+        x: base.x - 2.8,
+        y: base.y + 2.8,
       }
     }
   }
   return base
 }
 
-export function getMultiTokenOffset(rank: number, totalCount: number): { dx: number; dy: number } {
+export function getMultiTokenOffset(
+  rank: number,
+  totalCount: number,
+  side?: "bottom" | "top" | "left" | "right" | string
+): { dx: number; dy: number } {
   if (totalCount <= 1) return { dx: 0, dy: 0 }
+
   if (totalCount === 2) {
+    // Symmetrical pair along the tile's transverse/width axis
+    if (side === "left" || side === "right") {
+      return rank === 0 ? { dx: 0, dy: -7 } : { dx: 0, dy: 7 }
+    }
     return rank === 0 ? { dx: -7, dy: 0 } : { dx: 7, dy: 0 }
   }
+
   if (totalCount === 3) {
+    // Equilateral triangle centered at (0, 0)
+    // Centroid: (0 - 6 + 6)/3 = 0, (-6 + 3 + 3)/3 = 0
     if (rank === 0) return { dx: 0, dy: -6 }
-    if (rank === 1) return { dx: -7, dy: 5 }
-    return { dx: 7, dy: 5 }
+    if (rank === 1) return { dx: -6.5, dy: 3 }
+    return { dx: 6.5, dy: 3 }
   }
-  // 4 or more
-  const offsets = [
-    { dx: -7, dy: -7 },
-    { dx: 7, dy: -7 },
-    { dx: -7, dy: 7 },
-    { dx: 7, dy: 7 },
-  ]
-  return offsets[rank % offsets.length]
+
+  if (totalCount === 4) {
+    // 2x2 grid centered at (0, 0)
+    const offsets = [
+      { dx: -6, dy: -6 },
+      { dx: 6, dy: -6 },
+      { dx: -6, dy: 6 },
+      { dx: 6, dy: 6 },
+    ]
+    return offsets[rank % 4]
+  }
+
+  // 5 or more: circular arrangement with centroid (0, 0)
+  const radius = 7
+  const angle = (2 * Math.PI * rank) / totalCount - Math.PI / 2
+  return {
+    dx: Math.round(radius * Math.cos(angle) * 10) / 10,
+    dy: Math.round(radius * Math.sin(angle) * 10) / 10,
+  }
 }
 
 export function getPlayerColorHex(color?: string): string {
-  if (!color) return "#d97706"
+  if (!color) return "#ea580c"
   const c = color.trim().toLowerCase()
   switch (c) {
     case "ruby":
@@ -112,27 +143,27 @@ export function getPlayerColorHex(color?: string): string {
     case "emerald":
     case "green":
       return "#059669"
+    case "tangerine":
+    case "orange":
+      return "#ea580c"
     case "violet":
     case "purple":
     case "plum":
       return "#7c3aed"
-    case "tangerine":
-    case "orange":
-      return "#ea580c"
-    case "coral":
-    case "pink":
-      return "#f43f5e"
-    case "teal":
-      return "#0d9488"
     case "cyan":
     case "sky":
-      return "#06b6d4"
-    case "lime":
-    case "chartreuse":
-      return "#84cc16"
+      return "#0891b2"
     case "magenta":
     case "fuchsia":
       return "#c026d3"
+    case "teal":
+      return "#0d9488"
+    case "coral":
+    case "pink":
+      return "#f43f5e"
+    case "lime":
+    case "chartreuse":
+      return "#84cc16"
     case "amber":
     case "yellow":
       return "#eab308"
@@ -158,7 +189,7 @@ export function getPlayerColorHex(color?: string): string {
       if (c.startsWith("#") || c.startsWith("rgb")) {
         return c
       }
-      return "#d97706"
+      return "#ea580c"
   }
 }
 

@@ -232,8 +232,6 @@ type Modal =
 
   | "confirm_resign"
 
-  | "confirm_quit_game"
-
   | "kick_player"
 
   | "game_info"
@@ -262,9 +260,9 @@ type RentInfo = {
 
 
 
-const DEFAULT_LOBBY_NICKNAMES = ["ChocoPie", "PixelPanda", "MangoMuffin", "TurboTurtle", "CloudNoodle", "WaffleWizard"]
+const DEFAULT_LOBBY_NICKNAMES = ["ChocoPie", "PixelPanda", "MangoMuffin", "TurboTurtle", "CloudNoodle", "WaffleWizard", "VelvetViper", "SolarSparrow"]
 
-const defaultPlayerConfigs: EnginePlayer[] = (["saffron", "teal", "plum", "blue", "gold", "burgundy"] as PlayerColor[]).map((color, idx) => ({
+const defaultPlayerConfigs: EnginePlayer[] = (["ruby", "cobalt", "emerald", "tangerine", "violet", "cyan", "magenta", "teal"] as PlayerColor[]).map((color, idx) => ({
   id: idx,
   name: DEFAULT_LOBBY_NICKNAMES[idx] || `Tycoon ${idx + 1}`,
   isHuman: true,
@@ -1282,19 +1280,11 @@ export const AVAILABLE_PLAYER_COLORS = [
   { id: "ruby", name: "Ruby Red", hex: "#e11d48" },
   { id: "cobalt", name: "Cobalt Blue", hex: "#2563eb" },
   { id: "emerald", name: "Emerald Green", hex: "#059669" },
-  { id: "violet", name: "Violet", hex: "#7c3aed" },
-  { id: "cyan", name: "Electric Cyan", hex: "#06b6d4" },
-  { id: "lime", name: "Neon Lime", hex: "#84cc16" },
-  { id: "coral", name: "Hot Coral", hex: "#f43f5e" },
-  { id: "amber", name: "Sunburst Yellow", hex: "#eab308" },
-  { id: "tangerine", name: "Tangerine", hex: "#ea580c" },
-  { id: "teal", name: "Teal", hex: "#0d9488" },
-  { id: "magenta", name: "Magenta", hex: "#c026d3" },
-  { id: "golden", name: "Golden Amber", hex: "#d97706" },
-  { id: "platinum", name: "Platinum White", hex: "#e2e8f0" },
-  { id: "obsidian", name: "Midnight Onyx", hex: "#1e293b" },
-  { id: "lavender", name: "Lavender Frost", hex: "#a855f7" },
-  { id: "bronze", name: "Copper Bronze", hex: "#b45309" },
+  { id: "tangerine", name: "Tangerine Orange", hex: "#ea580c" },
+  { id: "violet", name: "Imperial Violet", hex: "#7c3aed" },
+  { id: "cyan", name: "Electric Cyan", hex: "#0891b2" },
+  { id: "magenta", name: "Vivid Magenta", hex: "#c026d3" },
+  { id: "teal", name: "Deep Teal", hex: "#0d9488" },
 ]
 
 
@@ -1396,15 +1386,10 @@ function SetupScreen({
   })
 
   const [enteredColor, setEnteredColor] = useState<string>(() => {
-
     if (create) {
-
-      return players[0]?.color || getStoredPlayerColor(0) || "saffron"
-
+      return players[0]?.color || getStoredPlayerColor(0) || "ruby"
     }
-
-    return "teal"
-
+    return "cobalt"
   })
 
 
@@ -2453,6 +2438,8 @@ function LobbyScreen({
 
   doublesRule = true,
 
+  randomizePlayerOrder = false,
+
   startGameError = null,
 
   onClearStartError,
@@ -2501,6 +2488,8 @@ function LobbyScreen({
 
   doublesRule?: boolean
 
+  randomizePlayerOrder?: boolean
+
   startGameError?: string | null
 
   onClearStartError?: () => void
@@ -2522,14 +2511,42 @@ function LobbyScreen({
 }) {
 
   const [colorValidationError, setColorValidationError] = useState<string | null>(null)
-
   const [nameValidationError, setNameValidationError] = useState<string | null>(null)
-
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
-
   const [isLeavingRoom, setIsLeavingRoom] = useState(false)
-
   const [leaveError, setLeaveError] = useState<string | null>(null)
+
+  // Track newly joined players in lobby for 1.2s restrained outer-edge glow animation
+  const seenPlayerIdsRef = useRef<Set<number>>(new Set(players.map((p) => p.id)))
+  const [newlyJoinedIds, setNewlyJoinedIds] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    const freshIds = new Set<number>()
+    for (const p of players) {
+      if (!seenPlayerIdsRef.current.has(p.id)) {
+        freshIds.add(p.id)
+        seenPlayerIdsRef.current.add(p.id)
+      }
+    }
+
+    if (freshIds.size > 0) {
+      setNewlyJoinedIds((prev) => {
+        const next = new Set(prev)
+        freshIds.forEach((id) => next.add(id))
+        return next
+      })
+
+      const timer = window.setTimeout(() => {
+        setNewlyJoinedIds((prev) => {
+          const next = new Set(prev)
+          freshIds.forEach((id) => next.delete(id))
+          return next
+        })
+      }, 1200)
+
+      return () => window.clearTimeout(timer)
+    }
+  }, [players])
 
 
 
@@ -2597,7 +2614,7 @@ function LobbyScreen({
 
         title={rematch ? "REMATCH LOBBY" : "PRE-GAME LOBBY"}
 
-        back={rematch ? () => navigate("gameover") : () => setShowQuitConfirm(true)}
+        back={rematch ? () => navigate("gameover") : undefined}
 
       />
 
@@ -2864,31 +2881,19 @@ function LobbyScreen({
 
 
         <div className="lobby-list">
-
-          {players.map((player, index) => {
-
+          {players.filter((p) => !p.isLeft && !(p as any).isKicked).map((player, index) => {
             const isSelf = index === localPlayerId
-
+            const isNewlyJoined = newlyJoinedIds.has(player.id)
             return (
-
               <div
-
-                className="lobby-player"
-
+                className={`lobby-player ${isNewlyJoined ? "is-newly-joined" : ""}`}
                 key={player.id}
-
                 style={isSelf ? { outline: "2px solid var(--gold)", borderRadius: "8px" } : {}}
-
                 onClick={() => {
-
                   if (!multiplayerClient.getRoomCode()) {
-
                     setLocalPlayerId?.(index)
-
                   }
-
                 }}
-
               >
 
                 <Token player={player} active={isSelf} />
@@ -3189,7 +3194,7 @@ function LobbyScreen({
 
                         color: "#fca5a5",
 
-                        fontFamily: '"Oswald", sans-serif',
+                        fontFamily: '"Nunito Sans", sans-serif',
 
                         fontSize: "10px",
 
@@ -3231,7 +3236,7 @@ function LobbyScreen({
 
             <span>MATCH RULES {isLocalHost ? "(YOU ARE HOST)" : "(HOST CONTROLLED)"}</span>
 
-            Timer: {timerEnabled ? `${timerSeconds}s per turn` : "Disabled"} · Starting Cash: ₹{startingMoney.toLocaleString()} · Start Bonus: ₹{(Math.floor((startingMoney * 5 + 5000) / 10000) * 100).toLocaleString()} (5%) · Doubles: {doublesRule ? "Classic (Extra Roll)" : "Single Roll (Doubles Off)"}
+            Timer: {timerEnabled ? `${timerSeconds}s per turn` : "Disabled"} · Starting Cash: ₹{startingMoney.toLocaleString()} · Start Bonus: ₹{(Math.floor((startingMoney * 5 + 5000) / 10000) * 100).toLocaleString()} (5%) · Doubles: {doublesRule ? "Classic (Extra Roll)" : "Single Roll (Doubles Off)"} · Order: {randomizePlayerOrder ? "Randomized" : "Fixed"}
 
           </div>
 
@@ -3365,7 +3370,7 @@ function LobbyScreen({
 
               fontWeight: 700,
 
-              fontFamily: "Oswald, sans-serif",
+              fontFamily: "Nunito Sans, sans-serif",
 
               letterSpacing: "0.08em",
 
@@ -3529,7 +3534,7 @@ function measureWordWidth(
 
   fontWeight: number = 700,
 
-  fontFamily: string = "Oswald",
+  fontFamily: string = "Nunito Sans",
 
 ): number {
 
@@ -3562,160 +3567,94 @@ function measureWordWidth(
 
 
 function calculateFittingFontSize(
-
   lines: string[],
-
   usableW: number,
-
   usableH: number,
-
   isCorner: boolean,
-
 ): number {
-
   const maxFs = isCorner ? 14.5 : 12.0
-
-  const minFs = 6.5
-
-  const fontFamily = isCorner ? "Playfair Display" : "DM Sans"
-
-  const fontWeight = isCorner ? 800 : 600
-
-  const lineHeightMultiplier = isCorner ? 1.1 : 1.12
-
-  const targetW = usableW * 0.88 // 12% safety margin to ensure no overflow on phones
-
-
+  const minFs = 4.5
+  const fontFamily = "Nunito Sans"
+  const fontWeight = 700
+  const lineHeightMultiplier = 1.15
+  const targetW = usableW * 0.96 // Utilize available width first before reducing font size
 
   if (usableW <= 0 || usableH <= 0) return 10
 
-
-
   let low = minFs
-
   let high = maxFs
-
   let best = minFs
 
-
-
-  for (let iter = 0; iter < 8; iter++) {
-
+  for (let iter = 0; iter < 9; iter++) {
     const mid = (low + high) / 2
-
     let fits = true
-
     const totalH = lines.length * mid * lineHeightMultiplier
 
     if (totalH > usableH) {
-
       fits = false
-
     } else {
-
       for (const line of lines) {
-
         const measuredW = measureWordWidth(line, mid, fontWeight, fontFamily)
-
         if (measuredW > targetW) {
-
           fits = false
-
           break
-
         }
-
       }
-
     }
 
     if (fits) {
-
       best = mid
-
       low = mid // Try larger
-
     } else {
-
       high = mid // Try smaller
-
     }
-
   }
 
-
+  // If even at minFs the longest line exceeds targetW, scale font down proportionally to fit targetW
+  let maxMeasuredW = 0
+  for (const line of lines) {
+    const w = measureWordWidth(line, best, fontWeight, fontFamily)
+    if (w > maxMeasuredW) maxMeasuredW = w
+  }
+  if (maxMeasuredW > targetW && maxMeasuredW > 0) {
+    best = Math.max(4.0, (targetW / maxMeasuredW) * best)
+  }
 
   return Math.round(best * 10) / 10
-
 }
 
-
-
 function BoardSpaceLabel({
-
   space,
-
   price,
-
   boardWidth,
-
 }: {
-
   space: BoardSpaceDefinition
-
   price?: number
-
   boardWidth: number
-
 }) {
-
   const isCorner = space.type === "corner"
-
   const tile1fr = boardWidth / 11.4
-
-  const tile17fr = 1.7 * tile1fr
-
-
+  const cornerFr = 1.7 * tile1fr
 
   // Usable width and height calculation
-
-  // For side-left & side-right, layout width is 1.0fr (tile1fr) because of our rotated box sizing
-
+  // With 1.7fr corners and 1.0fr edge tiles, lateral tiles have 1.0fr rotated width
   const usableW = isCorner
-
-    ? Math.max(20, tile17fr - 8)
-
-    : Math.max(16, tile1fr - 5)
-
-
+    ? Math.max(26, cornerFr - 6)
+    : Math.max(20, tile1fr - 2)
 
   const hasPrice = space.type === "city" || space.type === "special" || space.type === "tax"
-
   const usableH = isCorner
-
-    ? Math.max(20, tile17fr - 10)
-
+    ? Math.max(26, cornerFr - 8)
     : hasPrice
-
-      ? Math.max(16, tile17fr * 0.74 - 15)
-
-      : Math.max(18, tile17fr * 0.86 - 6)
-
-
+      ? Math.max(22, cornerFr * 0.74 - 12)
+      : Math.max(24, cornerFr * 0.84 - 6)
 
   // Split multi-word names strictly at space boundaries so words never break in half
-
   const words = space.name.split(" ")
-
   const lines = words
 
-
-
   const fontSize = calculateFittingFontSize(lines, usableW, usableH, isCorner)
-
   const specialPropId = space.type === "special" ? space.propertyId : undefined
-
-
 
   if (space.index === 9) {
     return (
@@ -3737,77 +3676,38 @@ function BoardSpaceLabel({
   }
 
   return (
-
     <div className="board-space-content">
-
       {specialPropId && (
-
         <span className="special-space-icon" aria-hidden="true">
-
           <SpecialPropertyIcon propertyId={specialPropId} size={15} />
-
         </span>
-
       )}
-
       <b
-
         className="board-space-label"
-
         style={{
-
           fontSize: `${fontSize}px`,
-
           lineHeight: 1.15,
-
-          wordBreak: "keep-all",
-
-          overflowWrap: "normal",
-
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
           maxWidth: "100%",
-
-          overflow: "hidden",
-
-          textOverflow: "ellipsis",
-
+          overflow: "visible",
         }}
-
       >
-
         {lines.map((line, idx) => (
-
           <span
-
             key={idx}
-
             className="space-name-line"
-
             style={{
-
               display: "block",
-
               whiteSpace: "nowrap",
-
-              wordBreak: "keep-all",
-
-              overflowWrap: "normal",
-
               maxWidth: "100%",
-
-              overflow: "hidden",
-
-              textOverflow: "ellipsis",
-
+              overflow: "visible",
+              letterSpacing: line.length >= 8 ? "-0.025em" : undefined,
             }}
-
           >
-
             {line}
-
           </span>
-
         ))}
-
       </b>
 
       {price ? <span className="price-chip">₹{price.toLocaleString()}</span> : null}
@@ -3920,162 +3820,6 @@ function AnimatedBalance({
 
 
 
-export interface ActiveCashTransfer {
-
-  id: string
-
-  amount: number
-
-  type: string
-
-  payerId: number
-
-  payerName: string
-
-  payerColor: string
-
-  recipientId: number
-
-  recipientName: string
-
-  recipientColor: string
-
-  isBank: boolean
-
-  timestamp: number
-
-}
-
-
-
-function CashTransfersOverlay({
-
-  transfers,
-
-  reducedMotion = false,
-
-}: {
-
-  transfers: ActiveCashTransfer[]
-
-  reducedMotion?: boolean
-
-}) {
-
-  if (!transfers || transfers.length === 0) return null
-
-
-
-  // Strictly enforce at most TWO simultaneously visible notifications
-
-  const visibleTransfers = transfers.slice(-2)
-
-  if (visibleTransfers.length === 0) return null
-
-
-
-  return (
-
-    <div className="cash-transfers-overlay" aria-live="polite" aria-atomic="true">
-
-      {visibleTransfers.map((t) => {
-
-        const isP2P = !t.isBank && t.recipientId >= 0
-
-        const typeUp = t.type.toUpperCase()
-
-        const isIncome = typeUp.includes("REWARD") || typeUp.includes("PASS") || typeUp.includes("MORTGAGE") || typeUp.includes("REFUND")
-
-        
-
-        let pillClass = "cash-transfer-pill p2p"
-
-        if (!isP2P) {
-
-          pillClass = isIncome ? "cash-transfer-pill bank-income" : "cash-transfer-pill bank-expense"
-
-        }
-
-
-
-        return (
-
-          <div
-
-            key={t.id}
-
-            className={pillClass}
-
-            style={reducedMotion ? { animation: "none" } : undefined}
-
-          >
-
-            {isP2P ? (
-
-              <>
-
-                <span className="transfer-type-tag" style={{ color: "#b45309", fontWeight: 800 }}>TRANSFER</span>
-
-                <span style={{ color: "var(--text-primary, #1e2024)", fontWeight: 700 }}>₹{t.amount.toLocaleString()}</span>
-
-                <span style={{ opacity: 0.4, color: "var(--text-muted, #686d76)" }}>•</span>
-
-                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
-
-                <span style={{ color: "var(--gold, #b45309)" }}>➔</span>
-
-                <span style={{ color: getPlayerColorHex(t.recipientColor), fontWeight: 700 }}>{t.recipientName}</span>
-
-              </>
-
-            ) : isIncome ? (
-
-              <>
-
-                <span className="transfer-type-tag" style={{ color: "var(--financial-gain, #059669)", fontWeight: 800 }}>PAYOUT</span>
-
-                <span style={{ color: "var(--financial-gain, #047857)", fontWeight: 800 }}>+₹{t.amount.toLocaleString()}</span>
-
-                <span style={{ opacity: 0.4, color: "var(--text-muted, #686d76)" }}>•</span>
-
-                <span className="bank-party-label" style={{ color: "var(--gold-bright, #b45309)", fontWeight: 700 }}>Bank ➔</span>
-
-                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
-
-              </>
-
-            ) : (
-
-              <>
-
-                <span className="transfer-type-tag" style={{ color: "var(--financial-loss, #be123c)", fontWeight: 800 }}>PAYMENT</span>
-
-                <span style={{ color: "var(--financial-loss, #9f1239)", fontWeight: 800 }}>-₹{t.amount.toLocaleString()}</span>
-
-                <span style={{ opacity: 0.4, color: "var(--text-muted, #686d76)" }}>•</span>
-
-                <span style={{ color: getPlayerColorHex(t.payerColor), fontWeight: 700 }}>{t.payerName}</span>
-
-                <span className="bank-party-label" style={{ color: "var(--gold-bright, #b45309)", fontWeight: 700 }}>➔ Bank</span>
-
-              </>
-
-            )}
-
-          </div>
-
-        )
-
-      })}
-
-    </div>
-
-  )
-
-}
-
-
-
 // ─── BOARD ────────────────────────────────────────────────────────────────────
 
 
@@ -4125,61 +3869,47 @@ function Board({
   onOpenFullLog,
 
   selectedPlayerIdHighlight,
-
   selectedPropertyIdHighlight,
-
   landingHighlightTileIndex,
-
+  recentlyBuiltPropertyId = null,
+  recentlyPurchasedPropertyId = null,
+  colorSetGlowGroup = null,
+  recentlyResoldProperty = null,
+  notifications,
+  dismissingIds,
+  isStartHighlighted = false,
 }: {
-
-  onSelectSpace: (space: BoardSpaceDefinition) => void
-
+  onSelectSpace: (space: BoardSpaceDefinition, e?: React.MouseEvent) => void
   playerPositions: number[]
-
   players?: EnginePlayer[]
-
   moving?: boolean
-
   movingPlayerIndex?: number | null
-
   activePlayerIndex?: number
-
   localPlayerId?: number
-
   isMultiplayer?: boolean
-
   activeNotification?: BoardCenterNotificationItem | null
-
+  notifications?: BoardCenterNotificationItem[]
+  dismissingIds?: Set<string>
   queueCount?: number
-
-  onDismissNotification?: () => void
-
+  onDismissNotification?: (id?: string) => void
   isDismissingNotification?: boolean
-
+  isStartHighlighted?: boolean
   pendingPurchase?: PendingPurchaseInfo | null
-
   onConfirmBuyCenter?: () => void
-
   onDeclineCenter?: () => void
-
   isSubmittingPurchase?: boolean
-
   isHumanTurn?: boolean
-
   stepDuration?: number
-
   stepEasing?: string
-
   recentEvents?: GameplayEventEntry[]
-
   onOpenFullLog?: () => void
-
   selectedPlayerIdHighlight?: number | null
-
   selectedPropertyIdHighlight?: string | null
-
   landingHighlightTileIndex?: number | null
-
+  recentlyBuiltPropertyId?: string | null
+  recentlyPurchasedPropertyId?: string | null
+  colorSetGlowGroup?: { group: string; ownerColor: string } | null
+  recentlyResoldProperty?: { propertyId: string; prevOwnerColor: string } | null
 }) {
 
   const [boardWidth, setBoardWidth] = useState<number>(() => {
@@ -4273,7 +4003,7 @@ function Board({
               <polygon points="5,17 16,15.5 14,17" fill="var(--gold, #C5B18A)" opacity="0.3" />
               <polygon points="5,17 16,18.5 14,17" fill="var(--gold, #C5B18A)" opacity="0.15" />
               <circle cx="17" cy="17" r="1.5" fill="var(--gold, #C5B18A)" />
-              <text x="17" y="3.5" textAnchor="middle" dominantBaseline="central" fill="var(--gold-bright, #D4C3A3)" fontSize="5.5" fontWeight="800" fontFamily="'Playfair Display', serif" letterSpacing="0.05em">N</text>
+              <text x="17" y="3.5" textAnchor="middle" dominantBaseline="central" fill="var(--gold-bright, #D4C3A3)" fontSize="5.5" fontWeight="800" fontFamily="'Nunito Sans', serif" letterSpacing="0.05em">N</text>
             </svg>
           </div>
 
@@ -4302,6 +4032,17 @@ function Board({
             return (
 
               <>
+
+                {((notifications && notifications.length > 0) || activeNotification) && (
+                  <BoardCenterNotification
+                    notifications={notifications}
+                    notification={activeNotification}
+                    queueCount={queueCount}
+                    onDismiss={onDismissNotification}
+                    isDismissing={isDismissingNotification}
+                    dismissingIds={dismissingIds}
+                  />
+                )}
 
                 {!purchaseInfo && (
 
@@ -4360,110 +4101,6 @@ function Board({
           })()}
 
         </div>
-
-
-
-        {/* Continuous Gliding Tokens Overlay centered inside board tiles */}
-
-        <div className="board-tokens-overlay" aria-hidden="true">
-
-          {players.map((player, idx) => {
-
-            const tileIdx = (((playerPositions[idx] !== undefined ? playerPositions[idx] : (player.position ?? 0)) % 36) + 36) % 36
-
-            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0))
-
-            const center = getTileCenterPercent(tileIdx, isDetained)
-
-            const targetMovingIndex =
-
-              movingPlayerIndex !== null && movingPlayerIndex !== undefined
-
-                ? movingPlayerIndex
-
-                : activePlayerIndex
-
-            const isGliding = Boolean(moving && idx === targetMovingIndex)
-
-            const playersOnSameTile = players
-
-              .map((p, pIdx) => ({ p, pIdx }))
-
-              .filter((item) => {
-
-                const pTile = (((playerPositions[item.pIdx] !== undefined ? playerPositions[item.pIdx] : (item.p.position ?? 0)) % 36) + 36) % 36
-
-                if (pTile !== tileIdx) return false
-
-                if (tileIdx === 9) {
-
-                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0)
-
-                  return itemDetained === isDetained
-
-                }
-
-                return true
-
-              })
-
-            const rank = playersOnSameTile.findIndex((item) => item.pIdx === idx)
-
-            const rawOffset = getMultiTokenOffset(rank >= 0 ? rank : 0, playersOnSameTile.length)
-
-            const offset = isGliding ? { dx: 0, dy: 0 } : rawOffset
-
-
-
-            return (
-
-              <div
-
-                key={player.id}
-
-                className={`board-gliding-token-wrapper ${isGliding ? "is-gliding" : ""}`}
-
-                style={{
-
-                  left: `${center.x}%`,
-
-                  top: `${center.y}%`,
-
-                  transform: `translate(calc(-50% + ${offset.dx}px), calc(-50% + ${offset.dy}px))`,
-
-                  transition: isGliding
-
-                    ? `left ${stepDuration}ms ${stepEasing}, top ${stepDuration}ms ${stepEasing}, transform 280ms cubic-bezier(0.16, 1, 0.3, 1)`
-
-                    : "transform 280ms cubic-bezier(0.16, 1, 0.3, 1)",
-
-                }}
-
-              >
-
-                <Token
-
-                  player={player}
-
-                  size="sm"
-
-                  active={idx === (moving ? targetMovingIndex : activePlayerIndex)}
-
-                  gliding={isGliding}
-
-                  className={isGliding ? "token-gliding" : ""}
-
-                />
-
-              </div>
-
-            )
-
-          })}
-
-        </div>
-
-
 
         {BOARD_SPACES.map((space) => {
 
@@ -4538,9 +4175,11 @@ function Board({
 
 
           const propertyOwner = space.propertyId
-
-            ? players.find((p) => p.ownedProperties.includes(space.propertyId!))
-
+            ? players.find(
+                (p) =>
+                  (p.ownedProperties && p.ownedProperties.includes(space.propertyId!)) ||
+                  Boolean(p.buildings && (p.buildings[space.propertyId!] || 0) > 0),
+              )
             : null
 
 
@@ -4577,36 +4216,28 @@ function Board({
 
 
 
-          const highlightClass = `${isOwnerHighlighted ? "is-owner-highlighted" : ""} ${isPropertyHighlighted ? "is-property-highlighted" : ""} ${isLandingHighlighted ? "is-landing-highlighted" : ""}`.trim()
-
-
+          const isRecentlyBuilt = Boolean(recentlyBuiltPropertyId && space.propertyId === recentlyBuiltPropertyId)
+          const isNewlyPurchased = Boolean(recentlyPurchasedPropertyId && space.propertyId === recentlyPurchasedPropertyId)
+          const isColorSetGlow = Boolean(colorSetGlowGroup && space.colorGroup === colorSetGlowGroup.group)
+          const isRecentlyResold = Boolean(recentlyResoldProperty && space.propertyId === recentlyResoldProperty.propertyId)
+          const isStartGlow = space.index === 0 && Boolean(isStartHighlighted)
+          const highlightClass = `${isOwnerHighlighted ? "is-owner-highlighted" : ""} ${isPropertyHighlighted ? "is-property-highlighted" : ""} ${isLandingHighlighted ? "is-landing-highlighted" : ""} ${isRecentlyBuilt ? "is-recently-built" : ""} ${isNewlyPurchased ? "is-newly-purchased" : ""} ${isColorSetGlow ? "is-color-set-glow" : ""} ${isStartGlow ? "is-start-highlighted" : ""}`.trim()
 
           const isMortgaged =
-
             space.propertyId && propertyOwner
-
               ? !!propertyOwner.mortgages[space.propertyId]
-
               : false
 
-
-
           const buildingCount =
-
             space.propertyId && propertyOwner
-
               ? propertyOwner.buildings[space.propertyId] || 0
-
               : 0
 
-
-
           return (
-
             <button
-
               key={space.index}
-
+              data-property-id={space.propertyId || undefined}
+              data-space-index={space.index}
               className={`board-space ${spaceClass} side-${space.side} ${highlightClass}`}
 
               style={{
@@ -4627,15 +4258,13 @@ function Board({
 
 
 
-                ...(isOwnerHighlighted && propertyOwner
-
-                  ? { ["--highlight-owner-color" as any]: getPlayerColorHex(propertyOwner.color) }
-
+                ...((isOwnerHighlighted || isRecentlyBuilt || isColorSetGlow) && (propertyOwner || colorSetGlowGroup)
+                  ? { ["--highlight-owner-color" as any]: colorSetGlowGroup ? colorSetGlowGroup.ownerColor : getPlayerColorHex(propertyOwner!.color) }
                   : {}),
 
               }}
 
-              onClick={() => onSelectSpace(space)}
+              onClick={(e) => onSelectSpace(space, e)}
 
               aria-label={`${space.name} (Index ${space.index})`}
 
@@ -4748,23 +4377,27 @@ function Board({
               {propertyOwner && (
 
                 <span
-
-                  className={`tile-owner-indicator side-${space.side}`}
-
+                  className={`tile-owner-indicator side-${space.side} ${isNewlyPurchased ? "is-newly-purchased" : ""}`}
                   style={{
-
                     backgroundColor: getPlayerColorHex(propertyOwner.color),
-
                     borderColor: getPlayerColorHex(propertyOwner.color),
-
                     boxShadow: `0 0 6px 1.5px ${getPlayerColorHex(propertyOwner.color)}aa, inset 0 0 2px rgba(255, 255, 255, 0.45)`,
-
                   }}
-
                   title={`Owned by ${propertyOwner.name} (${propertyOwner.color})`}
-
                 />
 
+              )}
+
+              {!propertyOwner && isRecentlyResold && recentlyResoldProperty && (
+                <span
+                  className={`tile-owner-indicator side-${space.side} is-reselling`}
+                  style={{
+                    backgroundColor: recentlyResoldProperty.prevOwnerColor,
+                    borderColor: recentlyResoldProperty.prevOwnerColor,
+                    boxShadow: `0 0 6px 1.5px ${recentlyResoldProperty.prevOwnerColor}aa`,
+                  }}
+                  title="Reselling to bank"
+                />
               )}
 
             </button>
@@ -4772,6 +4405,72 @@ function Board({
           )
 
         })}
+
+        {/* Continuous Gliding Tokens Overlay centered inside board tiles (rendered after tiles for proper DOM stacking hierarchy) */}
+        <div className="board-tokens-overlay" aria-hidden="true">
+          {players.map((player, idx) => {
+            if (player.isBankrupt || player.isLeft) return null
+            const tileIdx = (((typeof playerPositions[idx] === "number" ? playerPositions[idx] : (player.position ?? 0)) % 36) + 36) % 36
+            const isDetained = Boolean(tileIdx === 9 && (player.inJail || (player.jailTurns ?? 0) > 0))
+            const center = getTileCenterPercent(tileIdx, isDetained)
+            const targetMovingIndex =
+              movingPlayerIndex !== null && movingPlayerIndex !== undefined
+                ? movingPlayerIndex
+                : activePlayerIndex
+            const isGliding = Boolean(moving && idx === targetMovingIndex)
+            const playersOnSameTile = players
+              .map((p, pIdx) => ({ p, pIdx }))
+              .filter((item) => {
+                if (item.p.isBankrupt || item.p.isLeft) return false
+                const pTile = (((typeof playerPositions[item.pIdx] === "number" ? playerPositions[item.pIdx] : (item.p.position ?? 0)) % 36) + 36) % 36
+                if (pTile !== tileIdx) return false
+                if (tileIdx === 9) {
+                  const itemDetained = Boolean(item.p.inJail || (item.p.jailTurns ?? 0) > 0)
+                  return itemDetained === isDetained
+                }
+                return true
+              })
+              .sort((a, b) => a.p.id - b.p.id)
+
+            const tile1fr = boardWidth / 11.4
+            const boardPuckSize = Math.round(Math.max(12, Math.min(22, tile1fr * 0.38)))
+
+            const rank = playersOnSameTile.findIndex((item) => item.pIdx === idx)
+            const spaceDef = BOARD_SPACES[tileIdx]
+            const rawOffset = getMultiTokenOffset(
+              rank >= 0 ? rank : 0,
+              playersOnSameTile.length,
+              spaceDef?.side
+            )
+            const offsetScale = Math.min(1, Math.max(0.55, tile1fr / 52))
+            const offset = isGliding
+              ? { dx: 0, dy: 0 }
+              : { dx: Math.round(rawOffset.dx * offsetScale * 10) / 10, dy: Math.round(rawOffset.dy * offsetScale * 10) / 10 }
+
+            return (
+              <div
+                key={player.id}
+                className={`board-gliding-token-wrapper ${isGliding ? "is-gliding" : ""}`}
+                style={{
+                  left: `${center.x}%`,
+                  top: `${center.y}%`,
+                  transform: `translate(calc(-50% + ${offset.dx}px), calc(-50% + ${offset.dy}px))`,
+                  transition: isGliding
+                    ? `left ${stepDuration}ms ${stepEasing}, top ${stepDuration}ms ${stepEasing}, transform 280ms cubic-bezier(0.16, 1, 0.3, 1)`
+                    : "transform 280ms cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
+              >
+                <Token
+                  player={player}
+                  size={boardPuckSize}
+                  active={idx === (moving ? targetMovingIndex : activePlayerIndex)}
+                  gliding={isGliding}
+                  className={isGliding ? "token-gliding" : ""}
+                />
+              </div>
+            )
+          })}
+        </div>
 
       </div>
 
@@ -4843,7 +4542,10 @@ function PlayerStrip({
 
       <div className="player-strip-inner">
 
-        {players.map((player, idx) => {
+        {players
+          .map((player, idx) => ({ player, idx }))
+          .filter(({ player }) => !player.isBankrupt && !(player as any).isLeft)
+          .map(({ player, idx }) => {
 
           const isActive = idx === activePlayerIndex
 
@@ -4861,6 +4563,8 @@ function PlayerStrip({
 
           const isResting = Boolean((player as any).inRestHouse || (player as any).isResting)
 
+          const isDisconnected = (player as any).connected === false || (player as any).isDisconnected === true
+
           const canKick = isHost && isMultiplayer && player.id !== localPlayerId && !isBankrupt
 
 
@@ -4869,7 +4573,9 @@ function PlayerStrip({
 
           let statusClass = ""
 
-          if (isBankrupt) { statusIcon = "BANKRUPT"; statusClass = "bankrupt" }
+          if (isDisconnected) { statusIcon = "OFFLINE"; statusClass = "is-disconnected" }
+
+          else if (isBankrupt) { statusIcon = "BANKRUPT"; statusClass = "bankrupt" }
 
           else if (isJailed) { statusIcon = "JAILED"; statusClass = "jailed" }
 
@@ -4901,7 +4607,7 @@ function PlayerStrip({
 
                   {player.name}
 
-                  {statusIcon && <span className="ps-status-icon">{statusIcon}</span>}
+                  {statusIcon && <span className={`ps-status-icon ${statusClass}`}>{statusIcon}</span>}
 
                   {canKick && (
 
@@ -5509,8 +5215,6 @@ function ConstructionManagerModal({
 
                         className="btn-sm"
 
-                        style={{ background: "rgba(113, 31, 49, 0.2)", borderColor: "var(--red)" }}
-
                       >
 
                         DESTROY ({bCount === 4 ? "HOTEL" : "HOUSE"}) · +₹{destroyRefund.toLocaleString()}
@@ -5963,7 +5667,7 @@ function PropertyVisual({
 
               borderTop: "1px solid rgba(200, 155, 69, 0.3)",
 
-              fontFamily: "Oswald",
+              fontFamily: "Nunito Sans",
 
               letterSpacing: "0.04em",
 
@@ -6141,72 +5845,329 @@ function PropertyVisual({
 
 
 
-function ModalShell({
-
+function AnchoredPropertyInspectionCard({
   children,
-
   title,
-
   close,
-
+  isClosing = false,
+  propertyId,
+  spaceIndex,
+  origin = null,
   className = "",
-
 }: {
-
   children: React.ReactNode
-
-
-
   title?: string
-
-
-
   close: () => void
-
-
-
+  isClosing?: boolean
+  propertyId?: string
+  spaceIndex?: number
+  origin?: { x: number; y: number } | null
   className?: string
-
 }) {
+  const cardRef = useRef<HTMLElement>(null)
+  const isClosingLocalRef = useRef(false)
+  const [internalClosing, setInternalClosing] = useState(false)
+  const effectiveClosing = isClosing || internalClosing
+
+  const [pos, setPos] = useState<{
+    left: number
+    top: number
+    maxHeight: number
+    transformOrigin: string
+    placement: "right" | "left" | "below" | "above" | "center"
+  }>({
+    left: 20,
+    top: 20,
+    maxHeight: 520,
+    transformOrigin: "50% 50%",
+    placement: "right",
+  })
+
+  const handleSelfClose = useCallback(() => {
+    if (isClosingLocalRef.current || effectiveClosing) return
+    isClosingLocalRef.current = true
+    setInternalClosing(true)
+    setTimeout(() => {
+      close()
+    }, 190)
+  }, [close, effectiveClosing])
+
+  const updatePosition = useCallback(() => {
+    if (typeof window === "undefined") return
+
+    let tileEl: HTMLElement | null = null
+    if (propertyId) {
+      tileEl = document.querySelector(`[data-property-id="${propertyId}"]`)
+    }
+    if (!tileEl && spaceIndex !== undefined && spaceIndex !== null) {
+      tileEl = document.querySelector(`[data-space-index="${spaceIndex}"]`)
+    }
+
+    const vpWidth = window.innerWidth
+    const vpHeight = window.innerHeight
+    const padding = 12
+    const gap = 10
+
+    const cardEl = cardRef.current
+    const cardWidth = cardEl ? Math.min(320, cardEl.offsetWidth || 320) : Math.min(320, vpWidth - padding * 2)
+    const cardHeight = cardEl && cardEl.offsetHeight > 50 ? cardEl.offsetHeight : 440
+
+    if (!tileEl) {
+      if (origin) {
+        const left = Math.max(padding, Math.min(vpWidth - cardWidth - padding, origin.x - cardWidth / 2))
+        const top = Math.max(padding, Math.min(vpHeight - cardHeight - padding, origin.y - cardHeight / 2))
+        setPos({
+          left: Math.round(left),
+          top: Math.round(top),
+          maxHeight: Math.max(260, vpHeight - padding * 2),
+          transformOrigin: "50% 50%",
+          placement: "center",
+        })
+        return
+      }
+      setPos({
+        left: Math.max(padding, Math.round((vpWidth - cardWidth) / 2)),
+        top: Math.max(padding, Math.round((vpHeight - cardHeight) / 2)),
+        maxHeight: Math.max(260, vpHeight - padding * 2),
+        transformOrigin: "50% 50%",
+        placement: "center",
+      })
+      return
+    }
+
+    const tileRect = tileEl.getBoundingClientRect()
+
+    const spaceRight = vpWidth - tileRect.right - padding
+    const spaceLeft = tileRect.left - padding
+    const spaceBottom = vpHeight - tileRect.bottom - padding
+    const spaceTop = tileRect.top - padding
+
+    type Placement = "right" | "left" | "below" | "above"
+    let placement: Placement = "right"
+
+    const fitsRight = spaceRight >= cardWidth + gap
+    const fitsLeft = spaceLeft >= cardWidth + gap
+    const fitsBottom = spaceBottom >= cardHeight + gap
+    const fitsTop = spaceTop >= cardHeight + gap
+
+    if (fitsRight && (!fitsLeft || spaceRight >= spaceLeft)) {
+      placement = "right"
+    } else if (fitsLeft) {
+      placement = "left"
+    } else if (fitsBottom && (!fitsTop || spaceBottom >= spaceTop)) {
+      placement = "below"
+    } else if (fitsTop) {
+      placement = "above"
+    } else {
+      const candidates: { side: Placement; space: number }[] = [
+        { side: "right", space: spaceRight },
+        { side: "left", space: spaceLeft },
+        { side: "below", space: spaceBottom },
+        { side: "above", space: spaceTop },
+      ]
+      candidates.sort((a, b) => b.space - a.space)
+      placement = candidates[0].side
+    }
+
+    let left = 0
+    let top = 0
+    let originX = "50%"
+    let originY = "50%"
+
+    if (placement === "right") {
+      left = tileRect.right + gap
+      const tileCenterY = tileRect.top + tileRect.height / 2
+      top = tileCenterY - cardHeight / 2
+      originX = "0%"
+      const percentY = Math.max(10, Math.min(90, Math.round(((tileCenterY - top) / cardHeight) * 100)))
+      originY = `${percentY}%`
+    } else if (placement === "left") {
+      left = tileRect.left - gap - cardWidth
+      const tileCenterY = tileRect.top + tileRect.height / 2
+      top = tileCenterY - cardHeight / 2
+      originX = "100%"
+      const percentY = Math.max(10, Math.min(90, Math.round(((tileCenterY - top) / cardHeight) * 100)))
+      originY = `${percentY}%`
+    } else if (placement === "below") {
+      top = tileRect.bottom + gap
+      const tileCenterX = tileRect.left + tileRect.width / 2
+      left = tileCenterX - cardWidth / 2
+      const percentX = Math.max(10, Math.min(90, Math.round(((tileCenterX - left) / cardWidth) * 100)))
+      originX = `${percentX}%`
+      originY = "0%"
+    } else {
+      top = tileRect.top - gap - cardHeight
+      const tileCenterX = tileRect.left + tileRect.width / 2
+      left = tileCenterX - cardWidth / 2
+      const percentX = Math.max(10, Math.min(90, Math.round(((tileCenterX - left) / cardWidth) * 100)))
+      originX = `${percentX}%`
+      originY = "100%"
+    }
+
+    const clampedLeft = Math.max(padding, Math.min(vpWidth - cardWidth - padding, left))
+    const clampedTop = Math.max(padding, Math.min(vpHeight - cardHeight - padding, top))
+    const maxHeight = Math.max(260, vpHeight - padding * 2)
+
+    setPos({
+      left: Math.round(clampedLeft),
+      top: Math.round(clampedTop),
+      maxHeight: Math.round(maxHeight),
+      transformOrigin: `${originX} ${originY}`,
+      placement,
+    })
+  }, [propertyId, spaceIndex, origin])
+
+  useEffect(() => {
+    updatePosition()
+    const timer = setTimeout(updatePosition, 30)
+    window.addEventListener("resize", updatePosition, { passive: true })
+    window.addEventListener("scroll", updatePosition, { passive: true, capture: true })
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [updatePosition])
+
+  useEffect(() => {
+    const handleDocPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target) return
+
+      if (cardRef.current && cardRef.current.contains(target)) {
+        return
+      }
+
+      // If user clicked another board space, allow click to proceed so it selects and updates the card
+      const isBoardTile = target.closest(".board-space") || target.closest("[data-space-index]")
+      if (isBoardTile) {
+        return
+      }
+
+      e.preventDefault()
+      e.stopPropagation()
+      handleSelfClose()
+    }
+
+    document.addEventListener("pointerdown", handleDocPointerDown, true)
+    return () => {
+      document.removeEventListener("pointerdown", handleDocPointerDown, true)
+    }
+  }, [handleSelfClose])
 
   return (
+    <aside
+      ref={cardRef}
+      className={`property-inspection-anchored-card ${effectiveClosing ? "is-closing" : "is-entering"} ${className}`}
+      style={{
+        position: "fixed",
+        left: `${pos.left}px`,
+        top: `${pos.top}px`,
+        width: "min(320px, calc(100vw - 24px))",
+        maxHeight: `${pos.maxHeight}px`,
+        transformOrigin: pos.transformOrigin,
+        zIndex: 90,
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      aria-label="Property inspection card"
+    >
+      <div className="anchored-inspection-header">
+        <div className="anchored-inspection-title-wrap">
+          <span className="anchored-inspection-badge">DEED</span>
+          <strong className="anchored-inspection-title">{title || "PROPERTY DETAILS"}</strong>
+        </div>
+        <button
+          type="button"
+          onClick={handleSelfClose}
+          className="anchored-inspection-close-btn"
+          aria-label="Close property details"
+        >
+          <Icon name="close" size={14} />
+        </button>
+      </div>
 
-    <div className="modal-backdrop" onMouseDown={close}>
-
-      <section
-
-        className={`modal-sheet ${className}`}
-
-        onMouseDown={(e) => e.stopPropagation()}
-
-      >
-
-        <div className="sheet-handle" />
-
-        {title && (
-
-          <div className="modal-header">
-
-            <strong>{title}</strong>
-
-            <button onClick={close} aria-label="Close">
-
-              <Icon name="close" />
-
-            </button>
-
-          </div>
-
-        )}
-
+      <div className="anchored-inspection-body custom-scrollbar">
         {children}
-
-      </section>
-
-    </div>
-
+      </div>
+    </aside>
   )
+}
 
+function ModalShell({
+  children,
+  title,
+  close,
+  className = "",
+  origin = null,
+  isPropertyInspection = false,
+  isClosing = false,
+  propertyId,
+  spaceIndex,
+}: {
+  children: React.ReactNode
+  title?: string
+  close: () => void
+  className?: string
+  origin?: { x: number; y: number } | null
+  isPropertyInspection?: boolean
+  isClosing?: boolean
+  propertyId?: string
+  spaceIndex?: number
+}) {
+  const [internalClosing, setInternalClosing] = useState(false)
+  const isClosingRef = useRef(false)
+  const sheetRef = useRef<HTMLElement>(null)
+
+  const effectiveClosing = isClosing || internalClosing
+
+  const handleBackdropOrIconClose = useCallback(() => {
+    if (isClosingRef.current || effectiveClosing) return
+    isClosingRef.current = true
+    setInternalClosing(true)
+    setTimeout(() => {
+      close()
+    }, 220)
+  }, [close, effectiveClosing])
+
+  if (isPropertyInspection) {
+    return (
+      <AnchoredPropertyInspectionCard
+        title={title}
+        close={close}
+        isClosing={effectiveClosing}
+        propertyId={propertyId}
+        spaceIndex={spaceIndex}
+        origin={origin}
+        className={className}
+      >
+        {children}
+      </AnchoredPropertyInspectionCard>
+    )
+  }
+
+  return (
+    <div
+      className={`modal-backdrop ${effectiveClosing ? "is-closing" : ""}`}
+      onMouseDown={handleBackdropOrIconClose}
+    >
+      <section
+        ref={sheetRef}
+        className={`modal-sheet ${effectiveClosing ? "is-closing" : ""} ${className}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-handle" />
+        {title && (
+          <div className="modal-header">
+            <strong>{title}</strong>
+            <button onClick={handleBackdropOrIconClose} aria-label="Close">
+              <Icon name="close" />
+            </button>
+          </div>
+        )}
+        {children}
+      </section>
+    </div>
+  )
 }
 
 
@@ -6216,57 +6177,37 @@ function ModalShell({
 
 
 function SellPropertyView({
-
   selectedProperty,
-
   propertyOwnerCrossings,
-
   setPropertyOwnerCrossings,
-
   players = initialPlayers,
-
   localPlayerId = 0,
-
   activePlayerIndex = 0,
-
   transactionLedger = [],
-
+  setTransactionLedger,
+  onTriggerResaleAnimation,
+  addBoardNotification,
   roundNumber = 1,
-
   setPlayers,
-
   onShowToast,
-
   onAddGameplayEvent,
-
   close,
-
 }: {
-
   selectedProperty: PropertyDefinition | SpecialPropertyDefinition
-
   propertyOwnerCrossings?: Record<string, number>
-
   setPropertyOwnerCrossings?: React.Dispatch<React.SetStateAction<Record<string, number>>>
-
   players?: EnginePlayer[]
-
   localPlayerId?: number
-
   activePlayerIndex?: number
-
   transactionLedger?: TransactionRecord[]
-
+  setTransactionLedger?: React.Dispatch<React.SetStateAction<TransactionRecord[]>>
+  onTriggerResaleAnimation?: (propertyId: string, prevOwnerColor: string) => void
+  addBoardNotification?: (item: BoardCenterNotificationItem) => void
   roundNumber?: number
-
   setPlayers?: React.Dispatch<React.SetStateAction<EnginePlayer[]>>
-
   onShowToast?: (msg: string) => void
-
   onAddGameplayEvent?: (entry: GameplayEventEntry) => void
-
   close: () => void
-
 }) {
 
   const [isSubmittingSell, setIsSubmittingSell] = useState(false)
@@ -6340,63 +6281,52 @@ function SellPropertyView({
       const res = await defaultEngine.sellProperty(owner.id, selectedProperty.id)
 
       if (res && res.success) {
-
         if (setPlayers && res.state?.players) {
-
           setPlayers(res.state.players)
-
         }
-
         if (setPropertyOwnerCrossings && res.state?.propertyOwnerCrossings) {
-
           setPropertyOwnerCrossings(res.state.propertyOwnerCrossings)
-
         }
-
         audioSystem.playPurchase()
 
         const proceeds = typeof res.sellPrice === "number" ? res.sellPrice : netProceeds
 
+        // Authoritative transaction ledger update from engine state (single source of truth)
+        if (setTransactionLedger && res.state?.transactionLedger) {
+          setTransactionLedger(res.state.transactionLedger)
+        }
+
+        // Trigger synchronized resale animation on the board tile
+        onTriggerResaleAnimation?.(selectedProperty.id, getPlayerColorHex(owner.color))
+
         const msg = isMortgaged
-
           ? `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} net (₹${depreciatedValue.toLocaleString()}${isSpecial ? " (zero depreciation)" : " depreciated"} minus ₹${mortgageDeduction.toLocaleString()} mortgage payoff).`
-
           : isSpecial
-
           ? `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} (special property, zero depreciation).`
-
           : `Sold ${selectedProperty.name} for ₹${proceeds.toLocaleString()} (${depreciationPercent}% depreciation).`
-
         onShowToast?.(msg)
 
         onAddGameplayEvent?.({
-
           id: `sell_${Date.now()}_${selectedProperty.id}`,
-
           type: "SELL_PROPERTY" as any,
-
           timestamp: Date.now(),
-
           playerId: owner.id,
-
           playerName: owner.name,
-
           propertyId: selectedProperty.id,
-
           propertyName: selectedProperty.name,
-
           amount: proceeds,
-
           description: `${owner.name} sold ${selectedProperty.name} back to the bank for ₹${proceeds.toLocaleString()}${isMortgaged ? ` (${isSpecial ? "zero depreciation" : `depreciated ₹${depreciatedValue.toLocaleString()}`} minus ₹${mortgageDeduction.toLocaleString()} mortgage debt cleared)` : isSpecial ? " (special property, zero depreciation)" : ` (${depreciationPercent}% depreciation over ${crossings} owner crossing${crossings === 1 ? "" : "s"})`}.`,
-
         })
 
         try {
-
-          new BroadcastChannel("crownfall_sync").postMessage({ type: "SYNC" })
-
+          new BroadcastChannel("crownfall_sync").postMessage({
+            type: "SYNC",
+            resaleProperty: {
+              propertyId: selectedProperty.id,
+              prevOwnerColor: getPlayerColorHex(owner.color),
+            },
+          })
         } catch (_) {}
-
         close()
 
       } else {
@@ -6709,10 +6639,6 @@ function GameModal({
 
   isHost = true,
 
-  onQuitGame,
-
-  isLeavingRoom = false,
-
   roomCode,
 
   isMultiplayer = false,
@@ -6736,60 +6662,33 @@ function GameModal({
   onClearLandingHighlight,
 
   propertyOwnerCrossings,
-
   setPropertyOwnerCrossings,
-
+  triggerConstructionHighlight,
+  triggerPurchaseHighlight,
+  tileOrigin = null,
+  setTransactionLedger,
+  onTriggerResaleAnimation,
+  addBoardNotification,
 }: {
-
   type: Exclude<Modal, null>
-
-
-
   close: () => void
-
-
-
   setModal?: (m: Modal) => void
-
-
-
   navigate?: (s: Screen) => void
-
-
-
   selectedProperty: PropertyDefinition | SpecialPropertyDefinition
-
-
-
   taxSpaceName?: string
-
-
-
   players?: EnginePlayer[]
-
-
-
   activePlayerIndex?: number
-
-
-
   setPlayers?: React.Dispatch<React.SetStateAction<EnginePlayer[]>>
-
-
-
   onShowToast?: (msg: string) => void
-
-
-
   onBuyResolved?: () => void
-
-
-
   lastDiceTotal?: number
-
-
-
   onModalAcknowledged?: () => void
+  triggerConstructionHighlight?: (propId: string) => void
+  triggerPurchaseHighlight?: (propId: string) => void
+  tileOrigin?: { x: number; y: number } | null
+  setTransactionLedger?: React.Dispatch<React.SetStateAction<TransactionRecord[]>>
+  onTriggerResaleAnimation?: (propertyId: string, prevOwnerColor: string) => void
+  addBoardNotification?: (item: BoardCenterNotificationItem) => void
 
 
 
@@ -6820,10 +6719,6 @@ function GameModal({
   onEndSession?: () => void
 
   onResign?: () => void
-
-  onQuitGame?: () => void
-
-  isLeavingRoom?: boolean
 
   roomCode?: string
 
@@ -6864,6 +6759,17 @@ function GameModal({
   setPropertyOwnerCrossings?: React.Dispatch<React.SetStateAction<Record<string, number>>>
 
 }) {
+  const [isModalClosing, setIsModalClosing] = useState(false)
+  const isModalClosingRef = useRef(false)
+
+  const animatedClose = useCallback(() => {
+    if (isModalClosingRef.current) return
+    isModalClosingRef.current = true
+    setIsModalClosing(true)
+    setTimeout(() => {
+      close()
+    }, 210)
+  }, [close])
 
   if (type === "trade") {
 
@@ -7285,64 +7191,6 @@ function GameModal({
 
 
 
-  if (type === "confirm_quit_game") {
-
-    const localPlayer = players?.find((p) => p.id === localPlayerId) || players?.[0]
-
-    return (
-
-      <ModalShell title="QUIT GAME" close={isLeavingRoom ? () => {} : close}>
-
-        <div style={{ padding: "18px 16px", textAlign: "center" }}>
-
-          <p style={{ color: "var(--ink)", fontSize: "14px", marginBottom: "8px", fontWeight: 700 }}>
-
-            Quit Game & Return to Main Menu?
-
-          </p>
-
-          <p style={{ color: "var(--ink-soft)", fontSize: "12px", marginBottom: "20px", lineHeight: 1.5 }}>
-
-            Are you sure you want to quit{roomCode ? ` room "${roomCode}"` : ""}, <strong>{localPlayer?.name}</strong>?
-
-            You will leave the room and your slot will be vacated.
-
-          </p>
-
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-
-            <Button variant="ghost" onClick={close} disabled={isLeavingRoom}>Cancel</Button>
-
-            <Button
-
-              variant="danger"
-
-              disabled={isLeavingRoom}
-
-              onClick={() => {
-
-                onQuitGame?.()
-
-              }}
-
-            >
-
-              {isLeavingRoom ? "Leaving..." : "Confirm Quit"}
-
-            </Button>
-
-          </div>
-
-        </div>
-
-      </ModalShell>
-
-    )
-
-  }
-
-
-
   if (type === "kick_player") {
 
     const kickablePlayers = (players || []).filter(
@@ -7534,6 +7382,8 @@ function GameModal({
           if (res.success && setPlayers) {
 
             audioSystem.playBuild()
+
+            triggerConstructionHighlight?.(propId)
 
             setPlayers(res.state.players)
 
@@ -7936,6 +7786,8 @@ function GameModal({
         if (res.success && setPlayers) {
 
           audioSystem.playBuild()
+
+          triggerConstructionHighlight?.(selectedProperty.id)
 
           setPlayers(res.state.players)
 
@@ -8634,39 +8486,25 @@ function GameModal({
 
 
   if (type === "sell_property") {
-
     return (
-
       <SellPropertyView
-
         selectedProperty={selectedProperty}
-
         propertyOwnerCrossings={propertyOwnerCrossings}
-
         setPropertyOwnerCrossings={setPropertyOwnerCrossings}
-
         players={players}
-
         localPlayerId={localPlayerId}
-
         activePlayerIndex={activePlayerIndex}
-
         transactionLedger={transactionLedger}
-
+        setTransactionLedger={setTransactionLedger}
+        onTriggerResaleAnimation={onTriggerResaleAnimation}
+        addBoardNotification={addBoardNotification}
         roundNumber={roundNumber}
-
         setPlayers={setPlayers}
-
         onShowToast={onShowToast}
-
         onAddGameplayEvent={onAddGameplayEvent}
-
         close={close}
-
       />
-
     )
-
   }
 
 
@@ -8879,6 +8717,8 @@ function GameModal({
 
           audioSystem.playPurchase()
 
+          triggerPurchaseHighlight?.(propId)
+
           const mergedPlayers = res.state.players.map((p, idx) => {
 
             let name = p.name
@@ -9010,6 +8850,8 @@ function GameModal({
         if (res.success && setPlayers) {
 
           audioSystem.playBuild()
+
+          triggerConstructionHighlight?.(propId)
 
           setPlayers(res.state.players)
 
@@ -9288,8 +9130,16 @@ function GameModal({
 
 
     return (
-
-      <ModalShell title="PROPERTY DETAILS" close={close} className="property-details-sheet custom-scrollbar">
+      <ModalShell
+        title="PROPERTY DETAILS"
+        close={animatedClose}
+        isClosing={isModalClosing}
+        origin={tileOrigin}
+        propertyId={propId}
+        spaceIndex={propSpaceIndex}
+        isPropertyInspection={true}
+        className="property-details-sheet custom-scrollbar"
+      >
 
         <PropertyVisual
 
@@ -9685,10 +9535,8 @@ function GameModal({
 
 
 
-          <Button variant="ghost" onClick={close}>
-
+          <Button variant="ghost" onClick={animatedClose}>
             CLOSE
-
           </Button>
 
         </div>
@@ -10029,8 +9877,6 @@ function GameScreen({
 
 }) {
 
-  const [isLeavingRoom, setIsLeavingRoom] = useState(false)
-
   const [isResigning, setIsResigning] = useState(false)
 
 
@@ -10042,6 +9888,13 @@ function GameScreen({
     setIsResigning(true)
 
     try {
+
+      if (movingPlayerIndex === localPlayerId) {
+        setMoving(false)
+        setMovingPlayerIndex(null)
+        movingRef.current = false
+        setMovementActive(false)
+      }
 
       const res = await defaultEngine.resignPlayer?.(localPlayerId)
 
@@ -10086,50 +9939,6 @@ function GameScreen({
     } finally {
 
       setIsResigning(false)
-
-    }
-
-  }
-
-
-
-  const handleConfirmQuit = async () => {
-
-    if (isLeavingRoom) return
-
-    setIsLeavingRoom(true)
-
-    try {
-
-      if (multiplayerClient.getRoomCode()) {
-
-        const res = await multiplayerClient.leaveRoom()
-
-        if (res && (res as any).error) {
-
-          showToast(`Could not leave room: ${(res as any).error}`)
-
-          setIsLeavingRoom(false)
-
-          return
-
-        }
-
-      } else {
-
-        await defaultEngine.resetToLobby?.().catch(() => {})
-
-      }
-
-      setModal(null)
-
-      navigate("menu")
-
-    } catch (err: any) {
-
-      showToast(`Leave room failed: ${err?.message || "Communication error"}`)
-
-      setIsLeavingRoom(false)
 
     }
 
@@ -10306,59 +10115,49 @@ function GameScreen({
   // Quick Pop-in for Received Trade Offers (pops in for 1.2s then transitions directly into trade tab)
 
   const [activeTradePopup, setActiveTradePopup] = useState<TradeOffer | null>(null)
-
+  const [isDismissingTradePopup, setIsDismissingTradePopup] = useState<boolean>(false)
+  const [temporarilyDismissedTradeIds, setTemporarilyDismissedTradeIds] = useState<Set<string>>(new Set())
   const knownTradeIdsRef = useRef<Set<string>>(new Set())
 
-
-
   useEffect(() => {
-
     const pendingIncoming = (tradeOffers || []).filter(
-
       (t) => t.receiverId === localPlayerId && t.status === "PENDING",
-
     )
-
     if (activeTradePopup && !pendingIncoming.some((t) => t.id === activeTradePopup.id)) {
-
       setActiveTradePopup(null)
-
     }
-
     for (const offer of pendingIncoming) {
-
-      if (!knownTradeIdsRef.current.has(offer.id)) {
-
+      if (!knownTradeIdsRef.current.has(offer.id) && !temporarilyDismissedTradeIds.has(offer.id)) {
         knownTradeIdsRef.current.add(offer.id)
-
         setActiveTradePopup(offer)
-
         break
-
       }
-
     }
-
-  }, [tradeOffers, localPlayerId, activeTradePopup])
+  }, [tradeOffers, localPlayerId, activeTradePopup, temporarilyDismissedTradeIds])
 
   const handleReviewTrade = (offer: TradeOffer) => {
-
-    setActiveTradePopup(null)
-
-    setGameInfoInitialTab("trade")
-
-    setGameInfoTradeSubTab("offers")
-
-    setHighlightTradeId(offer.id)
-
-    setGameInfoOpen(true)
-
+    setIsDismissingTradePopup(true)
+    setTimeout(() => {
+      setActiveTradePopup(null)
+      setIsDismissingTradePopup(false)
+      setGameInfoInitialTab("trade")
+      setGameInfoTradeSubTab("offers")
+      setHighlightTradeId(offer.id)
+      setGameInfoOpen(true)
+    }, 220)
   }
 
-  const handleDismissTradePopup = () => {
-
-    setActiveTradePopup(null)
-
+  const handleDismissTradePopup = (offerId?: string) => {
+    if (isDismissingTradePopup) return
+    setIsDismissingTradePopup(true)
+    setTimeout(() => {
+      const targetId = offerId || activeTradePopup?.id
+      if (targetId) {
+        setTemporarilyDismissedTradeIds((prev) => new Set(prev).add(targetId))
+      }
+      setActiveTradePopup(null)
+      setIsDismissingTradePopup(false)
+    }, 220)
   }
 
 
@@ -10469,6 +10268,50 @@ function GameScreen({
 
   const [landingHighlight, setLandingHighlight] = useState<{ tileIndex: number; id: number } | null>(null)
 
+  const [recentlyBuiltPropertyId, setRecentlyBuiltPropertyId] = useState<string | null>(null)
+
+  const recentlyBuiltTimerRef = useRef<any>(null)
+  const lastBuiltHighlightRef = useRef<{ propId: string; time: number } | null>(null)
+
+  const triggerConstructionHighlight = useCallback((propId: string) => {
+    const now = Date.now()
+    if (
+      lastBuiltHighlightRef.current &&
+      lastBuiltHighlightRef.current.propId === propId &&
+      now - lastBuiltHighlightRef.current.time < 700
+    ) {
+      return
+    }
+    lastBuiltHighlightRef.current = { propId, time: now }
+
+    if (recentlyBuiltTimerRef.current) {
+      clearTimeout(recentlyBuiltTimerRef.current)
+      recentlyBuiltTimerRef.current = null
+    }
+    setRecentlyBuiltPropertyId(propId)
+    recentlyBuiltTimerRef.current = setTimeout(() => {
+      setRecentlyBuiltPropertyId(null)
+      recentlyBuiltTimerRef.current = null
+      lastBuiltHighlightRef.current = null
+    }, 700)
+  }, [])
+
+  const [recentlyPurchasedPropertyId, setRecentlyPurchasedPropertyId] = useState<string | null>(null)
+
+  const recentlyPurchasedTimerRef = useRef<any>(null)
+
+  const triggerPurchaseHighlight = useCallback((propId: string) => {
+    if (recentlyPurchasedTimerRef.current) {
+      clearTimeout(recentlyPurchasedTimerRef.current)
+      recentlyPurchasedTimerRef.current = null
+    }
+    setRecentlyPurchasedPropertyId(propId)
+    recentlyPurchasedTimerRef.current = setTimeout(() => {
+      setRecentlyPurchasedPropertyId(null)
+      recentlyPurchasedTimerRef.current = null
+    }, 1200)
+  }, [])
+
   const destinationTimerRef = useRef<any>(null)
 
 
@@ -10557,261 +10400,189 @@ function GameScreen({
 
 
 
-  // ── ANIMATED CASH TRANSFERS FROM AUTHORITATIVE LEDGER (STRICT 2-SLOT QUEUE) ──
-
+  // ── UNIFIED BOARD CENTER NOTIFICATIONS STACK & MULTI-POPUP SYSTEM ──
   const seenTxIdsRef = useRef<Set<string>>(new Set())
+  const [activeNotifications, setActiveNotifications] = useState<BoardCenterNotificationItem[]>([])
+  const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set())
+  const notificationTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const recentNotifKeysRef = useRef<Map<string, number>>(new Map())
+  const pendingTransfersRef = useRef<BoardCenterNotificationItem[]>([])
 
-  const transferTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  // ── START SPACE (SPACE 0) SYNCHRONIZED HIGHLIGHT ──
+  const [isStartHighlighted, setIsStartHighlighted] = useState<boolean>(false)
+  const startHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const pendingTransfersRef = useRef<ActiveCashTransfer[]>([])
+  const triggerStartHighlight = useCallback(() => {
+    setIsStartHighlighted(true)
+    if (startHighlightTimerRef.current !== null) {
+      clearTimeout(startHighlightTimerRef.current)
+    }
+    startHighlightTimerRef.current = setTimeout(() => {
+      setIsStartHighlighted(false)
+      startHighlightTimerRef.current = null
+    }, 1200)
+  }, [])
 
-  const [activeCashTransfers, setActiveCashTransfers] = useState<ActiveCashTransfer[]>([])
-
-
-
-  // Cleanup all active transfer timers on unmount
-
+  // Cleanup all active notification timers on unmount
   useEffect(() => {
-
     return () => {
+      notificationTimersRef.current.forEach((t) => clearTimeout(t))
+      notificationTimersRef.current.clear()
+      if (startHighlightTimerRef.current) clearTimeout(startHighlightTimerRef.current)
+    }
+  }, [])
 
-      transferTimersRef.current.forEach((t) => clearTimeout(t))
-
-      transferTimersRef.current.clear()
-
+  const dismissBoardNotification = useCallback((id?: string) => {
+    if (!id) {
+      setActiveNotifications((prev) => {
+        if (prev.length === 0) return prev
+        const targetId = prev[0].id
+        setDismissingIds((cur) => new Set(cur).add(targetId))
+        const t = notificationTimersRef.current.get(targetId)
+        if (t) {
+          clearTimeout(t)
+          notificationTimersRef.current.delete(targetId)
+        }
+        window.setTimeout(() => {
+          setDismissingIds((cur) => {
+            const next = new Set(cur)
+            next.delete(targetId)
+            return next
+          })
+          setActiveNotifications((cur) => cur.filter((n) => n.id !== targetId))
+        }, 220)
+        return prev
+      })
+      return
     }
 
+    setDismissingIds((prev) => new Set(prev).add(id))
+    const timer = notificationTimersRef.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      notificationTimersRef.current.delete(id)
+    }
+    window.setTimeout(() => {
+      setDismissingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      setActiveNotifications((prev) => prev.filter((n) => n.id !== id))
+    }, 220)
   }, [])
 
+  const addBoardNotification = useCallback((item: BoardCenterNotificationItem) => {
+    // Restrict payment popups exclusively to actual rent payments (income or expense)
+    if (item.type !== "RENT" && item.type !== "RENT_INCOME" && item.type !== "RENT_EXPENSE") {
+      return
+    }
 
+    const notifKey = `${item.type}_${item.propertyId || ""}_${item.amount || 0}_${(item.message || "").slice(0, 24)}`
+    const now = Date.now()
+    const lastSeenTime = recentNotifKeysRef.current.get(notifKey)
+    if (lastSeenTime && now - lastSeenTime < 3200) {
+      return
+    }
+    recentNotifKeysRef.current.set(notifKey, now)
 
-  const queueTransferOrShow = useCallback((transfers: ActiveCashTransfer[]) => {
-
-    setActiveCashTransfers((prev) => {
-
-      let currentQueue = [...prev]
-
-      for (const t of transfers) {
-
-        if (currentQueue.some((item) => item.id === t.id)) continue
-
-        // When queue has 2 items, evict oldest and immediately clean up its timer
-
-        if (currentQueue.length >= 2) {
-
-          const evicted = currentQueue.shift()
-
-          if (evicted) {
-
-            const timer = transferTimersRef.current.get(evicted.id)
-
-            if (timer) {
-
-              clearTimeout(timer)
-
-              transferTimersRef.current.delete(evicted.id)
-
-            }
-
-          }
-
-        }
-
-        currentQueue.push(t)
-
-        // Set individual expiry timer for newly added notification (2400ms duration)
-
-        const tId = t.id
-
-        const timer = setTimeout(() => {
-
-          transferTimersRef.current.delete(tId)
-
-          setActiveCashTransfers((cur) => cur.filter((item) => item.id !== tId))
-
-        }, 2400)
-
-        transferTimersRef.current.set(tId, timer)
-
-      }
-
-      return currentQueue.slice(-2)
-
+    setActiveNotifications((prev) => {
+      if (prev.some((n) => n.id === item.id)) return prev
+      return [...prev, item]
     })
 
-  }, [])
-
-
+    const dur = item.durationMs ?? 4200
+    const timer = setTimeout(() => {
+      notificationTimersRef.current.delete(item.id)
+      dismissBoardNotification(item.id)
+    }, dur)
+    notificationTimersRef.current.set(item.id, timer)
+  }, [dismissBoardNotification])
 
   useEffect(() => {
-
     if (!transactionLedger || transactionLedger.length === 0) return
 
     // Seed existing transaction IDs on first load/mount to prevent alert spam from prior turns
-
     if (seenTxIdsRef.current.size === 0) {
-
       for (const tx of transactionLedger) {
-
         seenTxIdsRef.current.add(tx.id)
-
       }
-
       return
-
     }
-
-
 
     const newTxs = transactionLedger.filter((tx) => !seenTxIdsRef.current.has(tx.id))
-
     if (newTxs.length === 0) return
 
+    for (const tx of newTxs) {
+      seenTxIdsRef.current.add(tx.id)
+    }
 
+    const newItems: BoardCenterNotificationItem[] = []
 
     for (const tx of newTxs) {
-
-      seenTxIdsRef.current.add(tx.id)
-
-    }
-
-
-
-    const transfers: ActiveCashTransfer[] = newTxs.map((tx) => {
+      // Restrict payment popups EXCLUSIVELY to actual player-to-player rent payments.
+      // Eliminate popups for bank transactions (purchases, sales, taxes, fees, rewards,
+      // Start pass payouts, mortgages, unmortgages, jail fines) and non-rent transfers.
+      const typeUp = (tx.type || "").toUpperCase()
+      const isRent = typeUp === "RENT"
+      const isP2P = tx.primaryPlayerId >= 0 && tx.counterpartyPlayerId >= 0 && tx.primaryPlayerId !== tx.counterpartyPlayerId
+      if (!isRent || !isP2P) continue
 
       const payer = players.find((p) => p.id === tx.primaryPlayerId)
+      const recipient = players.find((p) => p.id === tx.counterpartyPlayerId)
 
-      const recipient = tx.counterpartyPlayerId >= 0 ? players.find((p) => p.id === tx.counterpartyPlayerId) : null
+      const payerName = payer?.name || tx.primaryPlayerName || "Player"
+      const recipientName = recipient?.name || tx.counterpartyPlayerName || "Player"
+      const prop = tx.propertyId ? (CITY_PROPERTIES[tx.propertyId] || SPECIAL_PROPERTIES[tx.propertyId]) : null
+      const propName = prop?.name || (tx.propertyId ? tx.propertyId : "")
 
-      return {
+      // Deduplicate so only one popup appears per rent event
+      const dedupKey = `RENT_${tx.primaryPlayerId}_${tx.counterpartyPlayerId}_${tx.amount}_${tx.propertyId || ""}`
+      const now = Date.now()
+      const lastSeen = recentNotifKeysRef.current.get(dedupKey)
+      if (lastSeen && now - lastSeen < 3200) {
+        continue
+      }
+      recentNotifKeysRef.current.set(dedupKey, now)
 
-        id: tx.id,
+      // POV-awareness: green for receiving rent, red for paying rent
+      const isReceivingRent = localPlayerId === tx.counterpartyPlayerId
+      const isGivingRent = localPlayerId === tx.primaryPlayerId
 
-        amount: tx.amount,
+      const notifType: BoardCenterNotificationItem["type"] = isReceivingRent ? "RENT_INCOME" : "RENT_EXPENSE"
+      const notifCategory = isReceivingRent ? "RENT RECEIVED" : "RENT PAID"
 
-        type: tx.type,
-
-        payerId: tx.primaryPlayerId,
-
-        payerName: payer?.name || "Player",
-
-        payerColor: payer?.color || "#c89b45",
-
-        recipientId: tx.counterpartyPlayerId,
-
-        recipientName: recipient?.name || (tx.counterpartyPlayerId === -1 ? "Bank" : "Player"),
-
-        recipientColor: recipient?.color || "#ffd700",
-
-        isBank: tx.counterpartyPlayerId === -1,
-
-        timestamp: Date.now(),
-
+      let rentMsg: string
+      if (isReceivingRent) {
+        rentMsg = `You collected ₹${tx.amount.toLocaleString()} rent from ${payerName}${propName ? ` for ${propName}` : ""}`
+      } else if (isGivingRent) {
+        rentMsg = `You paid ₹${tx.amount.toLocaleString()} rent to ${recipientName}${propName ? ` for ${propName}` : ""}`
+      } else {
+        rentMsg = `${payerName} paid ₹${tx.amount.toLocaleString()} rent to ${recipientName}${propName ? ` for ${propName}` : ""}`
       }
 
-    })
+      newItems.push({
+        id: `tx_rent_${tx.id}`,
+        type: notifType,
+        category: notifCategory,
+        message: rentMsg,
+        amount: isReceivingRent ? tx.amount : -tx.amount,
+        propertyId: tx.propertyId,
+        durationMs: 4200,
+        timestamp: Date.now(),
+      })
+    }
 
-
+    if (newItems.length === 0) return
 
     if (isMovementInProgressRef.current || movingRef.current || rollingRef.current) {
-
-      // Movement in progress: queue payments so they appear strictly AFTER puck lands
-
-      pendingTransfersRef.current.push(...transfers)
-
+      pendingTransfersRef.current.push(...newItems)
     } else {
-
-      // Non-movement event (e.g. voluntary mortgaging, trading, building sale): show immediately
-
-      queueTransferOrShow(transfers)
-
-    }
-
-  }, [transactionLedger, players, queueTransferOrShow])
-
-
-
-  // ── BOARD-CENTRE EVENT NOTIFICATIONS QUEUE (Part 2) ──
-
-  const [boardNotificationQueue, setBoardNotificationQueue] = useState<BoardCenterNotificationItem[]>([])
-
-  const [currentBoardNotification, setCurrentBoardNotification] = useState<BoardCenterNotificationItem | null>(null)
-
-  const [isNotificationDismissing, setIsNotificationDismissing] = useState<boolean>(false)
-
-  const notificationTimerRef = useRef<number | null>(null)
-
-
-
-  const dismissCurrentBoardNotification = useCallback(() => {
-
-    setIsNotificationDismissing(true)
-
-    if (notificationTimerRef.current !== null) {
-
-      window.clearTimeout(notificationTimerRef.current)
-
-      notificationTimerRef.current = null
-
-    }
-
-    window.setTimeout(() => {
-
-      setCurrentBoardNotification(null)
-
-      setIsNotificationDismissing(false)
-
-    }, 280)
-
-  }, [])
-
-
-
-  const addBoardNotification = useCallback((item: BoardCenterNotificationItem) => {
-
-    setBoardNotificationQueue((prev) => {
-
-      if (prev.some((n) => n.id === item.id)) return prev
-
-      return [...prev, item]
-
-    })
-
-  }, [])
-
-
-
-  useEffect(() => {
-
-    if (currentBoardNotification === null && boardNotificationQueue.length > 0) {
-
-      const nextItem = boardNotificationQueue[0]
-
-      setBoardNotificationQueue((prev) => prev.slice(1))
-
-      setCurrentBoardNotification(nextItem)
-
-      setIsNotificationDismissing(false)
-
-
-
-      if (notificationTimerRef.current !== null) {
-
-        window.clearTimeout(notificationTimerRef.current)
-
+      for (const item of newItems) {
+        addBoardNotification(item)
       }
-
-      const dur = nextItem.durationMs ?? 4200
-
-      notificationTimerRef.current = window.setTimeout(() => {
-
-        dismissCurrentBoardNotification()
-
-      }, dur)
-
     }
-
-  }, [currentBoardNotification, boardNotificationQueue, dismissCurrentBoardNotification])
+  }, [transactionLedger, players, localPlayerId, addBoardNotification])
 
 
 
@@ -10828,6 +10599,258 @@ function GameScreen({
   const [diceHistoryList, setDiceHistoryList] = useState<DiceRollRecord[]>([])
 
   const [diceHistoryOpen, setDiceHistoryOpen] = useState<boolean>(false)
+
+  // ── DEDUPLICATED RELIABLE PROPERTY PURCHASE ANIMATION TRACKER ──
+  const seenPurchaseEventIdsRef = useRef<Set<string>>(new Set())
+  const isPurchaseTrackerSeededRef = useRef<boolean>(false)
+
+  useEffect(() => {
+    const purchaseEvents: { id: string; propertyId: string }[] = []
+
+    if (effectiveEventLogList && effectiveEventLogList.length > 0) {
+      for (const ev of effectiveEventLogList) {
+        if (((ev.type || "").toUpperCase() === "BUY" || (ev.type || "").toUpperCase() === "PURCHASE") && ev.propertyId) {
+          purchaseEvents.push({ id: String(ev.id), propertyId: ev.propertyId })
+        }
+      }
+    }
+
+    if (transactionLedger && transactionLedger.length > 0) {
+      for (const tx of transactionLedger) {
+        if (((tx.type || "").toUpperCase() === "PURCHASE" || (tx.type || "").toUpperCase() === "BUY") && tx.propertyId) {
+          purchaseEvents.push({ id: String(tx.id), propertyId: tx.propertyId })
+        }
+      }
+    }
+
+    if (!isPurchaseTrackerSeededRef.current) {
+      isPurchaseTrackerSeededRef.current = true
+      for (const p of purchaseEvents) {
+        seenPurchaseEventIdsRef.current.add(p.id)
+      }
+      return
+    }
+
+    for (const p of purchaseEvents) {
+      if (!seenPurchaseEventIdsRef.current.has(p.id)) {
+        seenPurchaseEventIdsRef.current.add(p.id)
+        if (p.propertyId) {
+          triggerPurchaseHighlight(p.propertyId)
+          try {
+            audioSystem.playPurchase()
+          } catch (_) {}
+        }
+      }
+    }
+  }, [effectiveEventLogList, transactionLedger, triggerPurchaseHighlight])
+
+  // ── DEDUPLICATED SYNCHRONIZED PROPERTY CONSTRUCTION ANIMATION TRACKER ──
+  const seenConstructionEventIdsRef = useRef<Set<string>>(new Set())
+  const isConstructionTrackerSeededRef = useRef<boolean>(false)
+  const prevBuildingCountsRef = useRef<Record<string, number>>({})
+
+  useEffect(() => {
+    const buildEvents: { id: string; propertyId: string }[] = []
+
+    if (effectiveEventLogList && effectiveEventLogList.length > 0) {
+      for (const ev of effectiveEventLogList) {
+        const evType = (ev.type || "").toUpperCase()
+        const evCat = (ev.category || "").toUpperCase()
+        const isNotDemolish = !evType.includes("DEMOLISH") && !evType.includes("SELL") && !evType.includes("DESTROY")
+        const isBuildType =
+          evType === "BUILD" ||
+          evType === "BUILD_HOUSE" ||
+          evType === "BUILD_HOTEL" ||
+          evType === "CONSTRUCTION" ||
+          evCat === "CONSTRUCTION"
+
+        if (isBuildType && isNotDemolish && ev.propertyId) {
+          buildEvents.push({ id: String(ev.id), propertyId: ev.propertyId })
+        }
+      }
+    }
+
+    if (transactionLedger && transactionLedger.length > 0) {
+      for (const tx of transactionLedger) {
+        const txType = (tx.type || "").toUpperCase()
+        if (
+          (txType === "BUILD" || txType === "BUILD_HOUSE" || txType === "BUILD_HOTEL" || txType === "CONSTRUCTION") &&
+          tx.propertyId
+        ) {
+          buildEvents.push({ id: String(tx.id), propertyId: tx.propertyId })
+        }
+      }
+    }
+
+    const currentBuildingCounts: Record<string, number> = {}
+    if (players && players.length > 0) {
+      for (const p of players) {
+        if (p.buildings) {
+          for (const [propId, count] of Object.entries(p.buildings)) {
+            if (typeof count === "number" && count > 0) {
+              currentBuildingCounts[propId] = (currentBuildingCounts[propId] || 0) + count
+            }
+          }
+        }
+      }
+    }
+
+    if (!isConstructionTrackerSeededRef.current) {
+      isConstructionTrackerSeededRef.current = true
+      for (const b of buildEvents) {
+        seenConstructionEventIdsRef.current.add(b.id)
+      }
+      prevBuildingCountsRef.current = currentBuildingCounts
+      return
+    }
+
+    let triggeredFromEvent = false
+    for (const b of buildEvents) {
+      if (!seenConstructionEventIdsRef.current.has(b.id)) {
+        seenConstructionEventIdsRef.current.add(b.id)
+        if (b.propertyId) {
+          triggerConstructionHighlight(b.propertyId)
+          triggeredFromEvent = true
+          try {
+            audioSystem.playBuild()
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (!triggeredFromEvent) {
+      for (const [propId, count] of Object.entries(currentBuildingCounts)) {
+        const prev = prevBuildingCountsRef.current[propId] || 0
+        if (count > prev) {
+          triggerConstructionHighlight(propId)
+          try {
+            audioSystem.playBuild()
+          } catch (_) {}
+        }
+      }
+    }
+
+    prevBuildingCountsRef.current = currentBuildingCounts
+  }, [effectiveEventLogList, transactionLedger, players, triggerConstructionHighlight])
+
+  // ── SYNCHRONIZED START SPACE HIGHLIGHT TRACKER ──
+  const seenStartPassIdsRef = useRef<Set<string>>(new Set())
+  const isStartPassSeededRef = useRef<boolean>(false)
+  useEffect(() => {
+    if (!effectiveEventLogList || effectiveEventLogList.length === 0) return
+    if (!isStartPassSeededRef.current) {
+      isStartPassSeededRef.current = true
+      for (const ev of effectiveEventLogList) {
+        if ((ev.type || "").toUpperCase() === "START_PASS") {
+          seenStartPassIdsRef.current.add(String(ev.id))
+        }
+      }
+      return
+    }
+    for (const ev of effectiveEventLogList) {
+      if ((ev.type || "").toUpperCase() === "START_PASS") {
+        const idStr = String(ev.id)
+        if (!seenStartPassIdsRef.current.has(idStr)) {
+          seenStartPassIdsRef.current.add(idStr)
+          triggerStartHighlight()
+        }
+      }
+    }
+  }, [effectiveEventLogList, triggerStartHighlight])
+
+  // ── PROPERTY DETAILS MODAL ORIGIN TRACKER ──
+  const [selectedTileOrigin, setSelectedTileOrigin] = useState<{ x: number; y: number } | null>(null)
+
+  // ── DEDUPLICATED SYNCHRONIZED COLOR-SET COMPLETION BOARD GLOW TRACKER ──
+  const completedColorSetsRef = useRef<Set<string>>(new Set())
+  const isColorSetsTrackerSeededRef = useRef<boolean>(false)
+  const [colorSetGlowGroup, setColorSetGlowGroup] = useState<{ group: string; ownerColor: string } | null>(null)
+  const colorSetGlowTimerRef = useRef<any>(null)
+
+  useEffect(() => {
+    const COLOR_GROUP_PROP_IDS: Record<string, string[]> = {
+      GREEN: ["margoa", "cochin", "ootacamund", "chandigadh", "delhi"],
+      YELLOW: ["simla", "amritsar", "srinagar", "madras", "bangalore"],
+      RED: ["darjeeling", "ahmedabad", "bombay", "hyderabad", "kolkatta"],
+      BLUE: ["patna", "indore", "jaipur", "agra", "kanpur"],
+    }
+
+    const currentCompleted = new Set<string>()
+    let newlyCompletedGroup: { group: string; ownerColor: string } | null = null
+
+    for (const player of players) {
+      if (player.isBankrupt) continue
+      const owned = player.ownedProperties || []
+      for (const [group, propIds] of Object.entries(COLOR_GROUP_PROP_IDS)) {
+        if (propIds.length > 0 && propIds.every((pid) => owned.includes(pid))) {
+          const key = `${player.id}_${group}`
+          currentCompleted.add(key)
+          if (isColorSetsTrackerSeededRef.current && !completedColorSetsRef.current.has(key)) {
+            newlyCompletedGroup = { group, ownerColor: getPlayerColorHex(player.color) }
+          }
+        }
+      }
+    }
+
+    if (!isColorSetsTrackerSeededRef.current) {
+      isColorSetsTrackerSeededRef.current = true
+      completedColorSetsRef.current = currentCompleted
+      return
+    }
+
+    completedColorSetsRef.current = currentCompleted
+
+    if (newlyCompletedGroup) {
+      if (colorSetGlowTimerRef.current) {
+        clearTimeout(colorSetGlowTimerRef.current)
+      }
+      setColorSetGlowGroup(newlyCompletedGroup)
+      colorSetGlowTimerRef.current = setTimeout(() => {
+        setColorSetGlowGroup(null)
+        colorSetGlowTimerRef.current = null
+      }, 1100)
+    }
+  }, [players])
+
+  // ── DEDUPLICATED PROPERTY RESALE TO BANK ANIMATION TRACKER ──
+  const prevPropertyOwnersRef = useRef<Record<string, { ownerId: number; ownerColor: string }>>({})
+  const isResaleTrackerSeededRef = useRef<boolean>(false)
+  const [recentlyResoldProperty, setRecentlyResoldProperty] = useState<{ propertyId: string; prevOwnerColor: string } | null>(null)
+  const resoldTimerRef = useRef<any>(null)
+
+  useEffect(() => {
+    const currentOwners: Record<string, { ownerId: number; ownerColor: string }> = {}
+    for (const player of players) {
+      if (player.ownedProperties) {
+        for (const propId of player.ownedProperties) {
+          currentOwners[propId] = { ownerId: player.id, ownerColor: player.color }
+        }
+      }
+    }
+
+    if (!isResaleTrackerSeededRef.current) {
+      isResaleTrackerSeededRef.current = true
+      prevPropertyOwnersRef.current = currentOwners
+      return
+    }
+
+    for (const [propId, prevOwner] of Object.entries(prevPropertyOwnersRef.current)) {
+      if (!currentOwners[propId]) {
+        // Owned property became unowned: bank resale or liquidation!
+        if (resoldTimerRef.current) clearTimeout(resoldTimerRef.current)
+        setRecentlyResoldProperty({
+          propertyId: propId,
+          prevOwnerColor: getPlayerColorHex(prevOwner.ownerColor),
+        })
+        resoldTimerRef.current = setTimeout(() => {
+          setRecentlyResoldProperty(null)
+          resoldTimerRef.current = null
+        }, 600)
+        break
+      }
+    }
+    prevPropertyOwnersRef.current = currentOwners
+  }, [players])
 
 
 
@@ -11300,6 +11323,12 @@ interface ActivePurchaseOpportunity {
 
           triggerLandingHighlight(targetPos)
 
+          if (targetPos === 0) {
+
+            triggerStartHighlight()
+
+          }
+
         }
 
 
@@ -11312,7 +11341,11 @@ interface ActivePurchaseOpportunity {
 
           pendingTransfersRef.current = []
 
-          queueTransferOrShow(toShow)
+          for (const item of toShow) {
+
+            addBoardNotification(item)
+
+          }
 
         }
 
@@ -11326,9 +11359,15 @@ interface ActivePurchaseOpportunity {
 
           if (snap.players && Array.isArray(snap.players)) {
 
+            const activeSnapPlayers = snap.players.filter(
+
+              (mp: any) => !mp.isLeft && !mp.isKicked
+
+            )
+
             setPlayers((prev) => {
 
-              return snap.players.map((mp: any, idx: number) => {
+              return activeSnapPlayers.map((mp: any, idx: number) => {
 
                 const existing = prev.find((p) => p.id === mp.id) || prev[idx]
 
@@ -11418,6 +11457,10 @@ interface ActivePurchaseOpportunity {
 
         if (startPos === targetPos) {
 
+          if (targetPos === 0) {
+            triggerStartHighlight()
+          }
+
           finishMovement()
 
           return
@@ -11494,13 +11537,24 @@ interface ActivePurchaseOpportunity {
 
         currPos = (currPos + 1) % 36
 
+        if (currPos === 0) {
+          triggerStartHighlight()
+        }
+
         const stepMs = schedule.stepDurations[step] ?? 120
 
         const isLandingStep = step === stepsToWalk - 1
+        const isTakeoffStep = step === 0
 
         setActiveStepDuration(stepMs)
 
-        setActiveStepEasing(isLandingStep ? EASE_OUT_EXPO : "linear")
+        setActiveStepEasing(
+          isLandingStep
+            ? EASE_OUT_EXPO
+            : isTakeoffStep
+            ? "cubic-bezier(0.4, 0, 0.6, 1)"
+            : "linear"
+        )
 
 
 
@@ -11555,6 +11609,10 @@ interface ActivePurchaseOpportunity {
       applyGameStateSnapshot,
 
       triggerLandingHighlight,
+
+      triggerStartHighlight,
+
+      addBoardNotification,
 
     ],
 
@@ -11750,7 +11808,11 @@ interface ActivePurchaseOpportunity {
 
     if (activePlayer?.inRestHouse) return isHumanTurn ? "Rest House: Turn Skipped" : `${activePlayer.name} resting (Turn Skipped)`
 
-    if (activePlayer?.inJail) return isHumanTurn ? "In Jail: Pay ₹500 or Roll Doubles" : `${activePlayer.name} detained in Jail`
+    if (activePlayer?.inJail && (activePlayer?.jailTurns ?? 0) < 2) {
+      const attempt = (activePlayer.jailTurns ?? 0) + 1
+      if (attempt === 1) return isHumanTurn ? "In Jail: Roll Doubles to Escape" : `${activePlayer.name} detained in Jail`
+      return isHumanTurn ? "In Jail: Pay ₹500 or Roll Doubles" : `${activePlayer.name} detained in Jail`
+    }
 
     if (turnState === "WAITING_FOR_ROLL") return isHumanTurn ? "Your roll" : "Awaiting roll"
 
@@ -11801,6 +11863,9 @@ interface ActivePurchaseOpportunity {
         purchaseSucceeded = true
 
         audioSystem.playPurchase()
+        if (pendingPurchase?.propertyId) {
+          triggerPurchaseHighlight(pendingPurchase.propertyId)
+        }
 
         clearLandingHighlight()
 
@@ -11892,6 +11957,8 @@ interface ActivePurchaseOpportunity {
 
         const stableBuyId = engineBuyId !== undefined ? `engine_buy_${engineBuyId}` : `buy_${buyerId}_${pendingPurchase.propertyId}_${Date.now()}`
 
+        triggerPurchaseHighlight(pendingPurchase.propertyId)
+
         addGameplayEvent({
 
           id: stableBuyId,
@@ -11911,26 +11978,6 @@ interface ActivePurchaseOpportunity {
           amount: pendingPurchase.purchasePrice,
 
           description: buyMsg,
-
-        })
-
-        addBoardNotification({
-
-          id: `board_buy_${Date.now()}_${buyerId}`,
-
-          type: "PURCHASE",
-
-          category: "PROPERTY PURCHASE",
-
-          message: `${buyer.name} bought ${pendingPurchase.propertyName} for ₹${pendingPurchase.purchasePrice.toLocaleString()}`,
-
-          amount: pendingPurchase.purchasePrice,
-
-          durationMs: 1000,
-
-          timestamp: Date.now(),
-
-          icon: "",
 
         })
 
@@ -12533,8 +12580,10 @@ interface ActivePurchaseOpportunity {
         const res = await defaultEngine.buyCurrentProperty(botId)
 
         if (res.success) {
-
           clearLandingHighlight()
+          if (prop?.id) {
+            triggerPurchaseHighlight(prop.id)
+          }
 
           const mergedPlayers = res.state.players.map((p, pIdx) => {
 
@@ -12617,26 +12666,6 @@ interface ActivePurchaseOpportunity {
             amount: price,
 
             description: `${bot.name} bought ${prop.name} for ₹${price.toLocaleString()}.`,
-
-          })
-
-          addBoardNotification({
-
-            id: `board_bot_buy_${Date.now()}_${botId}_${prop.id}`,
-
-            type: "PURCHASE",
-
-            category: "PROPERTY PURCHASE",
-
-            message: `${bot.name} bought ${prop.name} for ₹${price.toLocaleString()}`,
-
-            amount: price,
-
-            durationMs: 1000,
-
-            timestamp: Date.now(),
-
-            icon: "",
 
           })
 
@@ -12891,19 +12920,7 @@ interface ActivePurchaseOpportunity {
       }
 
       if (state.transactionLedger && setTransactionLedger) {
-
-        setTransactionLedger((prev) => {
-
-          const existingIds = new Set(prev.map((t) => t.id))
-
-          const toAdd = (state.transactionLedger || []).filter((t) => !existingIds.has(t.id))
-
-          if (toAdd.length === 0) return prev
-
-          return [...prev, ...toAdd]
-
-        })
-
+        setTransactionLedger(state.transactionLedger)
       }
 
       if (state.turnTimer && setTurnTimer) {
@@ -12948,22 +12965,20 @@ interface ActivePurchaseOpportunity {
 
       }
 
-      if (!rollingRef.current && !movingRef.current && !isMovementInProgressRef.current) {
-
+      if (
+        !rollingRef.current &&
+        !movingRef.current &&
+        !isMovementInProgressRef.current &&
+        state.turnState !== "ROLLING" &&
+        state.turnState !== "MOVING"
+      ) {
         setPlayerPositions((prev) => {
-
           const next = [...prev]
-
           state.players.forEach((p, idx) => {
-
             next[idx] = p.position
-
           })
-
           return next
-
         })
-
       }
 
     } catch (_) {}
@@ -13440,7 +13455,16 @@ interface ActivePurchaseOpportunity {
 
 
 
-  const handleSelectSpace = (space: BoardSpaceDefinition) => {
+  const handleSelectSpace = (space: BoardSpaceDefinition, e?: React.MouseEvent) => {
+    if (e && e.currentTarget) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+      setSelectedTileOrigin({
+        x: Math.round(rect.left + rect.width / 2),
+        y: Math.round(rect.top + rect.height / 2),
+      })
+    } else {
+      setSelectedTileOrigin(null)
+    }
 
     setTurnDiceTotal(undefined)
 
@@ -13478,49 +13502,9 @@ interface ActivePurchaseOpportunity {
 
         showToast("Income Tax: 10% of net earnings (income − expenses) in the current round.")
 
-        addBoardNotification({
-
-          id: `info_tax_${Date.now()}`,
-
-          type: "TAX",
-
-          category: "INCOME TAX",
-
-          message: "Income Tax: 10% of net round earnings (actual income − expenses).",
-
-          amount: 0,
-
-          durationMs: 2500,
-
-          timestamp: Date.now(),
-
-          icon: "",
-
-        })
-
       } else {
 
         showToast("Wealth Tax: ₹50 per unbuilt property, ₹100 per house, ₹150 per hotel.")
-
-        addBoardNotification({
-
-          id: `info_tax_${Date.now()}`,
-
-          type: "TAX",
-
-          category: "WEALTH TAX",
-
-          message: "Wealth Tax: ₹50 per unbuilt property, ₹100 per house, ₹150 per hotel.",
-
-          amount: 0,
-
-          durationMs: 2500,
-
-          timestamp: Date.now(),
-
-          icon: "",
-
-        })
 
       }
 
@@ -13532,73 +13516,13 @@ interface ActivePurchaseOpportunity {
 
       showToast(`Start: Awards 100% starting capital (₹${startingCap.toLocaleString()}) on first rotation. Subsequent qualifying crossings collect 5% bonus (₹${startBonus.toLocaleString()}).`)
 
-      addBoardNotification({
-
-        id: `info_start_${Date.now()}`,
-
-        type: "START_PASS",
-
-        category: "START SPACE",
-
-        message: `First rotation awards ₹${startingCap.toLocaleString()} starting capital. Subsequent qualifying crossings collect ₹${startBonus.toLocaleString()} (5% bonus).`,
-
-        amount: startBonus,
-
-        durationMs: 3000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
-
     } else if (space.index === 18) {
 
       showToast("Royal Club: Visitors pay 5% of each active opponent's current-round positive earnings.")
 
-      addBoardNotification({
-
-        id: `info_club_${Date.now()}`,
-
-        type: "CLUB",
-
-        category: "ROYAL CLUB",
-
-        message: "Royal Club: Pay 5% of each active opponent's current-round positive earnings.",
-
-        amount: 0,
-
-        durationMs: 3000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
-
     } else if (space.index === 27) {
 
       showToast("Rest House: Visitors collect 5% of each active opponent's current-round positive earnings and skip their next turn.")
-
-      addBoardNotification({
-
-        id: `info_rest_${Date.now()}`,
-
-        type: "REST",
-
-        category: "REST HOUSE",
-
-        message: "Rest House: Collect 5% of each active opponent's current-round positive earnings and skip next turn.",
-
-        amount: 0,
-
-        durationMs: 3000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
 
     }
 
@@ -13861,6 +13785,7 @@ interface ActivePurchaseOpportunity {
     // Event 7: Start-crossing (capital rotation & pass bonus)
 
     if (result.startingCapitalAwarded) {
+      triggerStartHighlight()
 
       const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
 
@@ -13886,27 +13811,8 @@ interface ActivePurchaseOpportunity {
 
       })
 
-      addBoardNotification({
-
-        id: `board_cap_${Date.now()}_${result.playerId}`,
-
-        type: "START_PASS",
-
-        category: "START ROTATION",
-
-        message: capMsg,
-
-        amount: capAmount,
-
-        durationMs: 1000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
-
     } else if (result.passStartBonusAwarded) {
+      triggerStartHighlight()
 
       const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
 
@@ -13934,26 +13840,10 @@ interface ActivePurchaseOpportunity {
 
       })
 
-      addBoardNotification({
+    }
 
-        id: `board_pass_${Date.now()}_${result.playerId}`,
-
-        type: "START_PASS",
-
-        category: "START BONUS",
-
-        message: passMsg,
-
-        amount: bonusAmount,
-
-        durationMs: 1000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
-
+    if (result.newPosition === 0) {
+      triggerStartHighlight()
     }
 
 
@@ -14006,8 +13896,53 @@ interface ActivePurchaseOpportunity {
 
       setHasRolledThisTurn(false)
 
+      if (!isMultiplayer && !engineState.players[engineState.activePlayerIndex]?.isHuman && localPlayerId === 0) {
+        advanceTurn(engineState, 600)
+      }
+
       return
 
+    }
+
+
+
+    // Event: Failed jail escape attempt (doubles not rolled; turn ended authoritatively)
+    const isFailedJailEscape = Boolean(
+      !result.isDouble &&
+      (
+        result.eventDescription?.toLowerCase().includes("failed to roll doubles") ||
+        result.eventDescription?.toLowerCase().includes("remains in jail") ||
+        (result.spaceName === "JAIL" && result.newPosition === 9 && (engineState.players[result.playerId]?.inJail || (engineState.players[result.playerId]?.jailTurns ?? 0) > 0))
+      )
+    )
+
+    if (isFailedJailEscape) {
+      const pName = engineState.players[result.playerId]?.name || `Player ${result.playerId + 1}`
+      const jailMsg = result.eventDescription || `${pName} failed to roll doubles and remains in Jail.`
+      addGameplayEvent({
+        id: `jail_failed_${Date.now()}_${result.playerId}`,
+        type: "JAIL",
+        timestamp: Date.now(),
+        playerId: result.playerId,
+        playerName: pName,
+        description: jailMsg,
+      })
+      addBoardNotification({
+        id: `board_jail_failed_${Date.now()}_${result.playerId}`,
+        type: "JAIL",
+        category: "ARREST & JAIL",
+        message: jailMsg,
+        durationMs: 1200,
+        timestamp: Date.now(),
+        icon: "",
+      })
+      setTurnState(engineState.turnState)
+      setActivePlayerIndex(engineState.activePlayerIndex)
+      setHasRolledThisTurn(false)
+      if (!isMultiplayer && !engineState.players[engineState.activePlayerIndex]?.isHuman && localPlayerId === 0) {
+        advanceTurn(engineState, 600)
+      }
+      return
     }
 
 
@@ -14328,28 +14263,6 @@ interface ActivePurchaseOpportunity {
 
 
 
-      addBoardNotification({
-
-        id: `board_rent_${Date.now()}_${result.playerId}`,
-
-        type: "RENT",
-
-        category: "RENT PAYMENT",
-
-        message: rentMsg,
-
-        amount: result.rentAmount,
-
-        durationMs: 1000,
-
-        timestamp: Date.now(),
-
-        icon: "",
-
-      })
-
-
-
       if (hasExtraTurn) {
 
         setTurnState("EXTRA_TURN")
@@ -14413,26 +14326,6 @@ interface ActivePurchaseOpportunity {
         amount: taxAmount,
 
         description: taxMsg,
-
-      })
-
-      addBoardNotification({
-
-        id: `board_tax_${Date.now()}_${result.playerId}`,
-
-        type: "TAX",
-
-        category: "TAX ASSESSMENT",
-
-        message: taxMsg,
-
-        amount: taxAmount,
-
-        durationMs: 1200,
-
-        timestamp: Date.now(),
-
-        icon: "",
 
       })
 
@@ -15136,7 +15029,13 @@ interface ActivePurchaseOpportunity {
 
 
 
-      if (state.turnPurchasedProperties) setTurnPurchasedProperties(state.turnPurchasedProperties)
+      if (state.turnPurchasedProperties) {
+        setTurnPurchasedProperties(state.turnPurchasedProperties)
+        if (state.turnPurchasedProperties.length > 0) {
+          const lastPurchased = state.turnPurchasedProperties[state.turnPurchasedProperties.length - 1]
+          if (lastPurchased) triggerPurchaseHighlight(lastPurchased)
+        }
+      }
 
       if (state.turnBuildingsBuilt) setTurnBuildingsBuilt(state.turnBuildingsBuilt)
 
@@ -15197,54 +15096,6 @@ interface ActivePurchaseOpportunity {
     <main className="game-screen">
 
       <div className="game-topbar">
-
-        <div className="game-topbar-player-section">
-
-          <div
-
-            className="turn-timer-badge topbar-player-badge"
-
-            title={`Playing as ${players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}`}
-
-          >
-
-            <span
-
-              className="status-color-dot"
-
-              style={{
-
-                width: "8px",
-
-                height: "8px",
-
-                borderRadius: "50%",
-
-                backgroundColor: getPlayerColorHex(players[localPlayerId]?.color || "saffron"),
-
-                display: "inline-block",
-
-                marginRight: "6px",
-
-                flexShrink: 0,
-
-              }}
-
-            />
-
-            <span className="topbar-player-label">PLAYING AS:</span>
-
-            <strong className="topbar-player-name">
-
-              {players[localPlayerId]?.name || `Player ${localPlayerId + 1}`}
-
-            </strong>
-
-          </div>
-
-        </div>
-
-
 
         <div className="game-topbar-actions">
 
@@ -15434,7 +15285,7 @@ interface ActivePurchaseOpportunity {
 
               style={{
 
-                fontFamily: '"Oswald", sans-serif',
+                fontFamily: '"Nunito Sans", sans-serif',
 
                 fontSize: "16px",
 
@@ -15538,13 +15389,13 @@ interface ActivePurchaseOpportunity {
 
             activePlayerIndex={activePlayerIndex}
 
-            activeNotification={currentBoardNotification}
+            notifications={activeNotifications}
 
-            queueCount={boardNotificationQueue.length}
+            dismissingIds={dismissingIds}
 
-            onDismissNotification={dismissCurrentBoardNotification}
+            onDismissNotification={dismissBoardNotification}
 
-            isDismissingNotification={isNotificationDismissing}
+            isStartHighlighted={isStartHighlighted}
 
             pendingPurchase={pendingPurchase}
 
@@ -15580,13 +15431,13 @@ interface ActivePurchaseOpportunity {
 
             landingHighlightTileIndex={landingHighlight?.tileIndex ?? null}
 
-          />
+            recentlyBuiltPropertyId={recentlyBuiltPropertyId}
 
-          <CashTransfersOverlay
+            recentlyPurchasedPropertyId={recentlyPurchasedPropertyId}
 
-            transfers={activeCashTransfers}
+            colorSetGlowGroup={colorSetGlowGroup}
 
-            reducedMotion={preferences?.reducedMotion}
+            recentlyResoldProperty={recentlyResoldProperty}
 
           />
 
@@ -15595,80 +15446,6 @@ interface ActivePurchaseOpportunity {
 
 
         <div className="game-sidebar-column">
-
-          <section className="turn-banner">
-
-            <div
-
-              style={{
-
-                display: "flex",
-
-                alignItems: "center",
-
-                justifyContent: "space-between",
-
-                width: "100%",
-
-              }}
-
-            >
-
-              <span>
-
-                {activePlayerIndex === localPlayerId
-
-                  ? "YOUR TURN"
-
-                  : `${activePlayer.name.toUpperCase()}'S TURN`}
-
-              </span>
-
-              {timerEnabled && (
-
-                <div
-
-                  className={`turn-timer-badge ${
-
-                    localSecondsRemaining <= 10
-
-                      ? "urgent"
-
-                      : localSecondsRemaining <= 20
-
-                        ? "warning"
-
-                        : ""
-
-                  }`}
-
-                  title="Authoritative turn timer"
-
-                >
-
-                  &#x23F1;&#xFE0F; {localSecondsRemaining}s
-
-                </div>
-
-              )}
-
-            </div>
-
-            <p>
-
-              {activePlayer.name}{" "}
-
-              {BOARD_SPACES[userPos ?? 0]?.name
-
-                ? `is at ${BOARD_SPACES[userPos ?? 0].name} (#${userPos ?? 0})`
-
-                : "is on the move…"}
-
-            </p>
-
-          </section>
-
-
 
           <PlayerStrip
 
@@ -15766,7 +15543,7 @@ interface ActivePurchaseOpportunity {
 
                       style={{
 
-                        fontFamily: '"Oswald", sans-serif',
+                        fontFamily: '"Nunito Sans", sans-serif',
 
                         fontSize: "13px",
 
@@ -16016,7 +15793,7 @@ interface ActivePurchaseOpportunity {
 
               <div>
 
-                <div style={{ fontFamily: '"Oswald", sans-serif', fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: "#fca5a5" }}>
+                <div style={{ fontFamily: '"Nunito Sans", sans-serif', fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: "#fca5a5" }}>
 
                   MANDATORY DEBT SETTLEMENT
 
@@ -16060,15 +15837,15 @@ interface ActivePurchaseOpportunity {
 
                     padding: "8px 12px",
 
-                    background: "rgba(200, 155, 69, 0.25)",
+                    background: "rgba(82, 107, 133, 0.2)",
 
-                    border: "1px solid var(--gold)",
+                    border: "1px solid var(--accent-primary, #8198B0)",
 
                     borderRadius: "6px",
 
-                    color: "var(--gold-300)",
+                    color: "var(--accent-primary, #8198B0)",
 
-                    fontFamily: '"Oswald", sans-serif',
+                    fontFamily: '"Nunito Sans", sans-serif',
 
                     fontSize: "11px",
 
@@ -16108,7 +15885,7 @@ interface ActivePurchaseOpportunity {
 
                     color: "#fca5a5",
 
-                    fontFamily: '"Oswald", sans-serif',
+                    fontFamily: '"Nunito Sans", sans-serif',
 
                     fontSize: "11px",
 
@@ -16352,9 +16129,9 @@ interface ActivePurchaseOpportunity {
 
                       style={{
 
-                        background: "linear-gradient(135deg, #c89b45 0%, #a87928 100%)",
+                        background: "linear-gradient(135deg, #526B85 0%, #455A70 100%)",
 
-                        color: "#1a150b",
+                        color: "#ffffff",
 
                         fontWeight: 800,
 
@@ -16362,7 +16139,7 @@ interface ActivePurchaseOpportunity {
 
                         letterSpacing: "0.08em",
 
-                        boxShadow: "0 4px 15px rgba(200, 155, 69, 0.4)",
+                        boxShadow: "0 4px 15px rgba(82, 107, 133, 0.35)",
 
                       }}
 
@@ -16386,9 +16163,9 @@ interface ActivePurchaseOpportunity {
 
                       background: "rgba(255,255,255,0.08)",
 
-                      border: "1px dashed var(--gold)",
+                      border: "1px dashed var(--accent-primary, #8198B0)",
 
-                      color: "var(--gold-300)",
+                      color: "var(--accent-primary, #8198B0)",
 
                       cursor: "not-allowed",
 
@@ -16414,25 +16191,34 @@ interface ActivePurchaseOpportunity {
 
                   const isMustSkip = Boolean(activePlayer?.inRestHouse)
 
-                  const isRollPhase = (turnState === "WAITING_FOR_ROLL" || turnState === "EXTRA_TURN") && !isMustSkip
-
                   const isBusy =
-
                     turnState === "ROLLING" ||
-
                     turnState === "MOVING" ||
-
                     turnState === "RESOLVING_LANDING" ||
-
                     ((rolling || moving || diceRolling || diceSettling || rollingRef.current || movingRef.current || isMovementInProgressRef.current) && turnState !== "WAITING_FOR_ROLL")
 
+                  const isRollPhase = (
+                    turnState === "WAITING_FOR_ROLL" ||
+                    turnState === "EXTRA_TURN" ||
+                    turnState === "ROLLING" ||
+                    turnState === "MOVING" ||
+                    turnState === "RESOLVING_LANDING" ||
+                    rolling ||
+                    moving ||
+                    diceRolling ||
+                    diceSettling ||
+                    rollingRef.current ||
+                    movingRef.current ||
+                    isMovementInProgressRef.current
+                  ) && !isMustSkip
 
 
-                  const isDetainedInJail = Boolean(activePlayer?.inJail || (activePlayer?.jailTurns ?? 0) > 0)
+
+                  const isDetainedInJail = Boolean(activePlayer?.inJail && (activePlayer?.jailTurns ?? 0) < 2)
 
                   const canPayFine = isHumanTurn && !isBusy && isDetainedInJail && (activePlayer?.money ?? 0) >= 500
 
-                  if (isDetainedInJail && isHumanTurn && !isBusy) {
+                  if (isDetainedInJail && isHumanTurn && !isBusy && turnState === "WAITING_FOR_ROLL") {
                     return (
                       <DetainedJailPanel
                         player={activePlayer}
@@ -16440,12 +16226,13 @@ interface ActivePurchaseOpportunity {
                         isPayingFine={isPayingJailFine}
                         onPayFine={handlePayJailFine}
                         onAttemptRollOrSkip={() => {
-                          if (!rollingRef.current && !movingRef.current) {
+                          if (!rollingRef.current && !movingRef.current && turnState === "WAITING_FOR_ROLL") {
                             roll(false)
                           }
                         }}
                         isCardSkip={false}
                         isBusy={isBusy}
+                        turnState={turnState}
                       />
                     )
                   }
@@ -16740,7 +16527,7 @@ interface ActivePurchaseOpportunity {
 
                   color: "var(--gold-300)",
 
-                  fontFamily: "Oswald, sans-serif",
+                  fontFamily: "Nunito Sans, sans-serif",
 
                   fontSize: "11px",
 
@@ -16854,10 +16641,6 @@ interface ActivePurchaseOpportunity {
 
           isHost={Boolean(isHost)}
 
-          onQuitGame={handleConfirmQuit}
-
-          isLeavingRoom={isLeavingRoom}
-
           roomCode={roomCode}
 
           onKickPlayer={onKickPlayer}
@@ -16883,6 +16666,18 @@ interface ActivePurchaseOpportunity {
           isMultiplayer={isMultiplayer}
 
           pendingPurchase={pendingPurchase}
+
+          triggerConstructionHighlight={triggerConstructionHighlight}
+
+          triggerPurchaseHighlight={triggerPurchaseHighlight}
+
+          tileOrigin={selectedTileOrigin}
+
+          setTransactionLedger={setTransactionLedger}
+
+          onTriggerResaleAnimation={(propId, color) => setRecentlyResoldProperty({ propertyId: propId, prevOwnerColor: color })}
+
+          addBoardNotification={addBoardNotification}
 
         />
 
@@ -16974,7 +16769,7 @@ interface ActivePurchaseOpportunity {
 
         <div
 
-          className="trade-notification-card fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-4 rounded-xl shadow-2xl border transition-all duration-300"
+          className={`trade-notification-card ${isDismissingTradePopup ? "is-dismissing" : ""} fixed bottom-6 right-6 z-[9999] max-w-sm w-full p-4 rounded-xl shadow-2xl border transition-all duration-300`}
 
           style={{
 
@@ -17024,13 +16819,13 @@ interface ActivePurchaseOpportunity {
 
               type="button"
 
-              onClick={handleDismissTradePopup}
+              onClick={() => handleDismissTradePopup(activeTradePopup.id)}
 
               className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 transition-colors"
 
-              aria-label="Dismiss notification"
+              aria-label="Close trade popup temporarily"
 
-              title="Dismiss notification"
+              title="Close for now (Review in Game Info anytime)"
 
             >
 
@@ -17098,13 +16893,15 @@ interface ActivePurchaseOpportunity {
 
               type="button"
 
-              onClick={handleDismissTradePopup}
+              onClick={() => handleDismissTradePopup(activeTradePopup.id)}
 
               className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-600/60 text-slate-300 hover:bg-slate-800 transition-colors"
 
+              title="Hide this trade notification for now (remains available in Game Info)"
+
             >
 
-              Dismiss
+              Close for now
 
             </button>
 
@@ -17114,7 +16911,7 @@ interface ActivePurchaseOpportunity {
 
               onClick={() => handleReviewTrade(activeTradePopup)}
 
-              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 shadow transition-colors"
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-[#526B85] hover:bg-[#627D9B] text-white shadow transition-colors"
 
             >
 
@@ -17125,6 +16922,78 @@ interface ActivePurchaseOpportunity {
           </div>
 
         </div>
+
+      )}
+
+      {pendingTradesCount > 0 && !activeTradePopup && (
+
+        <button
+
+          type="button"
+
+          onClick={() => {
+
+            const firstPending = (tradeOffers || []).find(
+
+              (t) => t.receiverId === localPlayerId && t.status === "PENDING"
+
+            )
+
+            if (firstPending) {
+
+              setTemporarilyDismissedTradeIds((prev) => {
+
+                const next = new Set(prev)
+
+                next.delete(firstPending.id)
+
+                return next
+
+              })
+
+              setActiveTradePopup(firstPending)
+
+            } else {
+
+              setGameInfoInitialTab("trade")
+
+              setGameInfoTradeSubTab("offers")
+
+              setGameInfoOpen(true)
+
+            }
+
+          }}
+
+          className="trade-snooze-reopen-pill fixed bottom-6 right-6 z-[9998] flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all shadow-xl"
+
+          style={{
+
+            background: "var(--card-bg, rgba(24, 30, 44, 0.96))",
+
+            borderColor: "rgba(234, 179, 8, 0.7)",
+
+            color: "var(--text-primary, #f8fafc)",
+
+            backdropFilter: "blur(12px)",
+
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(234, 179, 8, 0.2)",
+
+            cursor: "pointer",
+
+          }}
+
+          title="Trade proposal pending. Click to open deal proposal."
+
+        >
+
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+
+          <span className="text-amber-400 font-bold uppercase tracking-wider text-[11px]">Trade Offer ({pendingTradesCount})</span>
+
+          <span className="text-[10px] text-slate-300 font-medium underline ml-1">View</span>
+
+        </button>
 
       )}
 
@@ -17338,6 +17207,12 @@ function GameOverScreen({
   roomCode,
   isHost = false,
   roundNumber = 1,
+  authoritativeWinnerId = null,
+  rules,
+  onUpdateRules,
+  preferences,
+  onUpdatePreferences,
+  netWorthHistory = {},
 }: {
   navigate: (screen: Screen) => void
   players?: EnginePlayer[]
@@ -17348,9 +17223,16 @@ function GameOverScreen({
   roomCode?: string
   isHost?: boolean
   roundNumber?: number
+  authoritativeWinnerId?: number | null
+  rules?: GameRules
+  onUpdateRules?: (rules: Partial<GameRules>) => Promise<{ success: boolean; error?: string }>
+  preferences?: GamePreferences
+  onUpdatePreferences?: (prefs: GamePreferences) => void
+  netWorthHistory?: Record<number, number[]>
 }) {
   const [showInsights, setShowInsights] = useState(false)
   const [showEventLog, setShowEventLog] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [isRematchLoading, setIsRematchLoading] = useState(false)
   const [rematchError, setRematchError] = useState<string | null>(null)
   const [rematchReady, setRematchReady] = useState(false)
@@ -17426,17 +17308,24 @@ function GameOverScreen({
         }
       })
       .sort((a, b) => {
+        if (authoritativeWinnerId !== null && authoritativeWinnerId !== undefined && authoritativeWinnerId >= 0) {
+          if (a.player.id === authoritativeWinnerId) return -1
+          if (b.player.id === authoritativeWinnerId) return 1
+        }
         if (Boolean(a.player.isBankrupt) !== Boolean(b.player.isBankrupt)) {
           return a.player.isBankrupt ? 1 : -1
         }
         return b.netWorth - a.netWorth || b.cash - a.cash
       })
-  }, [players])
+  }, [players, authoritativeWinnerId])
 
-  const winnerEntry = ranked.find((item) => !item.player.isBankrupt) || ranked[0]
+  const winnerEntry =
+    (authoritativeWinnerId !== null && authoritativeWinnerId !== undefined && authoritativeWinnerId >= 0)
+      ? (ranked.find((item) => item.player.id === authoritativeWinnerId && !item.player.isBankrupt) || ranked.find((item) => !item.player.isBankrupt) || ranked[0])
+      : (ranked.find((item) => !item.player.isBankrupt) || ranked[0])
   const winner = winnerEntry?.player
   const isNoWinner =
-    !winner || (winner.isBankrupt && ranked.every((item) => item.player.isBankrupt))
+    !winner || Boolean(winner.isBankrupt) || ranked.every((item) => Boolean(item.player.isBankrupt))
 
   return (
     <main className="gameover-screen">
@@ -17494,7 +17383,7 @@ function GameOverScreen({
 
         <h1
           style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
+            fontFamily: "'Nunito Sans', Georgia, serif",
             fontSize: "32px",
             fontWeight: 800,
             margin: "4px 0",
@@ -17614,7 +17503,7 @@ function GameOverScreen({
           <div className="ranking-row" key={player.id}>
             <b
               style={{
-                fontFamily: "'Oswald', sans-serif",
+                fontFamily: "'Nunito Sans', sans-serif",
                 fontSize: "13px",
                 opacity: 0.75,
               }}
@@ -17652,13 +17541,13 @@ function GameOverScreen({
                 {!player.isBankrupt && i === 0 && (
                   <span
                     style={{
-                      color: "var(--gold-bright, #ffd57e)",
+                      color: "var(--accent-primary, #8198B0)",
                       fontSize: "9px",
                       fontWeight: 800,
                       padding: "1px 5px",
                       borderRadius: "4px",
-                      background: "rgba(197, 177, 138, 0.15)",
-                      border: "1px solid rgba(197, 177, 138, 0.35)",
+                      background: "rgba(129, 152, 176, 0.15)",
+                      border: "1px solid rgba(129, 152, 176, 0.35)",
                     }}
                   >
                     VICTOR
@@ -17676,25 +17565,70 @@ function GameOverScreen({
               </small>
             </div>
 
-            <div style={{ textAlign: "right" }}>
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "var(--ink-soft, #94a3b8)",
-                  textTransform: "uppercase",
-                }}
-              >
-                Net Worth
+            {player.isBankrupt ? (() => {
+              const hist = netWorthHistory?.[player.id] || [1500, player.money, 0]
+              const cleanHist = hist.length > 1 ? hist : [1500, player.money, 0]
+              const peak = Math.max(...cleanHist, 1500)
+              const minVal = Math.min(...cleanHist, 0)
+              const range = Math.max(1, peak - minVal)
+              const sparkW = 64
+              const sparkH = 18
+              const polyPoints = cleanHist.map((val, idx) => {
+                const x = (idx / Math.max(1, cleanHist.length - 1)) * (sparkW - 4) + 2
+                const y = sparkH - 2 - ((val - minVal) / range) * (sparkH - 4)
+                return `${x.toFixed(1)},${y.toFixed(1)}`
+              }).join(" ")
+              return (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <svg width={sparkW} height={sparkH} style={{ overflow: "visible" }} aria-label="Net worth history">
+                      <polyline
+                        fill="none"
+                        stroke="#8198B0"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={polyPoints}
+                      />
+                      <circle
+                        cx={sparkW - 2}
+                        cy={sparkH - 2 - ((0 - minVal) / range) * (sparkH - 4)}
+                        r="2.5"
+                        fill="var(--financial-loss, #be123c)"
+                      />
+                    </svg>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "9px", color: "var(--text-muted, #71717A)", textTransform: "uppercase" }}>
+                        Peak ₹{peak.toLocaleString()}
+                      </div>
+                      <strong style={{ fontSize: "12px", color: "var(--financial-loss, #be123c)" }}>
+                        ₹0
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )
+            })() : (
+              <div style={{ textAlign: "right" }}>
+                <div
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted, #71717A)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Net Worth
+                </div>
+                <strong
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--accent-primary, #8198B0)",
+                  }}
+                >
+                  ₹{netWorth.toLocaleString()}
+                </strong>
               </div>
-              <strong
-                style={{
-                  fontSize: "13px",
-                  color: "var(--gold-bright, #ffd57e)",
-                }}
-              >
-                ₹{netWorth.toLocaleString()}
-              </strong>
-            </div>
+            )}
           </div>
         ))}
       </section>
@@ -17771,10 +17705,29 @@ function GameOverScreen({
           VIEW MATCH LOG ({eventLogList.length})
         </Button>
 
+        {isHost && onUpdateRules && preferences && onUpdatePreferences && (
+          <Button variant="secondary" onClick={() => setShowSettings(true)}>
+            TABLE SETTINGS
+          </Button>
+        )}
+
         <Button variant="ghost" onClick={handleReturnToMenu}>
           BACK TO HOME
         </Button>
       </div>
+
+      {showSettings && preferences && onUpdatePreferences && (
+        <PreferencesModal
+          preferences={preferences}
+          onUpdatePreferences={onUpdatePreferences}
+          rules={rules}
+          onUpdateRules={onUpdateRules}
+          isGameStarted={false}
+          isHost={isHost}
+          roomCode={roomCode}
+          close={() => setShowSettings(false)}
+        />
+      )}
 
       {showInsights && (
         <FinancialInsightsModal
@@ -17804,6 +17757,10 @@ function GameOverScreen({
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("menu")
+  const screenRef = useRef<Screen>(screen)
+  useEffect(() => {
+    screenRef.current = screen
+  }, [screen])
   const [showHowToPlay, setShowHowToPlay] = useState(false)
 
 
@@ -18040,6 +17997,30 @@ export default function App() {
 
   const [playerPositions, setPlayerPositions] = useState<number[]>([0, 0, 0, 0])
 
+  const [winnerId, setWinnerId] = useState<number | null>(null)
+
+  // Net worth history tracking per player
+  const [netWorthHistory, setNetWorthHistory] = useState<Record<number, number[]>>({})
+
+  useEffect(() => {
+    if (players && players.length > 0) {
+      setNetWorthHistory((prev) => {
+        const next = { ...prev }
+        let changed = false
+        for (const p of players) {
+          const pf = calculatePlayerPortfolio(p)
+          const currentArr = next[p.id] || []
+          const lastVal = currentArr.length > 0 ? currentArr[currentArr.length - 1] : -1
+          if (lastVal !== pf.netWorth) {
+            next[p.id] = [...currentArr, pf.netWorth]
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }
+  }, [players])
+
 
 
   const [roundNumber, setRoundNumber] = useState<number>(1)
@@ -18066,7 +18047,13 @@ export default function App() {
 
   const applyGameStateSnapshot = useCallback((gs: any) => {
 
-    if (isMovementInProgressRef.current) {
+    const isRollingOrMoving = Boolean(
+      isMovementInProgressRef.current ||
+      gs.turnState === "ROLLING" ||
+      gs.turnState === "MOVING"
+    )
+
+    if (isRollingOrMoving) {
 
       pendingSnapshotRef.current = { ...(pendingSnapshotRef.current || {}), gameState: gs }
 
@@ -18082,7 +18069,14 @@ export default function App() {
 
     if (gs.players && Array.isArray(gs.players)) {
 
-      setPlayerPositions(gs.players.map((p: any) => p.position))
+      setPlayerPositions((prev) => {
+        return gs.players.map((p: any, idx: number) => {
+          if (isRollingOrMoving && prev[idx] !== undefined) {
+            return prev[idx]
+          }
+          return p.position ?? 0
+        })
+      })
 
       setPlayers((prev) => {
 
@@ -18184,7 +18178,15 @@ export default function App() {
 
     }
 
+    if (gs.winnerId !== undefined) {
+
+      setWinnerId(gs.winnerId)
+
+    }
+
     if (gs.turnState === "GAME_OVER") {
+
+      isMovementInProgressRef.current = false
 
       setScreen("gameover")
 
@@ -18345,6 +18347,8 @@ export default function App() {
   // Feature 2: Authoritative Turn Timer State
 
   const [turnTimer, setTurnTimer] = useState<TurnTimerState | null>(null)
+
+  const kickedPlayerIdsRef = useRef<Set<number>>(new Set())
 
 
 
@@ -18514,6 +18518,18 @@ export default function App() {
 
         setPlayers((prev) => prev.map((p) => p.id === evt.data.playerId ? { ...p, color: evt.data.color as PlayerColor } : p))
 
+      } else if (evt.data?.type === "PLAYER_KICKED") {
+
+        const kId = evt.data?.playerId
+
+        if (kId !== undefined && kId !== null) {
+
+          kickedPlayerIdsRef.current.add(kId)
+
+          setPlayers((prev) => prev.filter((p) => p.id !== kId))
+
+        }
+
       } else if (evt.data?.type === "START_GAME") {
 
         setGamePhase("IN_PROGRESS")
@@ -18546,9 +18562,15 @@ export default function App() {
 
             if (st.players && Array.isArray(st.players)) {
 
+              const activeStPlayers = st.players.filter(
+
+                (p) => !p.isLeft && !(p as any).isKicked && !kickedPlayerIdsRef.current.has(p.id)
+
+              )
+
               setPlayers((prev) => {
 
-                return st.players.map((p, idx) => {
+                return activeStPlayers.map((p, idx) => {
 
                   const existing = prev.find((ep) => ep.id === p.id) || prev[idx]
 
@@ -18660,11 +18682,28 @@ export default function App() {
 
 
 
+      const snapAny = snapshot as any
+      const isRollOrMovementInFlight = Boolean(
+        isMovementInProgressRef.current ||
+        snapAny.action === "roll" ||
+        snapAny.actionResult ||
+        snapAny.turnState === "ROLLING" ||
+        snapAny.turnState === "MOVING" ||
+        snapshot.gameState?.turnState === "ROLLING" ||
+        snapshot.gameState?.turnState === "MOVING"
+      )
+
       if (snapshot.players && snapshot.players.length > 0) {
+
+        const activeSnapshotPlayers = snapshot.players.filter(
+
+          (mp) => !mp.isLeft && !(mp as any).isKicked && !kickedPlayerIdsRef.current.has(mp.id)
+
+        )
 
         setPlayers((prev) => {
 
-          return snapshot.players.map((mp, idx) => {
+          return activeSnapshotPlayers.map((mp, idx) => {
 
             const existing = prev.find((p) => p.id === mp.id) || prev[idx]
 
@@ -18686,11 +18725,11 @@ export default function App() {
 
               isLeft: Boolean(mp.isLeft),
 
-              money: isMovementInProgressRef.current
+              money: isRollOrMovementInFlight
                 ? (existing?.money ?? mp.money ?? 0)
                 : (mp.money ?? existing?.money ?? 0),
 
-              position: isMovementInProgressRef.current ? (existing?.position ?? mp.position ?? 0) : (mp.position ?? existing?.position ?? 0),
+              position: isRollOrMovementInFlight ? (existing?.position ?? mp.position ?? 0) : (mp.position ?? existing?.position ?? 0),
 
               rotationsCompleted: mp.rotationsCompleted ?? existing?.rotationsCompleted ?? 0,
 
@@ -18732,7 +18771,13 @@ export default function App() {
 
         }
 
-        if (isMovementInProgressRef.current) {
+        if (snapshot.gameState.turnState === "GAME_OVER") {
+
+          isMovementInProgressRef.current = false
+
+          applyGameStateSnapshot(snapshot.gameState)
+
+        } else if (isRollOrMovementInFlight) {
 
           pendingSnapshotRef.current = { ...(pendingSnapshotRef.current || {}), ...snapshot }
 
@@ -18800,6 +18845,30 @@ export default function App() {
 
         if (snapshot.gameState?.turnState !== "GAME_OVER") {
 
+          if (screenRef.current === "gameover" || (snapshot.gameState?.roundNumber === 1 && snapshot.gameState?.currentTurnId === 1)) {
+
+            setPlayerPositions(snapshot.players.map(() => 0))
+
+            isMovementInProgressRef.current = false
+
+            pendingSnapshotRef.current = null
+
+            setWinnerId(null)
+
+            setActiveLanding(null)
+
+            setTradeOffers([])
+
+            setTurnPurchasedProperties([])
+
+            setTurnBuildingsBuilt([])
+
+            setPropertyOwnerCrossings({})
+
+            setNetWorthHistory({})
+
+          }
+
           setScreen("game")
 
         }
@@ -18842,6 +18911,14 @@ export default function App() {
 
     const unsubPlayerLeft = multiplayerClient.onPlayerLeft((pId, pName) => {
 
+      if (pId !== undefined && pId !== null) {
+
+        kickedPlayerIdsRef.current.add(pId)
+
+        setPlayers((prev) => prev.filter((p) => p.id !== pId))
+
+      }
+
       showToast(`${pName} left the room.`)
 
     })
@@ -18865,6 +18942,14 @@ export default function App() {
 
 
     const unsubPlayerKicked = multiplayerClient.onPlayerKicked((pId, pName, reason) => {
+
+      if (pId !== undefined && pId !== null) {
+
+        kickedPlayerIdsRef.current.add(pId)
+
+        setPlayers((prev) => prev.filter((p) => p.id !== pId))
+
+      }
 
       showToast(`${pName} was kicked from the room (${reason || "Host removed"}).`)
 
@@ -19258,6 +19343,16 @@ export default function App() {
 
       setPlayerPositions(gameState.players.map(() => 0))
 
+      isMovementInProgressRef.current = false
+
+      pendingSnapshotRef.current = null
+
+      setWinnerId(null)
+
+      setPropertyOwnerCrossings({})
+
+      setNetWorthHistory({})
+
 
 
       setRoundNumber(gameState.roundNumber)
@@ -19342,7 +19437,19 @@ export default function App() {
 
     const removedName = targetPlayer?.name || `Player ${indexToRemove + 1}`
 
-    if (multiplayerClient.getRoomCode()) {
+    if (targetPlayer) {
+
+      kickedPlayerIdsRef.current.add(targetPlayer.id)
+
+      try {
+
+        new BroadcastChannel("crownfall_sync").postMessage({ type: "PLAYER_KICKED", playerId: targetPlayer.id })
+
+      } catch (_) {}
+
+    }
+
+    if (multiplayerClient.getRoomCode() && targetPlayer) {
 
       try {
 
@@ -19376,7 +19483,9 @@ export default function App() {
 
   const handleKickPlayerInGame = async (targetPlayerId: number) => {
 
-    if (!multiplayerClient.getRoomCode()) return
+    kickedPlayerIdsRef.current.add(targetPlayerId)
+
+    setPlayers((prev) => prev.filter((p) => p.id !== targetPlayerId))
 
     const target = players.find((p) => p.id === targetPlayerId)
 
@@ -19384,13 +19493,27 @@ export default function App() {
 
     try {
 
-      await multiplayerClient.kickPlayer(targetPlayerId, "Host kicked from match")
+      new BroadcastChannel("crownfall_sync").postMessage({ type: "PLAYER_KICKED", playerId: targetPlayerId })
+
+    } catch (_) {}
+
+    if (multiplayerClient.getRoomCode()) {
+
+      try {
+
+        await multiplayerClient.kickPlayer(targetPlayerId, "Host kicked from match")
+
+        showToast(`Kicked ${targetName} from the match`)
+
+      } catch (err: any) {
+
+        showToast(`Failed to kick player: ${err?.message || "Error"}`)
+
+      }
+
+    } else {
 
       showToast(`Kicked ${targetName} from the match`)
-
-    } catch (err: any) {
-
-      showToast(`Failed to kick player: ${err?.message || "Error"}`)
 
     }
 
@@ -19553,6 +19676,8 @@ export default function App() {
           startingMoney={rules.defaultStartingMoney ?? startingMoney}
 
           doublesRule={rules.doublesRuleEnabled ?? doublesRule}
+
+          randomizePlayerOrder={rules.randomizePlayerOrder ?? false}
 
           startGameError={startGameError}
 
@@ -19828,6 +19953,18 @@ export default function App() {
 
         isHost={isEffectiveHost}
 
+        authoritativeWinnerId={winnerId}
+
+        rules={rules}
+
+        onUpdateRules={handleUpdateRules}
+
+        preferences={preferences}
+
+        onUpdatePreferences={handleUpdatePreferences}
+
+        netWorthHistory={netWorthHistory}
+
         onRematch={() => {
 
           if (multiplayerClient.getRoomCode()) {
@@ -19884,7 +20021,7 @@ export default function App() {
 
             color: "#ffffff",
 
-            fontFamily: '"Oswald", sans-serif',
+            fontFamily: '"Nunito Sans", sans-serif',
 
             fontSize: "13px",
 

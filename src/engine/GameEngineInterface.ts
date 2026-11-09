@@ -138,6 +138,7 @@ export interface GameRules {
   buildingRefundPercentage?: number
   timerEnabled?: boolean
   timerSeconds?: number
+  randomizePlayerOrder?: boolean
   devMode?: boolean
 }
 
@@ -162,6 +163,7 @@ export type GamePhase = "LOBBY" | "IN_PROGRESS" | "GAME_OVER"
 export interface GameState {
   roundNumber: number
   activePlayerIndex: number
+  winnerId?: number | null
   currentTurnId?: number
   turnState: TurnState
   gameStarted: boolean

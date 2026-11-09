@@ -46,6 +46,7 @@ export class LocalGameEngine implements IGameEngine {
   private gamePhase: "LOBBY" | "IN_PROGRESS" | "GAME_OVER" = "LOBBY"
   private settingsLocked = false
   private turnState: GameState["turnState"] = "WAITING_FOR_ROLL"
+  private winnerId: number | null = null
   private devMode = false
   private activityLog: ActivityLogEntry[] = []
   private transactionLedger: TransactionRecord[] = []
@@ -233,14 +234,15 @@ export class LocalGameEngine implements IGameEngine {
       buildingRefundPercentage: rules.buildingRefundPercentage ?? 50,
       timerEnabled: rules.timerEnabled ?? false,
       timerSeconds: rules.timerSeconds ?? 60,
+      randomizePlayerOrder: rules.randomizePlayerOrder ?? false,
       devMode: rules.devMode ?? false,
     }
     this.timerEnabled = this.rules.timerEnabled
     this.timerSeconds = this.rules.timerSeconds
     this.devMode = this.rules.devMode
     this.players = [
-      { id: 0, name: "Player 1", color: "saffron", token: "1", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
-      { id: 1, name: "Player 2", color: "teal", token: "2", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
+      { id: 0, name: "Player 1", color: "ruby", token: "1", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
+      { id: 1, name: "Player 2", color: "cobalt", token: "2", isHuman: true, money: 0, position: 0, rotationsCompleted: 0, inJail: false, jailTurns: 0, inRestHouse: false, restHouseTurns: 0, cardJailSkip: false, cardJailSkipTurns: 0, isBankrupt: false, ownedProperties: [], buildings: {}, mortgages: {}, totalRentReceived: 0, totalRentPaid: 0, constructionCount: 0, destructionCount: 0 },
     ]
   }
 
@@ -304,6 +306,9 @@ export class LocalGameEngine implements IGameEngine {
       if (rules.passStartBonus !== undefined) {
         this.rules.passStartBonus = rules.passStartBonus
       }
+      if (rules.randomizePlayerOrder !== undefined) {
+        this.rules.randomizePlayerOrder = rules.randomizePlayerOrder
+      }
     }
     this.gamePhase = "IN_PROGRESS"
     this.settingsLocked = true
@@ -318,15 +323,23 @@ export class LocalGameEngine implements IGameEngine {
     this.landingPosition = -1
     this.landingPropertyId = ""
 
-    const configs =
+    const rawConfigs =
       playerConfigs && playerConfigs.length >= 2
         ? playerConfigs
         : [
-            { name: "Player 1", color: "saffron", token: "1" },
-            { name: "Player 2", color: "teal", token: "2" },
-            { name: "Player 3", color: "plum", token: "3" },
-            { name: "Player 4", color: "blue", token: "4" },
+            { name: "Player 1", color: "ruby", token: "1" },
+            { name: "Player 2", color: "cobalt", token: "2" },
+            { name: "Player 3", color: "emerald", token: "3" },
+            { name: "Player 4", color: "tangerine", token: "4" },
           ]
+
+    const configs = [...rawConfigs]
+    if (this.rules.randomizePlayerOrder) {
+      for (let i = configs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [configs[i], configs[j]] = [configs[j], configs[i]];
+      }
+    }
 
     this.players = configs.map((c, idx) => ({
       id: idx,
@@ -355,6 +368,7 @@ export class LocalGameEngine implements IGameEngine {
 
     this.transactionLedger = []
     this.txIdCounter = 1
+    this.winnerId = null
 
     this.activePlayerIndex = 0
     this.roundNumber = 1
@@ -384,6 +398,7 @@ export class LocalGameEngine implements IGameEngine {
     this.gamePhase = "LOBBY"
     this.settingsLocked = false
     this.gameStarted = false
+    this.winnerId = null
     this.activePlayerIndex = 0
     this.roundNumber = 1
     this.consecutiveDoubles = 0
@@ -397,10 +412,10 @@ export class LocalGameEngine implements IGameEngine {
       playerConfigs && playerConfigs.length >= 2
         ? playerConfigs
         : [
-            { name: "Player 1", color: "saffron", token: "1" },
-            { name: "Player 2", color: "teal", token: "2" },
-            { name: "Player 3", color: "plum", token: "3" },
-            { name: "Player 4", color: "blue", token: "4" },
+            { name: "Player 1", color: "ruby", token: "1" },
+            { name: "Player 2", color: "cobalt", token: "2" },
+            { name: "Player 3", color: "emerald", token: "3" },
+            { name: "Player 4", color: "tangerine", token: "4" },
           ]
 
     this.players = configs.map((c, idx) => ({
@@ -477,6 +492,9 @@ export class LocalGameEngine implements IGameEngine {
     }
     if (newRules.timerSeconds !== undefined) {
       this.timerSeconds = newRules.timerSeconds
+    }
+    if (newRules.randomizePlayerOrder !== undefined) {
+      this.rules.randomizePlayerOrder = newRules.randomizePlayerOrder
     }
     return {
       success: true,
@@ -701,19 +719,27 @@ export class LocalGameEngine implements IGameEngine {
     }
 
     // Check Jail status - 2-turn maximum detention with doubles escape attempt
+    if (player.inJail && (player.jailTurns || 0) >= 2) {
+      player.inJail = false
+      player.jailTurns = 0
+      player.cardJailSkip = false
+      player.cardJailSkipTurns = 0
+    }
     const wasInJail = player.inJail
     if (player.inJail) {
       const attempt = (player.jailTurns || 0) + 1
       if (isDouble) {
         player.inJail = false
         player.jailTurns = 0
+        player.cardJailSkip = false
+        player.cardJailSkipTurns = 0
         res.eventDescription = `${player.name} rolled doubles and was released from Jail!`
         // Note: movement proceeds below using this roll. wasInJail prevents extra doubles turn.
       } else {
         player.jailTurns = attempt
         if (attempt >= 2) {
-          player.inJail = false // Sentence completed after consuming 2nd detention turn!
-          res.eventDescription = `${player.name} failed to roll doubles (attempt 2 of 2). Jail sentence served; released for next turn.`
+          player.inJail = true // Sentence completed; remains in jail until released at start of 3rd turn
+          res.eventDescription = `${player.name} failed to roll doubles (attempt 2 of 2) and remains in Jail. Jail sentence completed; will be released on next turn.`
         } else {
           res.eventDescription = `${player.name} failed to roll doubles (attempt 1 of 2) and remains in Jail.`
         }
@@ -722,11 +748,7 @@ export class LocalGameEngine implements IGameEngine {
         res.spaceName = "JAIL"
         res.spaceType = "corner"
         res.mustGoToJail = false
-        if (player.isHuman) {
-          this.turnState = "WAITING_FOR_ACTION"
-        } else {
-          this.advanceTurn(false)
-        }
+        this.advanceTurn(false)
         return { result: res, state: await this.getState() }
       }
     }
@@ -1328,6 +1350,18 @@ export class LocalGameEngine implements IGameEngine {
   }
 
   private advanceTurn(extraTurn: boolean = false) {
+    const alive = this.players.filter((p) => !p.isBankrupt)
+    if (alive.length <= 1 && this.players.length > 1) {
+      if (this.turnState !== "GAME_OVER") {
+        this.turnState = "GAME_OVER"
+        this.gamePhase = "GAME_OVER"
+        const winner = alive[0] || null
+        this.winnerId = winner ? winner.id : null
+        this.addLog(winner ? winner.id : 0, "game_over", winner ? `GAME OVER! ${winner.name} is the winner!` : "GAME OVER! All players have been eliminated.")
+      }
+      return
+    }
+
     if (!extraTurn) {
       this.consecutiveDoubles = 0
       this.currentTurnId++
@@ -1349,6 +1383,13 @@ export class LocalGameEngine implements IGameEngine {
           nextIdx = (nextIdx + 1) % this.players.length
           attempts++
           continue
+        }
+        if (this.players.length > 1 && candidate && ((candidate.jailTurns ?? 0) >= 2 || (candidate.inJail && (candidate.jailTurns ?? 0) >= 2))) {
+          candidate.inJail = false
+          candidate.jailTurns = 0
+          candidate.cardJailSkip = false
+          candidate.cardJailSkipTurns = 0
+          this.addLog(candidate.id, "jail", `${candidate.name} served their jail sentence and was released from Jail.`)
         }
         let skipped = false
         if ((candidate?.cardJailSkipTurns || 0) > 0 || candidate?.cardJailSkip) {
@@ -1778,6 +1819,7 @@ export class LocalGameEngine implements IGameEngine {
     return {
       roundNumber: this.roundNumber,
       activePlayerIndex: this.activePlayerIndex,
+      winnerId: this.winnerId ?? (this.turnState === "GAME_OVER" ? (this.players.find(p => !p.isBankrupt)?.id ?? null) : null),
       turnState: this.turnState,
       gameStarted: this.gameStarted,
       gamePhase: this.gamePhase,
@@ -2053,6 +2095,8 @@ export class LocalGameEngine implements IGameEngine {
     playerId: number,
   ): Promise<{ success: boolean; state: GameState; error?: string }> {
     this.turnState = "GAME_OVER"
+    this.gamePhase = "GAME_OVER"
+    this.winnerId = null
     this.activityLog.push({
       id: this.logIdCounter++,
       timestamp: Date.now(),
@@ -2106,8 +2150,10 @@ export class LocalGameEngine implements IGameEngine {
     const alive = this.players.filter((p) => !p.isBankrupt)
     if (alive.length <= 1) {
       this.turnState = "GAME_OVER"
-      const winner = alive[0] || player
-      this.addLog(winner.id, "game_over", `GAME OVER! ${winner.name} is the winner!`)
+      this.gamePhase = "GAME_OVER"
+      const winner = alive[0] || null
+      this.winnerId = winner ? winner.id : null
+      this.addLog(winner ? winner.id : 0, "game_over", winner ? `GAME OVER! ${winner.name} is the winner!` : "GAME OVER! All players have been eliminated.")
     } else if (this.activePlayerIndex === playerId) {
       this.advanceTurn(false)
     }

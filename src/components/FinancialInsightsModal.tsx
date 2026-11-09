@@ -247,7 +247,7 @@ export function FinancialInsightsModal({
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span
                     style={{
-                      fontFamily: "'Playfair Display', serif",
+                      fontFamily: "'Nunito Sans', sans-serif",
                       fontSize: "14px",
                       fontWeight: 800,
                       color: "var(--gold-300, #eed48f)",

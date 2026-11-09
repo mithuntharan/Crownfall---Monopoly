@@ -35,7 +35,6 @@ export type EventLogCategory =
   | "TURNS"
   | "CHANCE_CHEST"
   | "JAIL"
-  | "REST_HOUSE"
 
 export const EVENT_LOG_CATEGORIES: { id: EventLogCategory; label: string; icon: string }[] = [
   { id: "ALL", label: "All Events", icon: "" },
@@ -43,8 +42,26 @@ export const EVENT_LOG_CATEGORIES: { id: EventLogCategory; label: string; icon: 
   { id: "TURNS", label: "Turns", icon: "" },
   { id: "CHANCE_CHEST", label: "Cards", icon: "" },
   { id: "JAIL", label: "Jail", icon: "" },
-  { id: "REST_HOUSE", label: "Rest House", icon: "" },
 ]
+
+/**
+ * Filter out Rest House-related occurrences (landing, collection, payment, skip)
+ * from the Chronicle / Events tab per UI requirements.
+ */
+export function isRestHouseEvent(type: string, description: string = ""): boolean {
+  const t = (type || "").toLowerCase().trim()
+  const d = (description || "").toLowerCase()
+  return (
+    t === "rest" ||
+    t === "rest_house" ||
+    t === "club" ||
+    t === "royal_club" ||
+    t === "rest_house_land" ||
+    t === "rest_skip" ||
+    /rest\s*house/i.test(d) ||
+    /royal\s*club/i.test(d)
+  )
+}
 
 /**
  * Filter out any financial transactions that belong exclusively to the authoritative Ledger.
@@ -162,14 +179,6 @@ export function matchGameplayEventCategory(type: string, category: EventLogCateg
         t === "pay_jail_fine" ||
         t === "jail_fine"
       )
-    case "REST_HOUSE":
-      return (
-        t === "rest" ||
-        t === "rest_house" ||
-        t === "club" ||
-        t === "rest_house_land" ||
-        t === "rest_skip"
-      )
     default:
       return false
   }
@@ -265,6 +274,10 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
       if (isLedgerFinancialEvent(evt.type, evt.description)) {
         continue
       }
+      // Filter out Rest House-related occurrences from the Chronicle / Events tab
+      if (isRestHouseEvent(evt.type, evt.description)) {
+        continue
+      }
       const key = `${evt.id}_${evt.timestamp}_${evt.type}`
       if (!seen.has(key)) {
         seen.add(key)
@@ -288,14 +301,12 @@ export function GameplayEventLog({ isOpen, onToggle, onClose, events, onClear: _
       TURNS: 0,
       CHANCE_CHEST: 0,
       JAIL: 0,
-      REST_HOUSE: 0,
     }
     for (const evt of deduplicatedEvents) {
       if (matchGameplayEventCategory(evt.type, "DICE")) counts.DICE++
       if (matchGameplayEventCategory(evt.type, "TURNS")) counts.TURNS++
       if (matchGameplayEventCategory(evt.type, "CHANCE_CHEST")) counts.CHANCE_CHEST++
       if (matchGameplayEventCategory(evt.type, "JAIL")) counts.JAIL++
-      if (matchGameplayEventCategory(evt.type, "REST_HOUSE")) counts.REST_HOUSE++
     }
     return counts
   }, [deduplicatedEvents])

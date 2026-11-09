@@ -69,7 +69,7 @@ export function TurnOverviewDrawer({
               boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
               padding: "16px",
               color: "#fff",
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Nunito Sans', sans-serif",
             }}
           >
             {/* Header */}
@@ -86,7 +86,7 @@ export function TurnOverviewDrawer({
               <div>
                 <strong
                   style={{
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "'Nunito Sans', sans-serif",
                     fontSize: "16px",
                     color: "var(--gold-light)",
                     display: "block",
@@ -245,7 +245,7 @@ export function TurnOverviewDrawer({
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div
                         style={{
-                          fontFamily: "'Oswald', sans-serif",
+                          fontFamily: "'Nunito Sans', sans-serif",
                           fontWeight: 700,
                           fontSize: "13px",
                           color: p.isBankrupt ? "var(--text-muted, #888)" : "var(--gold-light)",

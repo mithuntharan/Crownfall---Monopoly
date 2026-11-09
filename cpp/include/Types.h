@@ -130,6 +130,7 @@ struct GameRules {
     int buildingRefundPercentage = 50;     // Default 50% refund on voluntary building sale/destruction
     bool timerEnabled = false;             // Optional turn timer
     int timerSeconds = 60;                 // Turn timer duration: 30, 60, 90 seconds
+    bool randomizePlayerOrder = false;     // Randomize player order on match start
 };
 
 // Authoritative Activity Log Entry

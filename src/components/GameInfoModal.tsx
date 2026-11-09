@@ -128,7 +128,7 @@ export function GameInfoModal({
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span
               style={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: "'Nunito Sans', sans-serif",
                 fontSize: "17px",
                 fontWeight: 800,
                 color: "var(--ink, #1c1917)",
@@ -370,6 +370,7 @@ export function GameInfoModal({
         >
           {/* Subtab 1: Ledger */}
           <div
+            className={`game-info-tab-pane ${activeTab === "ledger" ? "is-active" : ""}`}
             style={{
               display: activeTab === "ledger" ? "flex" : "none",
               flexDirection: "column",
@@ -389,6 +390,7 @@ export function GameInfoModal({
 
           {/* Subtab 2: Trade */}
           <div
+            className={`game-info-tab-pane ${activeTab === "trade" ? "is-active" : ""}`}
             style={{
               display: activeTab === "trade" ? "flex" : "none",
               flexDirection: "column",
@@ -413,6 +415,7 @@ export function GameInfoModal({
 
           {/* Subtab 3: Events */}
           <div
+            className={`game-info-tab-pane ${activeTab === "events" ? "is-active" : ""}`}
             style={{
               display: activeTab === "events" ? "flex" : "none",
               flexDirection: "column",
@@ -431,6 +434,7 @@ export function GameInfoModal({
 
           {/* Subtab 4: Insights */}
           <div
+            className={`game-info-tab-pane ${activeTab === "insights" ? "is-active" : ""}`}
             style={{
               display: activeTab === "insights" ? "flex" : "none",
               flexDirection: "column",
@@ -452,6 +456,7 @@ export function GameInfoModal({
 
           {/* Subtab 5: Compare */}
           <div
+            className={`game-info-tab-pane ${activeTab === "compare" ? "is-active" : ""}`}
             style={{
               display: activeTab === "compare" ? "flex" : "none",
               flexDirection: "column",

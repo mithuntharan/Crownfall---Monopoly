@@ -118,7 +118,7 @@ export function DiceRollHistory({
               display: "flex",
               flexDirection: "column",
               color: "#fff",
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "'Nunito Sans', sans-serif",
               overflow: "hidden",
             }}
           >
@@ -136,7 +136,7 @@ export function DiceRollHistory({
               <div>
                 <strong
                   style={{
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "'Nunito Sans', sans-serif",
                     fontSize: "16px",
                     color: "var(--gold-light)",
                     display: "flex",

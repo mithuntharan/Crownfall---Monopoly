@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useRef } from "react"
 import type {
   TransactionRecord,
   EnginePlayer,
@@ -26,16 +26,45 @@ export function TransactionLedgerContent({
     return players.find((p) => p.id === localPlayerId) || null
   }, [players, localPlayerId])
 
-  // Deduplicate ledger entries by unique transaction ID
+  // Deduplicate ledger entries by unique transaction ID and event signature
   const deduplicatedLedger = useMemo(() => {
-    const map = new Map<string, TransactionRecord>()
+    const seenIds = new Set<string>()
+    const seenSignatures = new Set<string>()
+    const result: TransactionRecord[] = []
+
     ledger.forEach((tx) => {
-      if (tx && tx.id) {
-        map.set(tx.id, tx)
+      if (!tx || !tx.id) return
+      if (seenIds.has(tx.id)) return
+
+      // Deduplicate identical bank or transfer events that share turn, type, parties, amount, and property
+      const sig = `${tx.turnNumber}_${tx.type}_${tx.primaryPlayerId}_${tx.counterpartyPlayerId}_${tx.amount}_${tx.propertyId || ""}_${Math.floor(tx.timestamp / 5000)}`
+      if (seenSignatures.has(sig)) return
+
+      seenIds.add(tx.id)
+      seenSignatures.add(sig)
+      result.push(tx)
+    })
+    return result
+  }, [ledger])
+
+  const seenTxIdsRef = useRef<Set<string>>(new Set())
+  const isInitialMountRef = useRef<boolean>(true)
+
+  const newTxIds = useMemo(() => {
+    const newSet = new Set<string>()
+    if (isInitialMountRef.current) {
+      deduplicatedLedger.forEach((tx) => seenTxIdsRef.current.add(tx.id))
+      isInitialMountRef.current = false
+      return newSet
+    }
+    deduplicatedLedger.forEach((tx) => {
+      if (!seenTxIdsRef.current.has(tx.id)) {
+        newSet.add(tx.id)
+        seenTxIdsRef.current.add(tx.id)
       }
     })
-    return Array.from(map.values())
-  }, [ledger])
+    return newSet
+  }, [deduplicatedLedger])
 
   // Filter ledger
   const filteredLedger = useMemo(() => {
@@ -205,8 +234,10 @@ export function TransactionLedgerContent({
               sign = ""
             }
 
+            const isNew = newTxIds.has(tx.id)
+
             return (
-              <div key={tx.id} className="ledger-entry-card">
+              <div key={tx.id} className={`ledger-entry-card ${isNew ? "is-new-entry" : ""}`}>
                 <div className="ledger-entry-top">
                   <div className="ledger-meta-left">
                     <span className="ledger-id-pill">#{tx.id}</span>

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import type { EnginePlayer, TradeOffer } from "../engine/GameEngineInterface"
 import { CITY_PROPERTIES, SPECIAL_PROPERTIES } from "../data/businessData"
 import { ROYAL_COLOR_THEMES } from "../theme/colors"
+import { getPlayerColorHex } from "../utils/boardCoordinates"
 import MortgageStatusIndicator from "./MortgageStatusIndicator"
 
 interface TradeModalProps {
@@ -169,6 +170,7 @@ export function TradeModal({
   const [requestedCash, setRequestedCash] = useState<number>(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [acceptingTradeId, setAcceptingTradeId] = useState<string | null>(null)
+  const [acceptedTradeId, setAcceptedTradeId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleAcceptOffer = async (tradeId: string) => {
@@ -177,11 +179,15 @@ export function TradeModal({
     setErrorMsg(null)
     try {
       const success = await onAcceptOffer(tradeId)
-      if (!success) {
+      if (success) {
+        setAcceptedTradeId(tradeId)
+        await new Promise((resolve) => setTimeout(resolve, 520))
+      } else {
         setErrorMsg("Failed to complete trade acceptance.")
       }
     } finally {
       setAcceptingTradeId(null)
+      setAcceptedTradeId(null)
     }
   }
 
@@ -323,7 +329,7 @@ export function TradeModal({
               padding: "8px 12px",
               borderRadius: "6px",
               border: activeTab === "create" ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
-              background: activeTab === "create" ? "rgba(212, 175, 55, 0.22)" : "rgba(255, 255, 255, 0.04)",
+              background: activeTab === "create" ? "rgba(129, 152, 176, 0.22)" : "rgba(255, 255, 255, 0.04)",
               color: activeTab === "create" ? "var(--gold-bright, #ffd57e)" : "var(--text-secondary, #cbd5e1)",
               fontWeight: 700,
               cursor: "pointer",
@@ -340,7 +346,7 @@ export function TradeModal({
               padding: "8px 12px",
               borderRadius: "6px",
               border: activeTab === "offers" ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
-              background: activeTab === "offers" ? "rgba(212, 175, 55, 0.22)" : "rgba(255, 255, 255, 0.04)",
+              background: activeTab === "offers" ? "rgba(129, 152, 176, 0.22)" : "rgba(255, 255, 255, 0.04)",
               color: activeTab === "offers" ? "var(--gold-bright, #ffd57e)" : "var(--text-secondary, #cbd5e1)",
               fontWeight: 700,
               cursor: "pointer",
@@ -389,8 +395,8 @@ export function TradeModal({
                         style={{
                           padding: "8px 14px",
                           borderRadius: "8px",
-                          border: selectedPartnerId === p.id ? `2px solid ${p.color}` : "1px solid var(--border-subtle)",
-                          background: selectedPartnerId === p.id ? "rgba(212, 175, 55, 0.2)" : "rgba(255, 255, 255, 0.04)",
+                          border: selectedPartnerId === p.id ? `2px solid ${getPlayerColorHex(p.color)}` : "1px solid var(--border-subtle)",
+                          background: selectedPartnerId === p.id ? "rgba(129, 152, 176, 0.2)" : "rgba(255, 255, 255, 0.04)",
                           color: "var(--text-primary, #f3f4f6)",
                           cursor: "pointer",
                           display: "flex",
@@ -400,7 +406,7 @@ export function TradeModal({
                           transition: "all 0.15s ease",
                         }}
                       >
-                        <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: p.color }} />
+                        <span style={{ width: "10px", height: "10px", borderRadius: "50%", background: getPlayerColorHex(p.color) }} />
                         <strong>{p.name}</strong>
                         <span style={{ color: p.money < 0 ? "var(--financial-loss, #f87171)" : "var(--gold-bright, #ffd57e)", fontSize: "11px" }}>
                           ₹{p.money.toLocaleString()}
@@ -451,7 +457,7 @@ export function TradeModal({
                                   padding: "7px 10px",
                                   borderRadius: "6px",
                                   border: isSelected ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
-                                  background: isSelected ? "rgba(212, 175, 55, 0.25)" : "rgba(255, 255, 255, 0.04)",
+                                  background: isSelected ? "rgba(129, 152, 176, 0.25)" : "rgba(255, 255, 255, 0.04)",
                                   cursor: "pointer",
                                   textAlign: "left",
                                   transition: "all 0.15s ease",
@@ -510,7 +516,7 @@ export function TradeModal({
                                   padding: "7px 10px",
                                   borderRadius: "6px",
                                   border: isSelected ? "1.5px solid var(--gold-bright, #ffd57e)" : "1px solid var(--glass-border, rgba(255,255,255,0.08))",
-                                  background: isSelected ? "rgba(212, 175, 55, 0.25)" : "rgba(255, 255, 255, 0.04)",
+                                  background: isSelected ? "rgba(129, 152, 176, 0.25)" : "rgba(255, 255, 255, 0.04)",
                                   cursor: "pointer",
                                   textAlign: "left",
                                   transition: "all 0.15s ease",
@@ -566,15 +572,15 @@ export function TradeModal({
                     borderRadius: "6px",
                     background: isSubmitting || !partner
                       ? "rgba(255, 255, 255, 0.05)"
-                      : "linear-gradient(135deg, #d4af37 0%, #aa820a 100%)",
+                      : "linear-gradient(135deg, #526B85 0%, #455A70 100%)",
                     border: isSubmitting || !partner
                       ? "1px solid rgba(255, 255, 255, 0.08)"
-                      : "1px solid var(--gold-bright, #ffd57e)",
-                    color: isSubmitting || !partner ? "var(--text-muted, #94a3af)" : "#0c0e12",
+                      : "1px solid rgba(82, 107, 133, 0.65)",
+                    color: isSubmitting || !partner ? "var(--text-muted, #94a3af)" : "#ffffff",
                     fontWeight: 700,
                     cursor: isSubmitting || !partner ? "not-allowed" : "pointer",
                     fontSize: "13px",
-                    boxShadow: isSubmitting || !partner ? "none" : "0 2px 10px rgba(212, 175, 55, 0.3)",
+                    boxShadow: isSubmitting || !partner ? "none" : "0 2px 10px rgba(82, 107, 133, 0.3)",
                     transition: "all 0.15s ease",
                   }}
                 >
@@ -595,10 +601,12 @@ export function TradeModal({
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {incomingOffers.map((offer) => {
                       const isHighlighted = highlightTradeId === offer.id
+                      const isAccepted = acceptedTradeId === offer.id
                       return (
                       <div
                         key={offer.id}
                         ref={isHighlighted ? highlightedCardRef : undefined}
+                        className={`trade-offer-card ${isAccepted ? "is-accepted" : ""}`}
                         style={{
                           background: isHighlighted ? "rgba(217, 119, 6, 0.12)" : "rgba(0,0,0,0.3)",
                           border: isHighlighted ? "2px solid var(--gold-bright, #ffd57e)" : "1px solid var(--gold-400)",
